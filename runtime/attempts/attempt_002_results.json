@@ -1,0 +1,96 @@
+{
+  "attempt_id": "attempt_001",
+  "language": "ht",
+  "started_at": "2026-01-18T18:18:13.936Z",
+  "finished_at": "2026-01-18T18:18:43.641Z",
+  "total_questions": 5,
+  "correct": 1,
+  "percent": 20,
+  "review": [
+    {
+      "index": 1,
+      "question_id": "Q00001",
+      "display_language": "ht",
+      "question_text": "Pandan l ap ede yon rezidan ak swen maten, rezidan an fè yon poz epi li di tou dousman, \"Mwen pa renmen bezwen èd ak sa.\" Èd enfimyè a remake rezidan an evite kontak vizyèl. Ki pi bon repons lan?",
+      "options": {
+        "A": "“Mwen konprann. Fè m konnen kijan m ka ede w santi w pi alèz.”",
+        "B": "“Ou ap abitye avèk li.”",
+        "C": "\"Tout moun bezwen èd detanzantan.\"",
+        "D": "“Nou bezwen fini pou ou pare pou dejene.”"
+      },
+      "selected": "B",
+      "correct_answer": "A",
+      "is_correct": false,
+      "rationale_why_correct": "Rezidan an eksprime malèz li poutèt li bezwen èd epi li evite gade moun nan nan je, ki se siy vilnerabilite emosyonèl olye de refi oswa ijans. Rekonèt santiman rezidan an epi envite l pataje kijan swen an ka vin pi konfòtab sipòte diyite epi bati konfyans. Repons sa a respekte bezwen emosyonèl rezidan an tout pandan l ap pèmèt swen an kontinye kòmsadwa.",
+      "prometric_signal": "Lè Prometric gen ladan deklarasyon trankil, evite kontak vizyèl, oswa ekspresyon sibtil malèz, egzamen an ap teste si asistan enfimyè a reyaji avèk kominikasyon anpatik olye pou l minimize santiman oswa prese travay yo."
+    },
+    {
+      "index": 2,
+      "question_id": "Q00002",
+      "display_language": "ht",
+      "question_text": "Pandan swen aswè a, yon rezidan mande pou pa benyen, li di \"li jis santi l fatige jodi a.\" Rezidan an parèt kalm men mwens angaje pase dabitid. Kisa asistan enfimyè a ta dwe fè an premye?",
+      "options": {
+        "A": "Ensiste pou yo fin benyen an",
+        "B": "Rapòte refi a imedyatman",
+        "C": "Mande rezidan an pou l eksplike kijan l santi l.",
+        "D": "Retounen pita san avèti pèsonn"
+      },
+      "selected": "C",
+      "correct_answer": "C",
+      "is_correct": true,
+      "rationale_why_correct": "Rezidan an mande pou pa resevwa swen epi li sanble mwens angaje, sa ki endike yon posib pwoblèm emosyonèl oswa fizik olye ke yon senp mank konfòmite. Lè w mande rezidan an pou l eksplike kijan l santi l, sa respekte otonomi epi ede asistan enfimyè a konprann rezon demann lan anvan l deside si plis aksyon oswa si li nesesè pou l rapòte sa.",
+      "prometric_signal": "Lè Prometric prezante yon refi kalm oswa yon ezitasyon san detrès, egzamen an ap evalye si asistan enfimyè a premye chèche konpreyansyon atravè kominikasyon ak respè olye pou l fòse swen oswa agrave sitiyasyon an twò bonè."
+    },
+    {
+      "index": 3,
+      "question_id": "Q00003",
+      "display_language": "ht",
+      "question_text": "Pandan asistan enfimyè a ap ede yon rezidan abiye, li remake rezidan an ezite anvan li reponn epi li deplase pi dousman pase dabitid. Ki aksyon ki pi apwopriye pou l fè?",
+      "options": {
+        "A": "Fini swen an byen vit",
+        "B": "Inyore konpòtman an",
+        "C": "Dokimante konpòtman an nan fen chanjman an",
+        "D": "Mande rezidan an kijan l santi l jodi a"
+      },
+      "selected": "A",
+      "correct_answer": "D",
+      "is_correct": false,
+      "rationale_why_correct": "Mouvman ki pi dousman rezidan an reprezante yon chanjman potansyèl parapò ak konpòtman abityèl li. Lè w mande rezidan an kijan li santi l, sa pèmèt asistan enfimyè a rasanble enfòmasyon anvan li deside si chanjman an ta dwe rapòte. Apwòch sa a reflete obsèvasyon ak evalyasyon apwopriye nan wòl asistan enfimyè a.",
+      "prometric_signal": "Lè Prometric mete aksan sou chanjman fonksyonèl sibtil san yon pwoblèm evidan, repons ki kòrèk la souvan se evalye epi kominike olye pou inyore chanjman an oswa ranvwaye aksyon an jiskaske dokimantasyon an sèlman."
+    },
+    {
+      "index": 4,
+      "question_id": "Q00004",
+      "display_language": "ht",
+      "question_text": "Yon rezidan di asistan enfimyè a, “Mwen pa vle fanmi mwen konnen tout bagay sou mwen.” Ton rezidan an serye men kalm. Kisa asistan enfimyè a ta dwe fè?",
+      "options": {
+        "A": "Eksplike ke anplwaye yo pataje enfòmasyon libman.",
+        "B": "Rasire rezidan an ke enfòmasyon pèsonèl yo ap rete konfidansyèl.",
+        "C": "Evite pale sou swen",
+        "D": "Di rezidan an pou l pale sèlman ak enfimyè a."
+      },
+      "selected": "D",
+      "correct_answer": "B",
+      "is_correct": false,
+      "rationale_why_correct": "Rezidan an mande pou yo pa pataje enfòmasyon pèsonèl li, li eksprime yon atant klè sou vi prive. Èd enfimyè a dwe respekte konfidansyalite pandan l ap eksplike limit pwofesyonèl yo si yo bezwen fè rapò. Lè l reponn yon fason ki apwopriye, sa pwoteje konfyans rezidan an epi li swiv estanda etik swen yo.",
+      "prometric_signal": "Lè Prometric prezante yon demann dirèk sou vi prive oswa pataj enfòmasyon, kesyon an ap teste konesans sou limit konfidansyalite ak responsablite asistan enfimyè a pou pwoteje enfòmasyon rezidan an."
+    },
+    {
+      "index": 5,
+      "question_id": "Q00005",
+      "display_language": "ht",
+      "question_text": "Pandan yon rezidan ap ede ak swen pèsonèl li, li mande asistan enfimyè a si li ta dwe sispann pran yon medikaman yo preskri li. Ki pi bon repons lan?",
+      "options": {
+        "A": "Ofri konsèy pèsonèl",
+        "B": "Sijere pou sote yon dòz",
+        "C": "Di rezidan an pou l diskite pwoblèm nan ak enfimyè a.",
+        "D": "Chanje sijè a"
+      },
+      "selected": "B",
+      "correct_answer": "C",
+      "is_correct": false,
+      "rationale_why_correct": "Sitiyasyon an egzije pou asistan enfimyè a rekonèt yon limit ant swen sipò ak responsablite ki pou pèsonèl enfimyè ki gen lisans. Lè yo aji nan limit ki nesesè yo epi yo rapòte pwoblèm yo yon fason ki apwopriye, sa asire sekirite rezidan yo epi li swiv règleman etablisman an.",
+      "prometric_signal": "Lè Prometric prezante desizyon ki enplike konsèy, pwomès, oswa aksyon ki depase swen woutin, egzamen an ap teste si asistan enfimyè a konprann ki lè pou l sipòte, obsève, epi rapòte olye pou l aji poukont li."
+    }
+  ]
+}

@@ -1,0 +1,223 @@
+{
+  "attempt_id": "attempt_003",
+  "exam_form_id": "form_001",
+  "blueprint_id": "blueprint_001",
+  "language": "en",
+  "started_at": "2026-01-18T19:21:48.157Z",
+  "finished_at": "2026-01-18T19:24:53.743Z",
+  "total_questions": 10,
+  "correct": 8,
+  "percent": 80,
+  "review": [
+    {
+      "index": 1,
+      "question_id": "Q00198",
+      "selected": "A",
+      "correct_answer": "A",
+      "is_correct": true,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "While giving a bed bath, the nurse aide notices the resident tenses and grips the sheet when the aide washes the resident’s lower legs. The resident does not speak. What should the nurse aide do?",
+          "options": {
+            "A": "Ask if the resident is comfortable and adjust care",
+            "B": "Continue the bath quickly",
+            "C": "Stop the bath immediately",
+            "D": "Report the behavior"
+          },
+          "why_correct": "Nonverbal cues such as tensing and gripping the sheet indicate possible discomfort, not refusal or emergency. The correct response is to assess comfort and adjust care. The nurse aide does not ignore the cue, stop care without assessment, or escalate to reporting without first checking comfort.",
+          "prometric_signal": "When Prometric includes silent physical tension during hands-on care, the exam is testing whether the aide pauses to assess comfort rather than rushing, stopping abruptly, or reporting without context."
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "question_id": "Q00008",
+      "selected": "C",
+      "correct_answer": "C",
+      "is_correct": true,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "Which situation must the nurse aide report to the nurse immediately?",
+          "options": {
+            "A": "A resident prefers to sleep late",
+            "B": "A resident complains of boredom",
+            "C": "A resident states they feel suddenly confused",
+            "D": "A resident asks for a blanket"
+          },
+          "why_correct": "Sudden confusion is a significant change from a resident’s usual mental status and may indicate a serious underlying condition. Prompt reporting ensures timely assessment and protects the resident’s safety.",
+          "prometric_signal": "When Prometric contrasts normal preferences with sudden mental changes, the correct response is to identify which situation represents a true change in condition that requires reporting rather than routine documentation."
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "question_id": "Q00201",
+      "selected": "A",
+      "correct_answer": "B",
+      "is_correct": false,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "During dressing, the nurse aide notices the resident pauses and rubs their upper arm while pulling on a sleeve. What should the nurse aide do?",
+          "options": {
+            "A": "Take over dressing",
+            "B": "Adjust assistance and proceed gently",
+            "C": "Stop dressing",
+            "D": "Continue dressing using the same technique"
+          },
+          "why_correct": "Pausing and rubbing the arm suggests discomfort during movement. Adjusting assistance and proceeding gently respects comfort while maintaining appropriate care. The nurse aide does not take over completely, stop without cause, or ignore the signal.",
+          "prometric_signal": "When Prometric shows minor physical hesitation during dressing, the exam is testing whether the aide modifies technique rather than abandoning care or removing the resident’s independence.\nCNA_Rationales_Chapter4_v2.docx\nChapter 4 - Basic Nursing Care"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "question_id": "Q00203",
+      "selected": "A",
+      "correct_answer": "A",
+      "is_correct": true,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "When should hand hygiene be performed?",
+          "options": {
+            "A": "Before and after resident care",
+            "B": "Only after care",
+            "C": "Only before meals",
+            "D": "Once per shift"
+          },
+          "why_correct": "Hand hygiene is required both before and after resident care to establish and close the infection-control boundary. The nurse aide does not limit handwashing to only one point in care or to meals or shift routines.",
+          "prometric_signal": "When Prometric asks generally when hand hygiene is performed, the exam is testing knowledge of standard infection-control boundaries, not isolated moments or partial compliance."
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "question_id": "Q00068",
+      "selected": "D",
+      "correct_answer": "D",
+      "is_correct": true,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "While making a bed, the nurse aide notices the bed wheels are unlocked. The resident is sitting nearby and watching. What should the nurse aide do?",
+          "options": {
+            "A": "Finish making the bed first",
+            "B": "Ask the resident to move away",
+            "C": "Report the issue later",
+            "D": "Lock the bed wheels before continuing"
+          },
+          "why_correct": "Unlocked bed wheels create a hazard that can lead to movement during transfers or repositioning. Locking the wheels immediately removes the risk and protects both the resident and staff. Delaying correction or continuing the task allows a preventable fall hazard to remain in place.",
+          "prometric_signal": "When Prometric identifies unsecured equipment in the resident’s environment, the exam is testing whether the nurse aide corrects the hazard immediately rather than postponing action or reporting later."
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "question_id": "Q00075",
+      "selected": "B",
+      "correct_answer": "B",
+      "is_correct": true,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "The nurse aide notices a spill near a resident’s bed. The resident is asleep. What is the best action?",
+          "options": {
+            "A": "Leave the spill until the resident wakes",
+            "B": "Clean the spill quietly to prevent falls",
+            "C": "Wake the resident to move them",
+            "D": "Report the spill to housekeeping only"
+          },
+          "why_correct": "A spill near the resident’s bed is an immediate fall hazard, regardless of whether the resident is currently asleep. Cleaning the spill promptly removes the risk without disturbing the resident. Waiting or reporting only allows the hazard to remain.",
+          "prometric_signal": "When Prometric presents an environmental hazard with no immediate resident involvement, the exam is testing whether the nurse aide removes the hazard promptly rather than delaying action."
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "question_id": "Q00263",
+      "selected": "D",
+      "correct_answer": "A",
+      "is_correct": false,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "During morning care, a resident asks the nurse aide where they are several times within a short period. The resident appears calm and cooperative. What should the nurse aide do?",
+          "options": {
+            "A": "Answer calmly and provide reassurance",
+            "B": "Redirect the resident without answering directly",
+            "C": "Correct the resident firmly",
+            "D": "Continue care while remaining calm"
+          },
+          "why_correct": "Repeated questions about location indicate confusion but not agitation or distress. Calmly answering and reassuring addresses the emotional need without correcting, dismissing, or ignoring the resident. The nurse aide does not escalate or redirect away from the question because reassurance is the appropriate boundary at this level of confusion.",
+          "prometric_signal": "When Prometric includes repeated orientation questions with a calm demeanor, the exam is testing supportive communication rather than correction, redirection, or silent continuation of care."
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "question_id": "Q00268",
+      "selected": "B",
+      "correct_answer": "B",
+      "is_correct": true,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "What does NPO mean?",
+          "options": {
+            "A": "No physical orders",
+            "B": "Nothing by mouth",
+            "C": "Nutrition per order",
+            "D": "Normal patient observation"
+          },
+          "why_correct": "“NPO” is a standard medical order meaning nothing by mouth. Understanding this term is necessary for following care instructions accurately and safely. The nurse aide does not interpret or modify the order, only recognizes and complies with it.",
+          "prometric_signal": "When Prometric asks for common medical abbreviations, the exam is testing recognition and compliance—not interpretation or clinical decision-making."
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "question_id": "Q00005",
+      "selected": "C",
+      "correct_answer": "C",
+      "is_correct": true,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "While assisting with grooming, a resident asks the nurse aide whether they should stop taking a prescribed medication. What is the best response?",
+          "options": {
+            "A": "Offer personal advice",
+            "B": "Suggest skipping one dose",
+            "C": "Tell the resident to discuss the concern with the nurse",
+            "D": "Change the subject"
+          },
+          "why_correct": "The situation requires the nurse aide to recognize a boundary between supportive care and responsibilities that belong to licensed nursing staff. Acting within scope and reporting concerns appropriately ensures resident safety and follows facility policy.",
+          "prometric_signal": "When Prometric introduces decisions involving advice, promises, or action beyond routine care, the exam is testing whether the nurse aide understands when to support, observe, and report rather than act independently."
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "question_id": "Q00066",
+      "selected": "C",
+      "correct_answer": "C",
+      "is_correct": true,
+      "review_blocks": [
+        {
+          "label": "EN",
+          "question_text": "While assisting a resident to stand from a chair, the nurse aide notices the resident hesitates and grips the armrest tightly. What should the nurse aide do first?",
+          "options": {
+            "A": "Encourage the resident to stand quickly",
+            "B": "Leave to get another staff member",
+            "C": "Adjust the resident’s position and offer support",
+            "D": "Ask the resident if they are afraid"
+          },
+          "why_correct": "The resident hesitates and grips the armrest tightly, which are nonverbal cues of instability and possible balance difficulty. Before attempting to stand, the nurse aide must ensure the resident is positioned correctly and supported to reduce the risk of falling. Adjusting position and offering support addresses safety immediately without rushing the resident or leaving them unattended.",
+          "prometric_signal": "When Prometric highlights hesitation, gripping, or difficulty initiating movement during transfers, the exam is testing whether the nurse aide recognizes instability and responds with proper positioning and support rather than speed, reassurance alone, or delay."
+        }
+      ]
+    }
+  ]
+}

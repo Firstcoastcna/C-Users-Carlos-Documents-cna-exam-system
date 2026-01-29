@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/phase6_question_schema_v1.0.json",
+  "title": "Phase 6 QuestionRecord Schema v1.0",
+  "type": "array",
+  "minItems": 334,
+  "items": {
+    "type": "object",
+    "required": [
+      "question_id",
+      "chapter",
+      "correct_answer",
+      "variants"
+    ],
+    "properties": {
+      "question_id": {
+        "type": "string",
+        "pattern": "^Q\\d{5}$"
+      },
+      "chapter": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "primary_category": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "difficulty": {
+        "type": [
+          "integer",
+          "string",
+          "null"
+        ]
+      },
+      "exam_eligible": {
+        "type": [
+          "boolean",
+          "null"
+        ]
+      },
+      "correct_answer": {
+        "type": "string",
+        "enum": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ]
+      },
+      "variants": {
+        "type": "object",
+        "required": [
+          "en",
+          "es",
+          "fr",
+          "ht"
+        ],
+        "properties": {
+          "en": {
+            "$ref": "#/$defs/variant"
+          },
+          "es": {
+            "$ref": "#/$defs/variant"
+          },
+          "fr": {
+            "$ref": "#/$defs/variant"
+          },
+          "ht": {
+            "$ref": "#/$defs/variant"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "$defs": {
+    "variant": {
+      "type": "object",
+      "required": [
+        "question_text",
+        "options",
+        "rationale"
+      ],
+      "properties": {
+        "question_text": {
+          "type": "string"
+        },
+        "options": {
+          "type": "object",
+          "required": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ],
+          "properties": {
+            "A": {
+              "type": "string"
+            },
+            "B": {
+              "type": "string"
+            },
+            "C": {
+              "type": "string"
+            },
+            "D": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "rationale": {
+          "type": "object",
+          "required": [
+            "why_correct",
+            "prometric_signal"
+          ],
+          "properties": {
+            "why_correct": {
+              "type": "string"
+            },
+            "prometric_signal": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

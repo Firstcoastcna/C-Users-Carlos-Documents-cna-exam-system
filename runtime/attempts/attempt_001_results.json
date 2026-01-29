@@ -1,0 +1,91 @@
+{
+  "attempt_id": "attempt_001",
+  "language": "en",
+  "started_at": "2026-01-18T18:18:13.936Z",
+  "finished_at": "2026-01-18T18:18:43.641Z",
+  "total_questions": 5,
+  "correct": 1,
+  "percent": 20,
+  "review": [
+    {
+      "index": 1,
+      "question_id": "Q00001",
+      "question_text": "While assisting a resident with morning care, the resident pauses and quietly says, “I don’t like needing help with this.” The nurse aide notices the resident avoids eye contact. What is the best response?",
+      "options": {
+        "A": "“I understand. Let me know how I can help you feel more comfortable.”",
+        "B": "“You’ll get used to it.”",
+        "C": "“Everyone needs help sometimes.”",
+        "D": "“We need to finish so you’re ready for breakfast.”"
+      },
+      "selected": "B",
+      "correct_answer": "A",
+      "is_correct": false,
+      "rationale_why_correct": "The resident expresses discomfort about needing help and avoids eye contact, which are cues of emotional vulnerability rather than refusal or urgency. Acknowledging the resident’s feelings and inviting them to share how care can be made more comfortable supports dignity and builds trust. This response respects the resident’s emotional needs while allowing care to continue appropriately.",
+      "prometric_signal": "When Prometric includes quiet statements, avoidance of eye contact, or subtle expressions of discomfort, the exam is testing whether the nurse aide responds with empathetic communication rather than minimizing feelings or rushing tasks."
+    },
+    {
+      "index": 2,
+      "question_id": "Q00002",
+      "question_text": "During evening care, a resident asks to skip a bath, saying they “just feel tired today.” The resident appears calm but less engaged than usual. What should the nurse aide do first?",
+      "options": {
+        "A": "Insist the bath be completed",
+        "B": "Report the refusal immediately",
+        "C": "Ask the resident to explain how they are feeling",
+        "D": "Return later without notifying anyone"
+      },
+      "selected": "C",
+      "correct_answer": "C",
+      "is_correct": true,
+      "rationale_why_correct": "The resident requests to skip care and appears less engaged, indicating a possible emotional or physical concern rather than simple noncompliance. Asking the resident to explain how they are feeling respects autonomy and helps the nurse aide understand the reason for the request before deciding whether further action or reporting is needed.",
+      "prometric_signal": "When Prometric presents a calm refusal or hesitation without distress, the exam is assessing whether the nurse aide first seeks understanding through respectful communication rather than forcing care or escalating prematurely."
+    },
+    {
+      "index": 3,
+      "question_id": "Q00003",
+      "question_text": "While helping a resident get dressed, the nurse aide notices the resident hesitates before responding and moves more slowly than usual. What is the most appropriate action?",
+      "options": {
+        "A": "Complete care quickly",
+        "B": "Ignore the behavior",
+        "C": "Document the behavior at the end of the shift",
+        "D": "Ask the resident how they are feeling today"
+      },
+      "selected": "A",
+      "correct_answer": "D",
+      "is_correct": false,
+      "rationale_why_correct": "The resident’s slower movement represents a potential change from usual behavior. Asking how the resident is feeling allows the nurse aide to gather information before deciding whether the change should be reported. This approach reflects appropriate observation and assessment within the CNA role.",
+      "prometric_signal": "When Prometric highlights subtle functional changes without obvious distress, the correct response is often to assess and communicate rather than ignore the change or delay action until documentation alone."
+    },
+    {
+      "index": 4,
+      "question_id": "Q00004",
+      "question_text": "A resident says to the nurse aide, “I don’t want my family knowing everything about me.” The resident’s tone is serious but calm. What should the nurse aide do?",
+      "options": {
+        "A": "Explain that staff share information freely",
+        "B": "Reassure the resident that personal information is kept confidential",
+        "C": "Avoid discussing care",
+        "D": "Tell the resident to speak only with the nurse"
+      },
+      "selected": "D",
+      "correct_answer": "B",
+      "is_correct": false,
+      "rationale_why_correct": "The resident asks that personal information not be shared, expressing a clear expectation of privacy. The nurse aide must respect confidentiality while explaining professional limits if reporting is required. Responding appropriately protects resident trust and follows ethical standards of care.",
+      "prometric_signal": "When Prometric presents a direct request about privacy or information sharing, the question is testing knowledge of confidentiality boundaries and the nurse aide’s responsibility to protect resident information."
+    },
+    {
+      "index": 5,
+      "question_id": "Q00005",
+      "question_text": "While assisting with grooming, a resident asks the nurse aide whether they should stop taking a prescribed medication. What is the best response?",
+      "options": {
+        "A": "Offer personal advice",
+        "B": "Suggest skipping one dose",
+        "C": "Tell the resident to discuss the concern with the nurse",
+        "D": "Change the subject"
+      },
+      "selected": "B",
+      "correct_answer": "C",
+      "is_correct": false,
+      "rationale_why_correct": "The situation requires the nurse aide to recognize a boundary between supportive care and responsibilities that belong to licensed nursing staff. Acting within scope and reporting concerns appropriately ensures resident safety and follows facility policy.",
+      "prometric_signal": "When Prometric introduces decisions involving advice, promises, or action beyond routine care, the exam is testing whether the nurse aide understands when to support, observe, and report rather than act independently."
+    }
+  ]
+}

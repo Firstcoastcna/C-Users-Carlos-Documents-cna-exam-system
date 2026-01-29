@@ -1,0 +1,49 @@
+{
+  "attempt_id": "attempt_003",
+  "exam_form_id": "form_001",
+  "language": "en",
+  "started_at": "2026-01-18T19:21:48.157Z",
+  "answers": [
+    {
+      "question_id": "Q00198",
+      "selected": "A"
+    },
+    {
+      "question_id": "Q00008",
+      "selected": "C"
+    },
+    {
+      "question_id": "Q00201",
+      "selected": "A"
+    },
+    {
+      "question_id": "Q00203",
+      "selected": "A"
+    },
+    {
+      "question_id": "Q00068",
+      "selected": "D"
+    },
+    {
+      "question_id": "Q00075",
+      "selected": "B"
+    },
+    {
+      "question_id": "Q00263",
+      "selected": "D"
+    },
+    {
+      "question_id": "Q00268",
+      "selected": "B"
+    },
+    {
+      "question_id": "Q00005",
+      "selected": "C"
+    },
+    {
+      "question_id": "Q00066",
+      "selected": "C"
+    }
+  ],
+  "finished_at": "2026-01-18T19:24:53.743Z"
+}
