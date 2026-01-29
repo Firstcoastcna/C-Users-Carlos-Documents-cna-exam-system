@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function AccessPage() {
+function AccessInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
@@ -91,41 +91,31 @@ export default function AccessPage() {
   }
 
   function submit() {
-  setErr("");
+    setErr("");
 
-  const MASTER_CODE = "FCCNA2026";
+    const MASTER_CODE = "FCCNA2026";
 
-  const typed = code.trim().toUpperCase();
-  if (typed !== MASTER_CODE) {
-    setErr(
-      t(
-        "Invalid access code.",
-        "Código de acceso inválido.",
-        "Code d’accès invalide.",
-        "Kòd aksè a pa valab."
-      )
-    );
-    return;
+    const typed = code.trim().toUpperCase();
+    if (typed !== MASTER_CODE) {
+      setErr(
+        t("Invalid access code.", "Código de acceso inválido.", "Code d’accès invalide.", "Kòd aksè a pa valab.")
+      );
+      return;
+    }
+
+    try {
+      localStorage.setItem("cna_access_granted", "1");
+    } catch {}
+
+    router.push(`/welcome?lang=${lang}`);
   }
-
-  try {
-    localStorage.setItem("cna_access_granted", "1");
-  } catch {}
-
-  router.push(`/welcome?lang=${lang}`);
-}
-
-
 
   return (
     <Frame
       title={t("ACCESS", "ACCESO", "ACCÈS", "AKSÈ")}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-          <button
-            style={{ ...btnPrimary, width: "220px" }}
-            onClick={submit}
-          >
+          <button style={{ ...btnPrimary, width: "220px" }} onClick={submit}>
             {t("Continue", "Continuar", "Continuer", "Kontinye")}
           </button>
         </div>
@@ -137,37 +127,42 @@ export default function AccessPage() {
         </div>
 
         <div style={{ color: "#333", lineHeight: "1.6", marginBottom: "16px" }}>
-  {t(
-    "You are entering a CNA exam practice platform. Enter your access code to continue.",
-    "Está ingresando a una plataforma de práctica del examen CNA. Ingrese su código de acceso para continuar.",
-    "Vous entrez sur une plateforme de pratique de l’examen CNA. Entrez votre code d’accès pour continuer.",
-    "Ou pral antre nan yon platfòm pratik egzamen CNA. Antre kòd aksè ou pou kontinye."
-  )}
-</div>
-
+          {t(
+            "You are entering a CNA exam practice platform. Enter your access code to continue.",
+            "Está ingresando a una plataforma de práctica del examen CNA. Ingrese su código de acceso para continuar.",
+            "Vous entrez sur une plateforme de pratique de l’examen CNA. Entrez votre code d’accès pour continuer.",
+            "Ou pral antre nan yon platfòm pratik egzamen CNA. Antre kòd aksè ou pou kontinye."
+          )}
+        </div>
 
         <input
-  value={code}
-  onChange={(e) => setCode(e.target.value)}
-  placeholder={t("Access code", "Código de acceso", "Code d’accès", "Kòd aksè")}
-  autoFocus
-  style={{
-    width: "100%",
-    padding: "12px",
-    borderRadius: "10px",
-    border: `1px solid ${theme.buttonBorder}`,
-    fontSize: "16px",
-  }}
-/>
-
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder={t("Access code", "Código de acceso", "Code d’accès", "Kòd aksè")}
+          autoFocus
+          style={{
+            width: "100%",
+            padding: "12px",
+            borderRadius: "10px",
+            border: `1px solid ${theme.buttonBorder}`,
+            fontSize: "16px",
+          }}
+        />
 
         {err ? (
           <div style={{ marginTop: "10px", color: "#ce0707", fontSize: "14px" }}>
             {err}
           </div>
         ) : null}
-        
       </div>
     </Frame>
+  );
+}
+
+export default function AccessPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 20 }}>Loading...</div>}>
+      <AccessInner />
+    </Suspense>
   );
 }
