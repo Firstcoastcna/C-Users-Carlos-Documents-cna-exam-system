@@ -916,7 +916,7 @@ deliveredQuestionIds.forEach((qid) => {
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         <div
           style={{
-            height: "675px",
+            height: "min(675px, calc(100svh - 40px))",
             border: `2px solid ${theme.frameBorder}`,
             borderRadius: "12px",
             display: "flex",
@@ -1031,6 +1031,7 @@ deliveredQuestionIds.forEach((qid) => {
     display: "flex",
     justifyContent: "flex-end",
     gap: "10px",
+    flexWrap: "wrap",
     borderTop: `1px solid ${theme.chromeBorder}`,
     padding: "12px 14px",
     background: theme.chromeBg,
@@ -1041,7 +1042,7 @@ deliveredQuestionIds.forEach((qid) => {
   setRationaleChapter(1);
   setMode("rationales");
 }}
-    style={{ ...btnPrimary, minWidth: "180px" }}
+    style={{ ...btnPrimary, flex: "1 1 220px" }}
   >
     {T.reviewQuestions}
   </button>
@@ -1061,7 +1062,7 @@ deliveredQuestionIds.forEach((qid) => {
   }}
   style={{
     ...btnSecondary,
-    minWidth: "160px",
+    flex: "1 1 220px",
     color: "red",
     border: "1px solid red",
     fontWeight: "bold",
@@ -1076,7 +1077,7 @@ deliveredQuestionIds.forEach((qid) => {
   router.push("/pilot");
 }}
 
-    style={{ ...btnSecondary, minWidth: "160px" }}
+    style={{ ...btnSecondary, flex: "1 1 220px" }}
   >
     {T.exitToHome}
   </button>
