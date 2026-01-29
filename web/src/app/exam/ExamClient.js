@@ -38,9 +38,9 @@ const UI_TEXT = {
     analyticsIntro:
       "This section analyzes your exam performance to help guide your next study steps. It does not affect your exam score or result.",
     categoryExplainer:
-      "Categories reflect decision patterns, not isolated mistakes. A single question can influence more than one category. Use this to understand how you approached decisions—not just what you missed.",
+  "What these categories mean: Categories represent the types of decisions the exam is testing (for example: safety judgment, recognizing changes, or knowing when to report). They reflect decision patterns, not isolated mistakes. A single question can influence more than one category. Use this to understand how you approached decisions—not just what you missed.",
     chapterExplainer:
-  "Each question below represents a key idea the exam is testing. These questions help you understand what the exam is asking, why it matters for resident safety, and which chapters you should review. Start with the Primary chapters, then reinforce with the Secondary ones.",
+  "How to read this section: Chapter recommendations are based on category patterns (how the exam decisions were missed), not just the number of wrong answers in a chapter. A chapter may be recommended even if you missed fewer questions there, if it best teaches the decision rule you need next. Start with Primary chapters, then reinforce with Secondary chapters.",
     colStrengths: "Strengths",
     colWeaknesses: "Weaknesses",
     colHighRisk: "High Risk",
@@ -96,9 +96,9 @@ timeExpiredExplanation:
     analyticsIntro:
       "Esta sección analiza tu desempeño para guiar tus próximos pasos de estudio. No afecta tu puntaje ni tu resultado.",
     categoryExplainer:
-      "Las categorías reflejan patrones de decisión, no errores aislados. Una sola pregunta puede influir en más de una categoría. Úsalo para entender cómo tomaste decisiones, no solo qué fallaste.",
+  "Qué significan estas categorías: Las categorías representan los tipos de decisiones que el examen evalúa (por ejemplo: seguridad, reconocer cambios o saber cuándo reportar). Reflejan patrones de decisión, no errores aislados. Una sola pregunta puede influir en más de una categoría. Use esto para entender cómo tomó decisiones, no solo qué preguntas falló.",
     chapterExplainer:
-  "Cada pregunta que ves abajo representa una idea clave que el examen evalúa. Estas preguntas te ayudan a entender qué está poniendo a prueba el examen, por qué es importante para la seguridad del residente y qué capítulos debes repasar. Comienza con los capítulos Primarios y luego refuerza con los Secundarios.",
+  "Cómo leer esta sección: Las recomendaciones de capítulos se basan en patrones por categoría (cómo se tomaron las decisiones en el examen), no solo en la cantidad de respuestas incorrectas por capítulo. Un capítulo puede recomendarse aunque haya fallado pocas preguntas en él, si es el mejor lugar para aprender la regla de decisión que necesita reforzar. Comience con los capítulos Primarios y luego refuerce con los Secundarios.",
     colStrengths: "Fortalezas",
     colWeaknesses: "Debilidades",
     colHighRisk: "Alto riesgo",
@@ -154,9 +154,9 @@ timeExpiredExplanation:
     analyticsIntro:
       "Cette section analyse vos résultats pour guider vos prochaines étapes d’étude. Elle n’affecte pas votre score ni votre résultat.",
     categoryExplainer:
-      "Les catégories reflètent des schémas de décision, pas des erreurs isolées. Une seule question peut influencer plusieurs catégories. Utilisez ceci pour comprendre comment vous avez décidé, pas seulement ce que vous avez manqué.",
+  "Ce que signifient ces catégories : Les catégories représentent les types de décisions évaluées par l’examen (par exemple : sécurité, reconnaissance des changements ou savoir quand signaler). Elles reflètent des schémas de décision, et non des erreurs isolées. Une seule question peut influencer plusieurs catégories. Utilisez cette section pour comprendre comment vous avez pris vos décisions, pas seulement ce que vous avez manqué.",
     chapterExplainer:
-  "Chaque question ci-dessous représente une idée clé évaluée par l’examen. Ces questions vous aident à comprendre ce que l’examen cherche à mesurer, pourquoi c’est important pour la sécurité du résident et quels chapitres vous devez réviser. Commencez par les chapitres Principaux, puis renforcez avec les Secondaires.",
+  "Comment lire cette section : Les recommandations de chapitres sont basées sur des schémas par catégorie (la manière dont les décisions ont été prises), et non uniquement sur le nombre de réponses incorrectes dans un chapitre. Un chapitre peut être recommandé même si peu de questions y ont été manquées, s’il enseigne le mieux la règle de décision à renforcer. Commencez par les chapitres Principaux, puis consolidez avec les Secondaires.",
     colStrengths: "Forces",
     colWeaknesses: "Faiblesses",
     colHighRisk: "Risque élevé",
@@ -212,9 +212,9 @@ timeExpiredExplanation:
     analyticsIntro:
       "Seksiyon sa a analize pèfòmans ou pou gide pwochen etap etid ou. Li pa chanje nòt oswa rezilta ou.",
     categoryExplainer:
-      "Kategori yo montre fason ou pran desizyon, pa sèlman yon sèl erè. Yon kesyon ka afekte plis pase yon kategori. Sèvi avè l pou konprann kijan ou te pran desizyon yo, pa sèlman sa ou rate.",
+  "Sa kategori sa yo vle di: Kategori yo montre kalite desizyon egzamen an ap teste (pa egzanp: sekirite, rekonèt chanjman, oswa konnen kilè pou rapòte). Yo montre modèl nan fason ou pran desizyon, pa erè izole sèlman. Yon sèl kesyon ka gen enpak sou plis pase yon kategori. Sèvi ak sa pou konprann kijan ou te pran desizyon yo, pa sèlman ki kesyon ou rate.",
     chapterExplainer:
-  "Chak kesyon ki anba a reprezante yon ide enpòtan egzamen an ap evalye. Kesyon sa yo ede w konprann sa egzamen an ap teste, poukisa sa enpòtan pou sekirite rezidan an, epi ki chapit ou dwe revize. Kòmanse ak chapit Prensipal yo, epi kontinye ak chapit Segondè yo.",
+  "Kijan pou li seksyon sa a: Rekòmandasyon chapit yo baze sou modèl kategori (fason desizyon yo te pran), pa sèlman sou kantite repons ki te mal nan yon chapit. Yon chapit ka rekòmande menm si ou rate kèk kesyon ladan li, si se pi bon kote pou aprann règ desizyon ou bezwen ranfòse. Kòmanse ak chapit Prensipal yo, epi kontinye ak chapit Segondè yo.",
     colStrengths: "Fòs",
     colWeaknesses: "Feblès",
     colHighRisk: "Gwo risk",
