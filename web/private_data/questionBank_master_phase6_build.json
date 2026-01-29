@@ -2444,7 +2444,7 @@
         "options": {
           "A": "Fomentar la participación",
           "B": "Insistir en que el residente asista",
-          "C": "Respetar la negativa y denunciarla",
+          "C": "Respetar la negativa y reportarla",
           "D": "Ignorar la negativa"
         },
         "rationale": {
@@ -3753,7 +3753,7 @@
       "es": {
         "question_text": "Un residente le pregunta al auxiliar de enfermería si puede rechazar una parte específica de la atención. ¿Qué debe hacer el auxiliar de enfermería?",
         "options": {
-          "A": "Respetar la negativa y denunciarla",
+          "A": "Respetar la negativa y reportarla",
           "B": "Explique que la atención debe completarse",
           "C": "Ignorar la solicitud",
           "D": "Discutir con el residente"
@@ -4946,7 +4946,7 @@
         },
         "rationale": {
           "why_correct": "Un comportement craintif ou renfermé associé à un soignant précis constitue un signe d’alerte d’un possible abus émotionnel, même en l’absence de blessures physiques visibles. La loi de la Floride exige que les aides-soignants signalent immédiatement toute suspicion d’abus. Attendre des preuves ou des signes supplémentaires est inapproprié.",
-          "prometric_signal": "Lorsque Prometric présente des changements de comportement associés à un soignant précis sans blessures visibles, l’examen évalue si l’aide-soignant reconnaît ces comportements comme des indicateurs possibles d’abus émotionnel nécessitant un signalement. CHAPTER 2 🇫🇷 FRENCH (Structure and meaning preserved exactly.)"
+          "prometric_signal": "Lorsque Prometric présente des changements de comportement associés à un soignant précis sans blessures visibles, l’examen évalue si l’aide-soignant reconnaît ces comportements comme des indicateurs possibles d’abus émotionnel nécessitant un signalement."
         }
       },
       "ht": {
@@ -9204,10 +9204,10 @@
       "es": {
         "question_text": "Mientras se lava las manos, la auxiliar de enfermería nota un pequeño corte en el dedo. ¿Qué debe hacer primero?",
         "options": {
-          "A": "Deja de trabajar y vete a casa.",
-          "B": "Termine de lavar y luego aplique una venda y un guante.",
-          "C": "Ignóralo ya que es un pequeño corte.",
-          "D": "Sumerja el dedo en lejía."
+          "A": "Dejar de trabajar y volver a casa.",
+          "B": "Terminar de lavarse y luego aplicar una venda y un guante.",
+          "C": "Ignórarlo ya que es un pequeño corte.",
+          "D": "Sumerjir el dedo en lejía."
         },
         "rationale": {
           "why_correct": "Las heridas abiertas son una vía de infección. Tras lavarse las manos, el auxiliar de enfermería debe cubrir la herida con una venda y usar guantes para protegerse a sí mismo y a los residentes. Ignorar la herida o usar sustancias peligrosas es inapropiado.",
@@ -9914,7 +9914,7 @@
         },
         "rationale": {
           "why_correct": "Quitter un résident instable crée un risque immédiat. Sécuriser le résident avant de répondre à un autre appel garantit que la sécurité est maintenue avant de répondre à d’autres besoins.",
-          "prometric_signal": "Lorsque Prometric présente des demandes concurrentes liées à la sécurité du résident, l’examen évalue la priorisation—traiter d’abord le risque immédiat plutôt que de diviser l’attention ou d’abandonner les soins. CHAPTER 3 🇫🇷 FRENCH (FR)"
+          "prometric_signal": "Lorsque Prometric présente des demandes concurrentes liées à la sécurité du résident, l’examen évalue la priorisation—traiter d’abord le risque immédiat plutôt que de diviser l’attention ou d’abandonner les soins."
         }
       },
       "ht": {
@@ -10453,7 +10453,7 @@
         },
         "rationale": {
           "why_correct": "La ingesta se refiere a lo que consume un residente, incluyendo los líquidos ingeridos por vía oral. La producción de orina, los vómitos y la consistencia de las heces se clasifican como producción o eliminación, no como ingesta. Una documentación precisa depende de una clasificación correcta.",
-          "prometric_signal": "Cuando Prometric pregunta sobre la documentación de admisión y egreso, el examen prueba si el asistente de enfermería identifica correctamente lo que cuenta como admisión versus eliminación o síntomas."
+          "prometric_signal": "Cuando Prometric pregunta sobre la documentación de ingesta y egreso, el examen prueba si el asistente de enfermería identifica correctamente lo que cuenta como ingesta versus eliminación o síntomas."
         }
       },
       "fr": {
@@ -10932,7 +10932,7 @@
           "A": "Retire la bandeja",
           "B": "Ignorar la declaración",
           "C": "Obligar al residente a comer",
-          "D": "Fomentar la admisión y documentar las observaciones"
+          "D": "Fomentar la ingesta y documentar las observaciones"
         },
         "rationale": {
           "why_correct": "Comer menos de lo habitual y sentirse saciado antes puede indicar un cambio nutricional o funcional. Fomentar la ingesta mientras se documentan las observaciones permite al auxiliar de enfermería apoyar la nutrición y proporcionar información precisa para el seguimiento.",
@@ -14882,7 +14882,7 @@
         },
         "rationale": {
           "why_correct": "Les mesures objectives, telles que les signes vitaux, doivent être signalées lorsqu’elles sont hors des limites normales. Interpréter ou minimiser des résultats anormaux dépasse le rôle de l’aide-soignant.",
-          "prometric_signal": "Lorsque Prometric présente des mesures objectives liées à l’état de santé, l’examen évalue si l’aide-soignant signale des données pouvant affecter la fonction et l’état général, plutôt que de les interpréter. CHAPTER 4 🇫🇷 FRENCH (Français)"
+          "prometric_signal": "Lorsque Prometric présente des mesures objectives liées à l’état de santé, l’examen évalue si l’aide-soignant signale des données pouvant affecter la fonction et l’état général, plutôt que de les interpréter."
         }
       },
       "ht": {
@@ -15270,7 +15270,7 @@
         },
         "rationale": {
           "why_correct": "Pausing and rubbing the arm suggests discomfort during movement. Adjusting assistance and proceeding gently respects comfort while maintaining appropriate care. The nurse aide does not take over completely, stop without cause, or ignore the signal.",
-          "prometric_signal": "When Prometric shows minor physical hesitation during dressing, the exam is testing whether the aide modifies technique rather than abandoning care or removing the resident’s independence.\nCNA_Rationales_Chapter4_v2.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric shows minor physical hesitation during dressing, the exam is testing whether the aide modifies technique rather than abandoning care or removing the resident’s independence."
         }
       },
       "es": {
@@ -15684,7 +15684,7 @@
         },
         "rationale": {
           "why_correct": "Shivering and pulling the robe closer indicate cold exposure. Covering the resident and adjusting room temperature address an environmental comfort and safety need. The nurse aide does not ignore temperature cues or prioritize speed over warmth.",
-          "prometric_signal": "When Prometric pairs physical cues with environmental conditions, the exam is testing whether the aide modifies the environment rather than continuing care unchanged.\nCNA_Rationales_Chapter4_v3.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric pairs physical cues with environmental conditions, the exam is testing whether the aide modifies the environment rather than continuing care unchanged."
         }
       },
       "es": {
@@ -16098,7 +16098,7 @@
         },
         "rationale": {
           "why_correct": "Anxiety and tight gripping during a transfer indicate fear, not refusal or immediate danger. Reassuring the resident and proceeding slowly supports safe movement. The nurse aide does not ignore the behavior, cancel without cause, or proceed without reassurance.",
-          "prometric_signal": "When Prometric presents anxiety during transfers without instability, the exam is testing pacing and reassurance rather than abandonment or acceleration.\nCNA_Rationales_Chapter4_v4.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric presents anxiety during transfers without instability, the exam is testing pacing and reassurance rather than abandonment or acceleration."
         }
       },
       "es": {
@@ -16512,7 +16512,7 @@
         },
         "rationale": {
           "why_correct": "Anxiety and repeated clothing adjustments during toileting signal a need for privacy and time. Offering privacy and allowing time respects dignity and autonomy. The nurse aide does not ignore the behavior, rush, or continue without addressing privacy.",
-          "prometric_signal": "When Prometric includes anxious behaviors during elimination care, the exam is testing whether the aide prioritizes dignity over speed or routine.\nCNA_Rationales_Chapter4_v5.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric includes anxious behaviors during elimination care, the exam is testing whether the aide prioritizes dignity over speed or routine."
         }
       },
       "es": {
@@ -16926,7 +16926,7 @@
         },
         "rationale": {
           "why_correct": "Becoming quiet and tense during perineal care signals discomfort related to privacy and communication. Explaining each step and proceeding gently respects dignity. The nurse aide does not proceed silently, stop without cause, or complete care without explanation.",
-          "prometric_signal": "When Prometric presents withdrawal during intimate care, the exam is testing whether the aide reinforces communication and dignity rather than continuing mechanically.\nCNA_Rationales_Chapter4_v6.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric presents withdrawal during intimate care, the exam is testing whether the aide reinforces communication and dignity rather than continuing mechanically."
         }
       },
       "es": {
@@ -17340,7 +17340,7 @@
         },
         "rationale": {
           "why_correct": "Hesitation before lifting the cup suggests positioning or setup difficulty. Asking if assistance is needed allows adjustment without removing independence. The nurse aide does not rush intake, remove the tray, or ignore the cue.",
-          "prometric_signal": "When Prometric shows hesitation during meals without choking or distress, the exam is testing setup and assistance decisions rather than feeding or reporting.\nCNA_Rationales_Chapter4_v8.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric shows hesitation during meals without choking or distress, the exam is testing setup and assistance decisions rather than feeding or reporting."
         }
       },
       "es": {
@@ -17352,7 +17352,7 @@
           "D": "Continuar con la preparación del desayuno según lo planeado."
         },
         "rationale": {
-          "why_correct": "La vacilación antes de levantar la copa sugiere dificultad para posicionarla o prepararla. Preguntar si necesita ayuda permite el ajuste sin perder independencia. El auxiliar de enfermería no apresura la admisión, retira la bandeja ni ignora la indicación.",
+          "why_correct": "La vacilación antes de levantar la copa sugiere dificultad para posicionarla o prepararla. Preguntar si necesita ayuda permite el ajuste sin perder independencia. El auxiliar de enfermería no apresura la ingesta, retira la bandeja ni ignora la indicación.",
           "prometric_signal": "Cuando Prometric muestra vacilación durante las comidas sin atragantamiento ni angustia, el examen está probando decisiones de preparación y asistencia en lugar de alimentación o informes."
         }
       },
@@ -17754,7 +17754,7 @@
         },
         "rationale": {
           "why_correct": "Becoming very quiet and avoiding eye contact during toileting indicate privacy and dignity concerns. Providing privacy and explaining next steps respects autonomy. The nurse aide does not ignore the behavior, rush, or continue without communication.",
-          "prometric_signal": "When Prometric includes withdrawal and eye contact avoidance during toileting, the exam is testing whether the aide prioritizes privacy and communication over speed or silence.\nCNA_Rationales_Chapter4_v9.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric includes withdrawal and eye contact avoidance during toileting, the exam is testing whether the aide prioritizes privacy and communication over speed or silence."
         }
       },
       "es": {
@@ -18168,7 +18168,7 @@
         },
         "rationale": {
           "why_correct": "Pausing and touching the mattress before lying down indicate uncertainty about positioning or surface comfort. Asking about comfort before assisting supports safe sequencing. The nurse aide does not rush the movement, proceed without assessment, or escalate unnecessarily.",
-          "prometric_signal": "When Prometric includes hesitation before positioning, the exam is testing check-before-move sequencing logic rather than push-through behavior.\nCNA_Rationales_Chapter4_v10.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric includes hesitation before positioning, the exam is testing check-before-move sequencing logic rather than push-through behavior."
         }
       },
       "es": {
@@ -18582,7 +18582,7 @@
         },
         "rationale": {
           "why_correct": "Looking toward the doorway during dressing is a nonverbal privacy cue. Closing the door or curtain directly protects dignity. The nurse aide does not rely on verbal reassurance alone or continue care without addressing exposure.",
-          "prometric_signal": "When Prometric presents environmental privacy cues during care, the exam is testing environmental control rather than verbal comfort or task flow.\nCNA_Rationales_Chapter4_v11.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric presents environmental privacy cues during care, the exam is testing environmental control rather than verbal comfort or task flow."
         }
       },
       "es": {
@@ -18996,7 +18996,7 @@
         },
         "rationale": {
           "why_correct": "Repeated pillow adjustments after bedmaking indicate unmet comfort needs. Asking if help is needed addresses the cue without taking control. The nurse aide does not ignore the behavior, rush completion, or adjust without involving the resident.",
-          "prometric_signal": "When Prometric shows repeated self-adjustment after care, the exam is testing comfort verification rather than task finalization.\nCNA_Rationales_Chapter4_v12.docx\nChapter 4 - Basic Nursing Care"
+          "prometric_signal": "When Prometric shows repeated self-adjustment after care, the exam is testing comfort verification rather than task finalization."
         }
       },
       "es": {
@@ -19285,7 +19285,7 @@
         },
         "rationale": {
           "why_correct": "Toda la ingesta de líquidos debe convertirse a mililitros utilizando la conversión estándar de 1 onza = 30 ml. Registrar 360 ml refleja con precisión la ingesta total. El auxiliar de enfermería no estima, omite la gelatina ni registra onzas en lugar de mililitros.",
-          "prometric_signal": "Cuando Prometric incluye matemáticas de admisión, el examen prueba la conversión de unidades exactas, no el redondeo, la aproximación o el recuento parcial."
+          "prometric_signal": "Cuando Prometric incluye matemáticas de ingesta, el examen prueba la conversión de unidades exactas, no el redondeo, la aproximación o el recuento parcial."
         }
       },
       "fr": {
@@ -24247,7 +24247,7 @@
         "question_text": "Un residente con demencia se muestra cada vez más agitado y confundido alrededor de las 4:00 p. m. Esto se conoce como:",
         "options": {
           "A": "Alucinando",
-          "B": "Atardecer",
+          "B": "Sindrome del Atardecer",
           "C": "Delirio",
           "D": "Esquizofrenia"
         },
