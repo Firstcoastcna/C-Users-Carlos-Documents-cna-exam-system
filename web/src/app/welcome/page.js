@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function WelcomePage() {
+
+function WelcomeInner() {
+
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
@@ -220,5 +222,12 @@ useEffect(() => {
         </div>
       </div>
     </Frame>
+  );
+}
+export default function WelcomePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 20 }}>Loading...</div>}>
+      <WelcomeInner />
+    </Suspense>
   );
 }

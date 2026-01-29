@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import React, { Suspense, useEffect, useMemo } from "react";
+
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ChaptersPage() {
+function ChaptersInner() {
+
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
@@ -596,5 +598,12 @@ export default function ChaptersPage() {
         })}
       </div>
     </Frame>
+  );
+}
+export default function ChaptersPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 20 }}>Loading...</div>}>
+      <ChaptersInner />
+    </Suspense>
   );
 }

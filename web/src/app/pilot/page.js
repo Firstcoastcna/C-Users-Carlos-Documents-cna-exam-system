@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
+
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function PilotPage() {
+function PilotInner() {
+
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -291,5 +293,12 @@ useEffect(() => {
         </div>
       </div>
     </div>
+  );
+}
+export default function PilotPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 20 }}>Loading...</div>}>
+      <PilotInner />
+    </Suspense>
   );
 }
