@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { scoreExam } from "../lib/scoring";
 import { finalizeAttemptAnalytics } from "../lib/finalizeAttemptAnalytics";
 
-
 export default function ExamClient({ form, bankById, lang }) {
   const router = useRouter();
   
@@ -31,9 +30,14 @@ const UI_TEXT = {
     whatToStudyNext: "What to Study Next",
     backToResults: "Back to Results",
     reviewQuestions: "Review Questions",
+    startRemediation: "Start Remediation",
     exitToHome: "Exit to Home",
     resultsOnly: "Results",
     scoreLine: (percent, didPass) => `Score: ${percent}% – ${didPass ? "Pass" : "Fail"}`,
+    nextStepTitle: "Next step",
+nextStepOnTrack: "You’re on track. Review missed questions, or start a short remediation set to reinforce weak spots.",
+nextStepBorderline: "You’re close. Start Remediation for targeted practice in the areas most likely to raise your score.",
+nextStepHighRisk: "Focus on safety-critical areas first. Start Remediation to practice high-risk decisions, then review missed questions.",
     onceEnded: "Once the exam is ended, answers cannot be changed.",
     analyticsIntro:
       "This section analyzes your exam performance to help guide your next study steps. It does not affect your exam score or result.",
@@ -89,9 +93,14 @@ timeExpiredExplanation:
     whatToStudyNext: "Qué estudiar después",
     backToResults: "Volver a resultados",
     reviewQuestions: "Revisar preguntas",
+    startRemediation: "Iniciar remediación",
     exitToHome: "Salir al inicio",
     resultsOnly: "Resultados",
     scoreLine: (percent, didPass) => `Puntaje: ${percent}% – ${didPass ? "Aprobado" : "No aprobado"}`,
+    nextStepTitle: "Siguiente paso",
+nextStepOnTrack: "Vas por buen camino. Revisa las preguntas falladas o inicia una remediación corta para reforzar puntos débiles.",
+nextStepBorderline: "Estás muy cerca. Inicia Remediación para practicar de forma dirigida las áreas que más subirán tu puntaje.",
+nextStepHighRisk: "Enfócate primero en áreas críticas de seguridad. Inicia Remediación para practicar decisiones de alto riesgo y luego revisa las preguntas falladas.",
     onceEnded: "Una vez finalizado el examen, las respuestas no se pueden cambiar.",
     analyticsIntro:
       "Esta sección analiza tu desempeño para guiar tus próximos pasos de estudio. No afecta tu puntaje ni tu resultado.",
@@ -147,9 +156,14 @@ timeExpiredExplanation:
     whatToStudyNext: "Quoi étudier ensuite",
     backToResults: "Retour aux résultats",
     reviewQuestions: "Revoir les questions",
+    startRemediation: "Commencer la remédiation",
     exitToHome: "Quitter vers l’accueil",
     resultsOnly: "Résultats",
     scoreLine: (percent, didPass) => `Score : ${percent}% – ${didPass ? "Réussi" : "Échoué"}`,
+    nextStepTitle: "Prochaine étape",
+nextStepOnTrack: "Vous êtes sur la bonne voie. Revoyez les questions manquées ou commencez une courte remédiation pour renforcer vos points faibles.",
+nextStepBorderline: "Vous êtes proche. Commencez la remédiation pour une pratique ciblée des domaines qui amélioreront le plus votre score.",
+nextStepHighRisk: "Concentrez-vous d’abord sur les domaines critiques pour la sécurité. Commencez la remédiation pour pratiquer les décisions à haut risque, puis revoyez les questions manquées.",
     onceEnded: "Une fois l’examen terminé, les réponses ne peuvent plus être modifiées.",
     analyticsIntro:
       "Cette section analyse vos résultats pour guider vos prochaines étapes d’étude. Elle n’affecte pas votre score ni votre résultat.",
@@ -205,9 +219,14 @@ timeExpiredExplanation:
     whatToStudyNext: "Sa pou etidye apre",
     backToResults: "Tounen nan rezilta yo",
     reviewQuestions: "Revize kesyon yo",
+    startRemediation: "Kòmanse remedyasyon",
     exitToHome: "Soti pou ale lakay",
     resultsOnly: "Rezilta",
     scoreLine: (percent, didPass) => `Nòt: ${percent}% – ${didPass ? "Pase" : "Pa pase"}`,
+    nextStepTitle: "Pwochen etap",
+nextStepOnTrack: "Ou sou bon wout la. Revize kestyon ou rate yo, oswa kòmanse yon ti remedyasyon pou ranfòse pwen fèb yo.",
+nextStepBorderline: "Ou prèt pou w pase. Kòmanse Remedyasyon pou pratike zòn ki pi ka ogmante nòt ou.",
+nextStepHighRisk: "Fòk ou konsantre sou zòn sekirite ki pi enpòtan yo anvan. Kòmanse Remedyasyon pou pratike desizyon ki gen gwo risk, epi apre sa revize kestyon ou rate yo.",
     onceEnded: "Lè egzamen an fini, ou pa ka chanje repons yo ankò.",
     analyticsIntro:
       "Seksiyon sa a analize pèfòmans ou pou gide pwochen etap etid ou. Li pa chanje nòt oswa rezilta ou.",
@@ -777,6 +796,7 @@ useEffect(() => {
   // ----------------------------
   // Helpers
   // ----------------------------
+      
   function getDisplayBlocks(q) {
     const blocks = [];
 
@@ -983,6 +1003,32 @@ deliveredQuestionIds.forEach((qid) => {
   </div>
 )}
 
+{resultsPayload?.overall_status && (
+  <div
+    style={{
+      margin: "0 auto 14px",
+      maxWidth: "640px",
+      border: "1px solid #d4dee8",
+      borderRadius: "12px",
+      background: "#fbfdff",
+      padding: "8px 10px",
+      textAlign: "left",
+    }}
+  >
+    <div style={{ fontWeight: 600, fontSize: "20px", marginBottom: "3px" }}>
+  {T.nextStepTitle}
+</div>
+
+    <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#333" }}>
+      {resultsPayload.overall_status === "On Track"
+        ? T.nextStepOnTrack
+        : resultsPayload.overall_status === "High Risk"
+        ? T.nextStepHighRisk
+        : T.nextStepBorderline}
+    </div>
+  </div>
+)}
+
 </div>
 
               <div
@@ -1071,16 +1117,38 @@ deliveredQuestionIds.forEach((qid) => {
   {T.analytics}
 </button>
 
+<button
+  onClick={() => {
+    if (!attemptId) {
+      alert("Remediation is unavailable because the attempt id was not found.");
+      return;
+    }
 
-  <button
-    onClick={() => {
-  router.push("/pilot");
-}}
+    const key = `cna:results:${attemptId}`;
+    const raw = localStorage.getItem(key);
 
-    style={{ ...btnSecondary, flex: "1 1 220px" }}
-  >
-    {T.exitToHome}
-  </button>
+    if (!raw) {
+      alert("Remediation is unavailable because the results payload was not found.");
+      return;
+    }
+
+    // Route only. Remediation Home handles continue/review/start/loop logic.
+    router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}`);
+  }}
+  style={{ ...btnPrimary, flex: "1 1 220px" }}
+>
+  {T.startRemediation}
+</button>
+
+<button
+  onClick={() => {
+    router.push("/pilot");
+  }}
+  style={{ ...btnSecondary, flex: "1 1 220px" }}
+>
+  {T.exitToHome}
+</button>
+
 </div>
         </div>
       </div>
@@ -1414,7 +1482,7 @@ if (lang === "ht") {
   const isEnabled = count > 0;
 
 {analyticsUnavailable && (
-  <div style={{ marginRight: "auto", color: "#b00020", fontSize: "13px" }}>
+  <div style={{ marginRight: "auto", color: "red", fontSize: "13px" }}>
     {T.analyticsUnavailable || "Analytics unavailable for this attempt."}
   </div>
 )}
@@ -2112,7 +2180,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
 </div>
               </div>
 
-<div style={{ marginBottom: "10px", fontSize: "16px", color: "#ce0707" }}>
+<div style={{ marginBottom: "10px", fontSize: "16px", color: "red" }}>
   {T.onceEnded}
 </div>
 

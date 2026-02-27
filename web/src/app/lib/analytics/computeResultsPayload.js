@@ -30,48 +30,48 @@ const HIGH_RISK_CATEGORIES = new Set([
 // Category → Chapter mapping table v1 (Canon)
 const CATEGORY_TO_CHAPTERS = {
   "Scope of Practice & Reporting": {
-    primary: [2],
-    secondary: [5, 1],
+    primary: [1],
+    secondary: [3, 5],
     lens: "Is this within my role, or do I observe and report?",
   },
   "Change in Condition": {
     primary: [5],
-    secondary: [3, 4],
-    lens: "What is different from this resident’s baseline?",
+    secondary: [3, 2],
+    lens: "What is different from this residents baseline?",
   },
   "Observation & Safety": {
-    primary: [3],
-    secondary: [5, 4],
+    primary: [2],
+    secondary: [4, 5],
     lens: "What should I notice to prevent harm right now?",
   },
   "Environment & Safety": {
-    primary: [1],
-    secondary: [3],
+    primary: [2],
+    secondary: [4, 5],
     lens: "Is the physical space safe and supportive?",
   },
   "Infection Control": {
-    primary: [2],
-    secondary: [4, 3],
+    primary: [4],
+    secondary: [2, 1],
     lens: "What prevents contamination or spread of germs?",
   },
   "Personal Care & Comfort": {
     primary: [3],
-    secondary: [4],
+    secondary: [4, 5],
     lens: "Am I supporting comfort, dignity, and independence?",
   },
   "Mobility & Positioning": {
     primary: [3],
-    secondary: [4],
+    secondary: [4, 5],
     lens: "Is the resident being moved safely and correctly?",
   },
   "Communication & Emotional Support": {
     primary: [5],
-    secondary: [1],
+    secondary: [1, 3],
     lens: "How should I respond verbally and emotionally?",
   },
   "Dignity & Resident Rights": {
     primary: [1],
-    secondary: [3, 5],
+    secondary: [4, 5],
     lens: "Am I preserving choice, privacy, and respect?",
   },
 };
@@ -269,11 +269,25 @@ export function computeResultsPayload({ attempt, questionAttempts, contentTags, 
     }
   });
 
-  // Placeholder output (Phase 4.1 will fill real logic next)
+   // ----------------------------
+  // Persisted category priority (read-only, Phase 6 safe)
+  // ----------------------------
+  const category_priority = categoryMeta
+    .filter((c) => c.accuracy !== null)
+    .sort((a, b) => a.accuracy - b.accuracy) // lowest accuracy first
+    .map((c) => ({
+      category_id: c.category_id,
+      level: c.level,                 // Strong | Developing | Weak
+      accuracy: c.accuracy,           // internal-use only
+      is_high_risk: HIGH_RISK_CATEGORIES.has(c.category_id),
+    }));
+
   return {
     attempt_id: attempt.attempt_id,
     overall_status,
     category_diagnosis,
     chapter_guidance,
+    category_priority, // ✅ NEW (read-only, no UI)
   };
+
 }
