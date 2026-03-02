@@ -23,10 +23,11 @@ export default function RemediationClient({ bankById }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const sessionId = searchParams.get("session_id");
+const sessionId = searchParams.get("session_id");
 const attemptIdParam = searchParams.get("attemptId");
 const urlLang = searchParams.get("lang");
 const reviewParam = searchParams.get("review"); // "1" means view-only
+const qaParam = searchParams.get("qa"); // "1" enables QA debug overlay
 
 const [lang, setLang] = useState("en");
 useEffect(() => {
@@ -37,6 +38,11 @@ const [reviewMode, setReviewMode] = useState(reviewParam === "1");
 useEffect(() => {
   setReviewMode(reviewParam === "1");
 }, [reviewParam]);
+
+const [qaMode, setQaMode] = useState(qaParam === "1");
+useEffect(() => {
+  setQaMode(qaParam === "1");
+}, [qaParam]);
 
 
 const [resultsPayload, setResultsPayload] = useState(null);
@@ -70,15 +76,29 @@ const [loopState, setLoopState] = useState({
 useEffect(() => {
   if (!resultsPayload?.attempt_id) return;
 
-  // same category selection logic you already use in ExamClient
-  const selectedCats = Array.isArray(resultsPayload?.category_priority)
-    ? [
-        ...(resultsPayload.category_priority.filter((c) => c.is_high_risk) || []),
-        ...(resultsPayload.category_priority.filter((c) => !c.is_high_risk) || []),
-      ]
-        .slice(0, 2)
-        .map((c) => c.category_id)
+  // Canon selection priority:
+  // High-Risk categories first, then Weak, then Developing (only if no high-risk priority exists)
+  const ranked = Array.isArray(resultsPayload?.category_priority)
+    ? resultsPayload.category_priority
     : [];
+
+  const highRiskPriority = ranked.filter(
+    (c) => c.is_high_risk && c.level !== "Strong"
+  );
+  const weakPriority = ranked.filter(
+    (c) => !c.is_high_risk && c.level === "Weak"
+  );
+  const developingPriority = ranked.filter(
+    (c) => !c.is_high_risk && c.level === "Developing"
+  );
+
+  const selectedCats = (
+    highRiskPriority.length > 0
+      ? highRiskPriority
+      : [...weakPriority, ...developingPriority]
+  )
+    .slice(0, 2)
+    .map((c) => c.category_id);
 
   const catSetKey = (selectedCats || []).slice().sort().join("|");
   const all = loadAllRemediationSessions() || [];
@@ -745,6 +765,33 @@ function computeRemediationLoopState({
   };
 }
 
+function QaOverlay({ data }) {
+  if (!data?.enabled) return null;
+
+  return (
+    <div
+      style={{
+        marginTop: 12,
+        border: "1px dashed #d97706",
+        background: "#fff7ed",
+        borderRadius: 10,
+        padding: 10,
+        fontSize: 12,
+        lineHeight: "1.6",
+        color: "#7c2d12",
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>QA Overlay (dev-only)</div>
+      <div><strong>Attempt:</strong> {data.attemptId || "—"}</div>
+      <div><strong>Selected categories:</strong> {(data.selectedCats || []).join(" | ") || "—"}</div>
+      <div><strong>Last outcome:</strong> {data.lastOutcome || "—"}</div>
+      <div><strong>Completed attempts in set:</strong> {data.completedCount ?? 0}</div>
+      <div><strong>Forced loop active:</strong> {data.isForcedLoop ? "true" : "false"}</div>
+      <div><strong>Active session id:</strong> {data.activeSessionId || "—"}</div>
+    </div>
+  );
+}
+
 function requestExitToResults() {
   if (!session) return;
 
@@ -809,7 +856,22 @@ if (view === "intro") {
       </div>
     );
   }
-   
+
+  const isForcedLoop =
+    loopState.lastOutcome === "Stabilizing" &&
+    (loopState.completedCount || 0) > 0 &&
+    (loopState.completedCount || 0) < 3;
+
+  const qaOverlayData = {
+    enabled: qaMode,
+    attemptId: attemptIdParam,
+    selectedCats: loopState.selectedCats,
+    lastOutcome: loopState.lastOutcome,
+    completedCount: loopState.completedCount,
+    isForcedLoop,
+    activeSessionId: loopState.activeSession?.session_id || null,
+  };
+
   return (
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
       <div style={{ fontWeight: "bold", marginBottom: 10 }}>{T.remediationTitle}</div>
@@ -837,10 +899,25 @@ if (view === "intro") {
   )}
 </div>
 
-        </div>
+{isForcedLoop && (
+  <div style={{ marginTop: 6, fontSize: 13, color: "#b42318" }}>
+    Complete another remediation session before returning to exam results.
+  </div>
+)}
+	        </div>
+
+        <QaOverlay data={qaOverlayData} />
 
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-  <button onClick={() => router.push(`/exam?lang=${lang}`)} style={btnSecondary}>
+  <button
+    onClick={() => {
+      if (isForcedLoop) return;
+      router.push(`/exam?lang=${lang}`);
+    }}
+    style={{ ...btnSecondary, opacity: isForcedLoop ? 0.55 : 1, cursor: isForcedLoop ? "not-allowed" : "pointer" }}
+    disabled={isForcedLoop}
+    title={isForcedLoop ? "Complete another remediation session before returning to results." : undefined}
+  >
     {T.btnBackToResults}
   </button>
 
@@ -1444,4 +1521,3 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
     </div>
   );
 }
-

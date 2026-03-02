@@ -12,37 +12,37 @@ import { saveRemediationSession } from "./remediationSessionStorage";
 const CATEGORY_TO_CHAPTERS = {
   "Scope of Practice & Reporting": {
     primary: [1],
-    secondary: [3, 5],
-  },
-
-  "Change in Condition": {
-    primary: [5],
-    secondary: [3, 2],
-  },
-
-  "Observation & Safety": {
-    primary: [2],
-    secondary: [3, 4], // tie between 3 and 4; 3 listed first
-  },
-
-  "Environment & Safety": {
-    primary: [2],
     secondary: [4, 5],
   },
 
-  "Infection Control": {
+  "Change in Condition": {
     primary: [4],
-    secondary: [2, 1],
+    secondary: [3, 5],
+  },
+
+  "Observation & Safety": {
+    primary: [4],
+    secondary: [3, 2],
+  },
+
+    "Environment & Safety": {
+    primary: [2],
+    secondary: [3],
+  },
+
+  "Infection Control": {
+    primary: [2],
+    secondary: [3, 4],
   },
 
   "Personal Care & Comfort": {
     primary: [3],
-    secondary: [4, 5],
+    secondary: [4],
   },
 
   "Mobility & Positioning": {
     primary: [3],
-    secondary: [4, 5], // 4 and 5 tied; 4 listed first
+    secondary: [4],
   },
 
   "Communication & Emotional Support": {
@@ -52,7 +52,7 @@ const CATEGORY_TO_CHAPTERS = {
 
   "Dignity & Resident Rights": {
     primary: [1],
-    secondary: [4, 5],
+    secondary: [3, 5],
   },
 };
 
@@ -76,11 +76,6 @@ export function buildRemediationSession({
     throw new Error("buildRemediationSession: invalid mode");
   }
 
-console.log(
-  "REM BUILD: snapshot length",
-  Array.isArray(questionBankSnapshot) ? questionBankSnapshot.length : Object.keys(questionBankSnapshot).length
-);
-
 
   // NOTE:
   // - resultsPayload MUST be treated as read-only
@@ -100,10 +95,23 @@ console.log(
 
     // ---- Step 6.1: Select target categories (Phase 5 rules) ----
 
-  const highRisk = rankedCategories.filter((c) => c.is_high_risk);
-  const nonHighRisk = rankedCategories.filter((c) => !c.is_high_risk);
+  const highRiskPriority = rankedCategories.filter(
+    (c) => c.is_high_risk && c.level !== "Strong"
+  );
 
-  const selectedCategories = [...highRisk, ...nonHighRisk]
+  const weakPriority = rankedCategories.filter(
+    (c) => !c.is_high_risk && c.level === "Weak"
+  );
+
+  const developingPriority = rankedCategories.filter(
+    (c) => !c.is_high_risk && c.level === "Developing"
+  );
+
+  const selectedCategories = (
+    highRiskPriority.length > 0
+      ? highRiskPriority
+      : [...weakPriority, ...developingPriority]
+  )
     .slice(0, 2)
     .map((c) => c.category_id);
 
@@ -143,11 +151,6 @@ console.log(
 
 
   // ---- Step 6.3: Populate remediation questions ----
-console.log(
-  "BUILDER priorRemediationState.rotationOffset =",
-  priorRemediationState?.rotationOffset
-);
-
 const rotationOffset = Number(priorRemediationState?.rotationOffset || 0);
 
 const { selectedQuestionIds } = selectRemediationQuestions({

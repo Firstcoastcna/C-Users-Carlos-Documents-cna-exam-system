@@ -31,38 +31,38 @@ const HIGH_RISK_CATEGORIES = new Set([
 const CATEGORY_TO_CHAPTERS = {
   "Scope of Practice & Reporting": {
     primary: [1],
-    secondary: [3, 5],
+    secondary: [4, 5],
     lens: "Is this within my role, or do I observe and report?",
   },
   "Change in Condition": {
-    primary: [5],
-    secondary: [3, 2],
-    lens: "What is different from this residents baseline?",
+    primary: [4],
+    secondary: [3, 5],
+    lens: "What is different from this resident’s baseline?",
   },
   "Observation & Safety": {
-    primary: [2],
-    secondary: [4, 5],
-    lens: "What should I notice to prevent harm right now?",
+    primary: [4],
+    secondary: [3, 2],
+    lens: "What should I notice right now to prevent harm?",
   },
   "Environment & Safety": {
     primary: [2],
-    secondary: [4, 5],
-    lens: "Is the physical space safe and supportive?",
+    secondary: [3],
+    lens: "Is the physical environment safe and compliant?",
   },
   "Infection Control": {
-    primary: [4],
-    secondary: [2, 1],
-    lens: "What prevents contamination or spread of germs?",
+    primary: [2],
+    secondary: [3, 4],
+    lens: "What prevents contamination or spread?",
   },
   "Personal Care & Comfort": {
     primary: [3],
-    secondary: [4, 5],
-    lens: "Am I supporting comfort, dignity, and independence?",
+    secondary: [4],
+    lens: "Am I supporting comfort and independence?",
   },
   "Mobility & Positioning": {
     primary: [3],
-    secondary: [4, 5],
-    lens: "Is the resident being moved safely and correctly?",
+    secondary: [4],
+    lens: "Is movement safe and biomechanically correct?",
   },
   "Communication & Emotional Support": {
     primary: [5],
@@ -71,8 +71,8 @@ const CATEGORY_TO_CHAPTERS = {
   },
   "Dignity & Resident Rights": {
     primary: [1],
-    secondary: [4, 5],
-    lens: "Am I preserving choice, privacy, and respect?",
+    secondary: [3, 5],
+    lens: "Am I preserving autonomy and respect?",
   },
 };
 

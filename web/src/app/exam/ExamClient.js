@@ -24,6 +24,7 @@ const UI_TEXT = {
   en: {
     resultsPage: "RESULTS PAGE",
     analytics: "ANALYTICS",
+    reviewResults: "Review Your Results",
     readiness: "Readiness",
     readinessAssessment: "Readiness Assessment",
     categoryDiagnosis: "Category Diagnosis",
@@ -87,6 +88,7 @@ timeExpiredExplanation:
   es: {
     resultsPage: "RESULTADOS",
     analytics: "ANÁLISIS",
+    reviewResults: "Revisar tus resultados",
     readiness: "Preparación",
     readinessAssessment: "Evaluación de preparación",
     categoryDiagnosis: "Diagnóstico por categoría",
@@ -150,6 +152,7 @@ timeExpiredExplanation:
   fr: {
     resultsPage: "RÉSULTATS",
     analytics: "ANALYSE",
+    reviewResults: "Revoir vos résultats",
     readiness: "Préparation",
     readinessAssessment: "Évaluation de préparation",
     categoryDiagnosis: "Diagnostic par catégorie",
@@ -213,6 +216,7 @@ timeExpiredExplanation:
   ht: {
     resultsPage: "REZILTA",
     analytics: "ANALIZ",
+    reviewResults: "Revize rezilta ou yo",
     readiness: "Preparasyon",
     readinessAssessment: "Evalyasyon preparasyon",
     categoryDiagnosis: "Dyagnostik pa kategori",
@@ -1083,15 +1087,14 @@ deliveredQuestionIds.forEach((qid) => {
     background: theme.chromeBg,
   }}
 >
-  <button
-    onClick={() => {
-  setRationaleChapter(1);
-  setMode("rationales");
-}}
-    style={{ ...btnPrimary, flex: "1 1 220px" }}
-  >
-    {T.reviewQuestions}
-  </button>
+<button
+  onClick={() => {
+    router.push("/pilot");
+  }}
+  style={{ ...btnSecondary, flex: "1 1 220px" }}
+>
+  {T.exitToHome}
+</button>
 
 <button
   onClick={() => {
@@ -1106,47 +1109,9 @@ deliveredQuestionIds.forEach((qid) => {
     setAnalyticsUnavailable(false);
     setMode("analytics");
   }}
-  style={{
-    ...btnSecondary,
-    flex: "1 1 220px",
-    color: "red",
-    border: "1px solid red",
-    fontWeight: "bold",
-  }}
->
-  {T.analytics}
-</button>
-
-<button
-  onClick={() => {
-    if (!attemptId) {
-      alert("Remediation is unavailable because the attempt id was not found.");
-      return;
-    }
-
-    const key = `cna:results:${attemptId}`;
-    const raw = localStorage.getItem(key);
-
-    if (!raw) {
-      alert("Remediation is unavailable because the results payload was not found.");
-      return;
-    }
-
-    // Route only. Remediation Home handles continue/review/start/loop logic.
-    router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}`);
-  }}
   style={{ ...btnPrimary, flex: "1 1 220px" }}
 >
-  {T.startRemediation}
-</button>
-
-<button
-  onClick={() => {
-    router.push("/pilot");
-  }}
-  style={{ ...btnSecondary, flex: "1 1 220px" }}
->
-  {T.exitToHome}
+  {T.reviewResults || T.analytics}
 </button>
 
 </div>
@@ -1989,16 +1954,51 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             display: "flex",
             justifyContent: "flex-end",
             gap: "10px",
+            flexWrap: "wrap",
             borderTop: `1px solid ${theme.chromeBorder}`,
             padding: "12px 14px",
             background: theme.chromeBg,
           }}
         >
           <button
-            onClick={() => setMode("finished")}
-            style={{ ...btnSecondary, minWidth: "180px" }}
+            onClick={() => {
+              setRationaleChapter(1);
+              setMode("rationales");
+            }}
+            style={{ ...btnSecondary, flex: "1 1 220px" }}
           >
-            {T.backToResults}
+            {T.reviewQuestions}
+          </button>
+
+          <button
+            onClick={() => {
+              if (!attemptId) {
+                alert("Remediation is unavailable because the attempt id was not found.");
+                return;
+              }
+
+              const key = `cna:results:${attemptId}`;
+              const raw = localStorage.getItem(key);
+
+              if (!raw) {
+                alert("Remediation is unavailable because the results payload was not found.");
+                return;
+              }
+
+              router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}`);
+            }}
+            style={{ ...btnPrimary, flex: "1 1 220px" }}
+          >
+            {T.startRemediation}
+          </button>
+
+          <button
+            onClick={() => {
+              router.push("/pilot");
+            }}
+            style={{ ...btnSecondary, flex: "1 1 220px" }}
+          >
+            {T.exitToHome}
           </button>
         </div>
       </div>

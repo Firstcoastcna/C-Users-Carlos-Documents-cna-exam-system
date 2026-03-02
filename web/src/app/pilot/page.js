@@ -13,15 +13,13 @@ function PilotInner() {
   // Read language chosen on Home (/)
   const [lang, setLang] = useState("en");
 
-  // Track status for 6 tests
+  // Track status for 4 tests
   // status: "not_started" | "in_progress" | "completed"
   const [testStatus, setTestStatus] = useState({
     1: "not_started",
     2: "not_started",
     3: "not_started",
     4: "not_started",
-    5: "not_started",
-    6: "not_started",
   });
 
   const TEXT = useMemo(() => {
@@ -36,9 +34,9 @@ function PilotInner() {
         resume: (n) => `Resume Test ${n}`,
         completed: (n) => `Test ${n} Completed`,
         resetAll: "Reset All Tests",
-        resetHintLocked: "Reset becomes available only after all 6 tests are completed.",
-        resetHintReady: "All 6 tests are completed. You can reset to allow new attempts.",
-        confirmReset: "Reset all tests? This clears saved progress for Tests 1–6 on this device.",
+        resetHintLocked: "Reset becomes available only after all 4 tests are completed.",
+        resetHintReady: "All 4 tests are completed. You can reset to allow new attempts.",
+        confirmReset: "Reset all tests? This clears saved progress for Tests 1–4 on this device.",
       },
       es: {
         title: "Piloto del Examen CNA",
@@ -50,10 +48,10 @@ function PilotInner() {
         resume: (n) => `Reanudar Examen ${n}`,
         completed: (n) => `Examen ${n} Completado`,
         resetAll: "Reiniciar Todos",
-        resetHintLocked: "El reinicio se activa solo cuando completes los 6 exámenes.",
-        resetHintReady: "Completaste los 6 exámenes. Puedes reiniciar para intentar de nuevo.",
+        resetHintLocked: "El reinicio se activa solo cuando completes los 4 exámenes.",
+        resetHintReady: "Completaste los 4 exámenes. Puedes reiniciar para intentar de nuevo.",
         confirmReset:
-          "¿Reiniciar todos los exámenes? Esto borra el progreso guardado de los Exámenes 1–6 en este dispositivo.",
+          "¿Reiniciar todos los exámenes? Esto borra el progreso guardado de los Exámenes 1–4 en este dispositivo.",
       },
       fr: {
         title: "Pilote de l’Examen CNA",
@@ -65,10 +63,10 @@ function PilotInner() {
         resume: (n) => `Reprendre le Test ${n}`,
         completed: (n) => `Test ${n} Terminé`,
         resetAll: "Réinitialiser Tout",
-        resetHintLocked: "La réinitialisation est disponible uniquement après avoir terminé les 6 tests.",
-        resetHintReady: "Les 6 tests sont terminés. Vous pouvez réinitialiser pour recommencer.",
+        resetHintLocked: "La réinitialisation est disponible uniquement après avoir terminé les 4 tests.",
+        resetHintReady: "Les 4 tests sont terminés. Vous pouvez réinitialiser pour recommencer.",
         confirmReset:
-          "Réinitialiser tous les tests ? Cela efface la progression enregistrée des Tests 1 à 6 sur cet appareil.",
+          "Réinitialiser tous les tests ? Cela efface la progression enregistrée des Tests 1 à 4 sur cet appareil.",
       },
       ht: {
         title: "Pilòt Egzamen CNA",
@@ -80,10 +78,10 @@ function PilotInner() {
         resume: (n) => `Kontinye Tès ${n}`,
         completed: (n) => `Tès ${n} Fini`,
         resetAll: "Reyinisyalize Tout",
-        resetHintLocked: "Reyinisyalizasyon ap disponib sèlman lè 6 tès yo fini.",
-        resetHintReady: "Ou fini 6 tès yo. Ou ka reyinisyalize pou fè yo ankò.",
+        resetHintLocked: "Reyinisyalizasyon ap disponib sèlman lè 4 tès yo fini.",
+        resetHintReady: "Ou fini 4 tès yo. Ou ka reyinisyalize pou fè yo ankò.",
         confirmReset:
-          "Reyinisyalize tout tès yo? Sa ap efase pwogrè Tès 1–6 sou aparèy sa a.",
+          "Reyinisyalize tout tès yo? Sa ap efase pwogrè Tès 1–4 sou aparèy sa a.",
       },
     };
 
@@ -122,7 +120,7 @@ useEffect(() => {
   function refreshStatuses() {
     const next = { ...testStatus };
     try {
-      for (let n = 1; n <= 6; n++) {
+      for (let n = 1; n <= 4; n++) {
         const key = makeStateKey(n, (() => {
           try {
             const savedLang = localStorage.getItem("cna_pilot_lang");
@@ -159,7 +157,7 @@ useEffect(() => {
   }
 
   const allCompleted = useMemo(() => {
-    return [1, 2, 3, 4, 5, 6].every((n) => testStatus[n] === "completed");
+    return [1, 2, 3, 4].every((n) => testStatus[n] === "completed");
   }, [testStatus]);
 
   function startOrResume(testId) {
@@ -178,7 +176,7 @@ useEffect(() => {
     try {
       const langCode = lang;
 
-      for (let n = 1; n <= 6; n++) {
+      for (let n = 1; n <= 4; n++) {
         // Clear exam state for that test+lang
         const key = makeStateKey(n, langCode);
         localStorage.removeItem(key);
@@ -249,7 +247,7 @@ useEffect(() => {
       <p style={{ color: "#444", lineHeight: 1.6, marginBottom: 18 }}>{TEXT.subtitle}</p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
-        {[1, 2, 3, 4, 5, 6].map((n) => {
+            {[1, 2, 3, 4].map((n) => {
           const status = testStatus[n];
 
           if (status === "completed") {
