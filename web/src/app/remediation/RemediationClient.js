@@ -220,6 +220,8 @@ attemptsLine: (n, max, outcome) => `Completed attempts: ${n} / ${max}${outcome ?
 btnReviewLast: "Review last attempt",
 btnContinueRemediation: "Continue remediation",
 btnStartNewAttempt: "Start new attempt",
+forcedLoopMessage: "Complete another remediation session before returning to exam results.",
+btnExitForcedLoop: "Exit to broader practice",
 outcomeResolved: "Resolved",
 outcomeImproving: "Improving",
 outcomeStabilizing: "Needs reinforcement",
@@ -277,6 +279,8 @@ attemptsLine: (n, max, outcome) => `Intentos completados: ${n} / ${max}${outcome
 btnReviewLast: "Revisar último intento",
 btnContinueRemediation: "Continuar remediación",
 btnStartNewAttempt: "Iniciar nuevo intento",
+forcedLoopMessage: "Completa otra sesión de remediación antes de volver a los resultados del examen.",
+btnExitForcedLoop: "Salir a práctica general",
 outcomeResolved: "Resuelto",
 outcomeImproving: "Mejorando",
 outcomeStabilizing: "Necesita refuerzo",
@@ -331,6 +335,8 @@ attemptsLine: (n, max, outcome) => `Tentatives terminées : ${n} / ${max}${outco
 btnReviewLast: "Revoir la dernière tentative",
 btnContinueRemediation: "Continuer la remédiation",
 btnStartNewAttempt: "Démarrer une nouvelle tentative",
+forcedLoopMessage: "Terminez une autre session de remédiation avant de revenir aux résultats de l’examen.",
+btnExitForcedLoop: "Quitter vers la pratique générale",
 outcomeResolved: "Résolu",
 outcomeImproving: "En amélioration",
 outcomeStabilizing: "Besoin de renforcement",
@@ -385,6 +391,8 @@ attemptsLine: (n, max, outcome) => `Tantativ fini: ${n} / ${max}${outcome ? ` �
 btnReviewLast: "Revize dènye tantativ la",
 btnContinueRemediation: "Kontinye remedyasyon",
 btnStartNewAttempt: "Kòmanse yon nouvo tantativ",
+forcedLoopMessage: "Fini yon lòt sesyon remedyasyon anvan ou retounen nan rezilta egzamen an.",
+btnExitForcedLoop: "Sòti pou pratike pi laj",
 outcomeResolved: "Rezoud",
 outcomeImproving: "Ap amelyore",
 outcomeStabilizing: "Bezwen ranfòsman",
@@ -862,6 +870,8 @@ if (view === "intro") {
     (loopState.completedCount || 0) > 0 &&
     (loopState.completedCount || 0) < 3;
 
+  const canExitForcedLoop = isForcedLoop && (loopState.completedCount || 0) >= 2;
+
   const qaOverlayData = {
     enabled: qaMode,
     attemptId: attemptIdParam,
@@ -901,9 +911,13 @@ if (view === "intro") {
 
 {isForcedLoop && (
   <div style={{ marginTop: 6, fontSize: 13, color: "#b42318" }}>
+
     Complete another remediation session before returning to exam results.
   </div>
 )}
+    {T.forcedLoopMessage}
+  </div>
+
 	        </div>
 
         <QaOverlay data={qaOverlayData} />
@@ -920,6 +934,17 @@ if (view === "intro") {
   >
     {T.btnBackToResults}
   </button>
+
+  {canExitForcedLoop && (
+    <button
+      onClick={() => {
+        router.push(`/pilot?lang=${lang}`);
+      }}
+      style={btnSecondary}
+    >
+      {T.btnExitForcedLoop}
+    </button>
+  )}
 
   {/* Review LAST completed attempt only */}
   {loopState.lastCompleted?.session_id && (
@@ -1024,7 +1049,7 @@ try {
 </div>
 
       </div>
-    </div>
+  
   );
 }
 
