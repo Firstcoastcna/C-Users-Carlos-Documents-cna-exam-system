@@ -1751,13 +1751,27 @@ let resultsPayload = null;
 
   const LENS = LENS_BY_LANG[lang] || LENS_BY_LANG.en;
 
+  const LENS_CANONICAL_BY_VARIANT = Object.values(LENS_BY_LANG).reduce((acc, lensMap) => {
+    Object.entries(lensMap).forEach(([canonical, localized]) => {
+      acc[String(canonical || "").trim()] = canonical;
+      acc[String(localized || "").trim()] = canonical;
+    });
+    return acc;
+  }, {});
+
+  function localizeLensTitle(rawLens) {
+    const normalized = String(rawLens || "").trim();
+    const canonical = LENS_CANONICAL_BY_VARIANT[normalized] || normalized;
+    return (LENS[canonical] || canonical).trim();
+  }
+
 
   function localizeGuidanceLine(guidance_text, chapter_id, priority) {
     // guidance_text shape: "Review Chapter X (primary) — <lens>"
     const parts = String(guidance_text || "").split("—");
     const lens = parts.length > 1 ? parts.slice(1).join("—").trim() : String(guidance_text || "").trim();
 
-  const lensLocalized = LENS[lens] || lens;
+  const lensLocalized = localizeLensTitle(lens);
 
     const p = String(priority || "").toLowerCase();
     const pLabel = p === "primary" ? A.primary : p === "secondary" ? A.secondary : priority || "";
@@ -2015,7 +2029,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             const lensRaw =
               parts.length > 1 ? parts.slice(1).join("—").trim() : String(g.guidance_text || "").trim();
 
-            const lensTitle = (LENS[lensRaw] || lensRaw).trim();
+            const lensTitle = localizeLensTitle(lensRaw);
             if (!groups[lensTitle]) {
               groups[lensTitle] = { primary: [], secondary: [] };
               order.push(lensTitle);
