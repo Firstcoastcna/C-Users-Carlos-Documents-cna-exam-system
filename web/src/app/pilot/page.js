@@ -25,7 +25,7 @@ function PilotInner() {
   const TEXT = useMemo(() => {
     const t = {
       en: {
-        title: "CNA Exam Pilot",
+        title: "CNA Exam Practice Tests",
         subtitle:
           "Choose a test below. Each test is a full 60-question practice exam. You can resume an in-progress test on the same device.",
         language: "Language",
@@ -39,7 +39,7 @@ function PilotInner() {
         confirmReset: "Reset all tests? This clears saved progress for Tests 1–4 on this device.",
       },
       es: {
-        title: "Piloto del Examen CNA",
+        title: "Exámenes de Práctica CNA",
         subtitle:
           "Elige un examen abajo. Cada examen tiene 60 preguntas. Puedes reanudar un examen en curso en el mismo dispositivo.",
         language: "Idioma",
@@ -54,7 +54,7 @@ function PilotInner() {
           "¿Reiniciar todos los exámenes? Esto borra el progreso guardado de los Exámenes 1–4 en este dispositivo.",
       },
       fr: {
-        title: "Pilote de l’Examen CNA",
+        title: "Tests de Pratique de l’Examen CNA",
         subtitle:
           "Choisissez un test ci-dessous. Chaque test comporte 60 questions. Vous pouvez reprendre un test en cours sur le même appareil.",
         language: "Langue",
@@ -69,7 +69,7 @@ function PilotInner() {
           "Réinitialiser tous les tests ? Cela efface la progression enregistrée des Tests 1 à 4 sur cet appareil.",
       },
       ht: {
-        title: "Pilòt Egzamen CNA",
+        title: "Tès Pratik Egzamen CNA",
         subtitle:
           "Chwazi yon tès anba a. Chak tès gen 60 kestyon. Ou ka rekòmanse yon tès ki sou wout sou menm aparèy la.",
         language: "Lang",

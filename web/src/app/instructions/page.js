@@ -144,7 +144,7 @@ function InstructionsInner() {
             style={{ ...btnPrimary, width: "220px" }}
             onClick={() => router.push(`/pilot?lang=${lang}`)}
           >
-            {t("Go to Pilot Hub", "Ir al Piloto", "Aller au hub pilote", "Ale nan Pilot")}
+            {t("Go to Exam Hub", "Ir al Centro de Exámenes", "Aller au hub d’examen", "Ale nan Hub Egzamen an")}
           </button>
         </div>
       }
@@ -258,9 +258,9 @@ function InstructionsInner() {
             />
             <span style={{ color: "#333" }}>
               {t(
-                "Skip instructions and go directly to the Pilot Hub",
-                "Omitir las instrucciones e ir directamente al Piloto",
-                "Ignorer les instructions et aller directement au hub pilote",
+                "Skip instructions and go directly to the Exam Hub",
+                "Omitir las instrucciones e ir directamente al Centro de Exámenes",
+                "Ignorer les instructions et aller directement au hub d’examen",
                 "Sote enstriksyon yo epi ale dirèkteman nan Pilot la"
               )}
             </span>

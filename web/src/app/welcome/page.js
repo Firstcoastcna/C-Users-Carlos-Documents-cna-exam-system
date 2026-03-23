@@ -199,9 +199,9 @@ useEffect(() => {
   />
   <span style={{ color: "#333" }}>
     {t(
-  "Skip instructions and go directly to the Pilot Hub",
-  "Omitir las instrucciones e ir directamente al Piloto",
-  "Ignorer les instructions et aller directement au hub pilote",
+  "Skip instructions and go directly to the Exam Hub",
+  "Omitir las instrucciones e ir directamente al Centro de Exámenes",
+  "Ignorer les instructions et aller directement au hub d’examen",
   "Sote enstriksyon yo epi ale dirèkteman nan Pilot la"
 )}
 
