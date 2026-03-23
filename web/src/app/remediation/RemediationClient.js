@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import {
@@ -63,7 +63,7 @@ useEffect(() => {
   }
 }, [attemptIdParam]);
 
-const [loopState, setLoopState] = useState({
+const EMPTY_LOOP_STATE = {
   selectedCats: [],
   catSetKey: "",
   activeSession: null,
@@ -71,15 +71,21 @@ const [loopState, setLoopState] = useState({
   completedSorted: [],
   completedCount: 0,
   lastOutcome: "",
-});
+};
 
-useEffect(() => {
-  if (!resultsPayload?.attempt_id) return;
+const [loopState, setLoopState] = useState(EMPTY_LOOP_STATE);
+const [loopStateVersion, setLoopStateVersion] = useState(0);
+
+function refreshLoopState(payload = resultsPayload) {
+  if (!payload?.attempt_id) {
+    setLoopState(EMPTY_LOOP_STATE);
+    return;
+  }
 
   // Canon selection priority:
   // High-Risk categories first, then Weak, then Developing (only if no high-risk priority exists)
-  const ranked = Array.isArray(resultsPayload?.category_priority)
-    ? resultsPayload.category_priority
+  const ranked = Array.isArray(payload?.category_priority)
+    ? payload.category_priority
     : [];
 
   const highRiskPriority = ranked.filter(
@@ -105,7 +111,7 @@ useEffect(() => {
 
   const sameLoop = all.filter((s) => {
     if (!s) return false;
-    if (s.results_attempt_id !== resultsPayload.attempt_id) return false;
+    if (s.results_attempt_id !== payload.attempt_id) return false;
     const k = (s.selectedCategories || []).slice().sort().join("|");
     return k === catSetKey;
   });
@@ -125,7 +131,7 @@ useEffect(() => {
 
   // “active session” = anything in this loop not completed
   // (we want Continue to resume it)
-  const active = sameLoop.find((s) => s.status !== "completed") || null;
+  const active = sameLoop.find((s) => s.status === "active") || null;
 
   setLoopState({
     selectedCats,
@@ -136,13 +142,16 @@ useEffect(() => {
     completedCount,
     lastOutcome,
   });
-}, [resultsPayload]);
+}
 
-
-  const [session, setSession] = useState(null);
-    const [error, setError] = useState(null);
+useEffect(() => {
+  refreshLoopState(resultsPayload);
+}, [resultsPayload, loopStateVersion]);
 
 const [view, setView] = useState(sessionId ? "session" : "intro"); // "intro" | "session" | "confirm_exit" | "complete"
+  const [session, setSession] = useState(null);
+    const [error, setError] = useState(null);
+const skipSessionReloadIdRef = useRef(null);
 
 useEffect(() => {
   if (view !== "complete") return;
@@ -160,11 +169,20 @@ useEffect(() => {
 
     // Refresh local state from storage (so session.status/microOutcome/etc are reflected)
     const fresh = loadRemediationSession(session.session_id);
-    if (fresh) setSession(fresh);
+    if (fresh) {
+      setSession(fresh);
+      setLoopStateVersion((v) => v + 1);
+    }
   } catch (e) {
     console.log("TEMP DEBUG — finalize completion failed", e);
   }
 }, [view, session]);
+
+useEffect(() => {
+  if (!sessionId) {
+    skipSessionReloadIdRef.current = null;
+  }
+}, [sessionId]);
 
 
 const UI_TEXT = {
@@ -574,6 +592,7 @@ const btnExit = {
   // Load remediation session
   useEffect(() => {
   if (!sessionId) return;
+  if (view === "intro" && sessionId === skipSessionReloadIdRef.current) return;
 
   const s = loadRemediationSession(sessionId);
   if (!s) {
@@ -581,9 +600,11 @@ const btnExit = {
     return;
   }
 
-  setSession(s);
-  setView("session"); // IMPORTANT: never show the “second intro page”
-}, [sessionId]);
+  setSession(reviewMode ? { ...s, currentIndex: 0 } : s);
+  if (view === "intro") {
+    setView("session"); // IMPORTANT: never show the “second intro page”
+  }
+}, [sessionId, reviewMode, view]);
 
 
   const questionId = useMemo(() => {
@@ -666,6 +687,7 @@ const variantPrimary = useMemo(() => {
   }
 
 function goToHub() {
+  skipSessionReloadIdRef.current = session?.session_id || sessionId || null;
   setError(null);
   setReviewMode(false);
   setView("intro");
@@ -813,7 +835,11 @@ function requestExitToResults() {
 function exitToResultsAnyway() {
   try {
     if (session?.session_id) {
-      markRemediationSessionExited({ session_id: session.session_id });
+      const updated = markRemediationSessionExited({ session_id: session.session_id });
+      if (updated) {
+        setSession(updated);
+      }
+      setLoopStateVersion((v) => v + 1);
     }
   } catch {}
 
@@ -865,12 +891,7 @@ if (view === "intro") {
     );
   }
 
-  const isForcedLoop =
-    loopState.lastOutcome === "Stabilizing" &&
-    (loopState.completedCount || 0) > 0 &&
-    (loopState.completedCount || 0) < 3;
-
-  const canExitForcedLoop = isForcedLoop && (loopState.completedCount || 0) >= 2;
+  const reachedMaxAttempts = (loopState.completedCount || 0) >= 3;
 
   const qaOverlayData = {
     enabled: qaMode,
@@ -878,7 +899,7 @@ if (view === "intro") {
     selectedCats: loopState.selectedCats,
     lastOutcome: loopState.lastOutcome,
     completedCount: loopState.completedCount,
-    isForcedLoop,
+    isForcedLoop: false,
     activeSessionId: loopState.activeSession?.session_id || null,
   };
 
@@ -908,14 +929,6 @@ if (view === "intro") {
     outcomeLabel(loopState.lastOutcome)
   )}
 </div>
-
-{isForcedLoop && (
-  <div style={{ marginTop: 6, fontSize: 13, color: "#b42318" }}>
-
-    Complete another remediation session before returning to exam results.
-  </div>
-)}
-    {T.forcedLoopMessage}
   </div>
 
 	        </div>
@@ -925,26 +938,12 @@ if (view === "intro") {
         <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
   <button
     onClick={() => {
-      if (isForcedLoop) return;
       router.push(`/exam?lang=${lang}`);
     }}
-    style={{ ...btnSecondary, opacity: isForcedLoop ? 0.55 : 1, cursor: isForcedLoop ? "not-allowed" : "pointer" }}
-    disabled={isForcedLoop}
-    title={isForcedLoop ? "Complete another remediation session before returning to results." : undefined}
+    style={btnSecondary}
   >
     {T.btnBackToResults}
   </button>
-
-  {canExitForcedLoop && (
-    <button
-      onClick={() => {
-        router.push(`/pilot?lang=${lang}`);
-      }}
-      style={btnSecondary}
-    >
-      {T.btnExitForcedLoop}
-    </button>
-  )}
 
   {/* Review LAST completed attempt only */}
   {loopState.lastCompleted?.session_id && (
@@ -960,6 +959,7 @@ if (view === "intro") {
     </button>
   )}
 
+  {!reachedMaxAttempts && (
   <button
     onClick={() => {
       // Continue if an active session exists
@@ -1031,6 +1031,7 @@ try {
   // Start immediately (no second home page)
   setReviewMode(false);
   setSession(sessionNew);
+  setLoopStateVersion((v) => v + 1);
   setView("session");
 
   // Keep URL in sync for refresh
@@ -1046,6 +1047,7 @@ try {
   >
     {loopState.activeSession?.session_id ? T.btnContinueRemediation : T.btnStartNewAttempt}
   </button>
+  )}
 </div>
 
       </div>
@@ -1248,9 +1250,9 @@ if (view === "complete" && session) {
               resolved: "Outcome: Resolved. You can return to results and continue with mixed practice.",
               improving: "Outcome: Improving. Another remediation session is recommended (not required).",
               stabilizingReq:
-                "Outcome: Needs reinforcement. Another remediation session is required before returning to results.",
+                "Outcome: Needs reinforcement. Another remediation session is recommended before returning to mixed practice.",
               stabilizingMax:
-                "Outcome: Needs reinforcement. You have reached the maximum of 3 remediation attempts for this category set. Stop forced remediation and switch to broader practice.",
+                "Outcome: Needs reinforcement. You have reached the maximum of 3 remediation attempts for this category set. Return to results or switch to broader practice.",
               attemptLine: (n) => `Remediation attempt ${n} of 3 for this category set.`,
             },
             es: {
@@ -1292,7 +1294,6 @@ if (view === "complete" && session) {
 
           let msg = C.improving;
           if (loop.microOutcome === "Resolved") msg = C.resolved;
-          if (loop.microOutcome === "Stabilizing" && loop.mustContinue) msg = C.stabilizingReq;
           if (loop.microOutcome === "Stabilizing" && loop.reachedMax) msg = C.stabilizingMax;
 
           return (
@@ -1374,7 +1375,19 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
 </div>
 
 
-      <div style={{ border: "1px solid #d4dee8", borderRadius: 12, padding: 14, background: "#fbfdff" }}>
+      <div
+        style={{
+          border: "1px solid #d4dee8",
+          borderRadius: 12,
+          padding: 14,
+          background: "#fbfdff",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 500,
+          maxHeight: 500,
+        }}
+      >
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: 4 }}>
         <div style={{ fontSize: 14, color: "red", marginBottom: 8 }}>
   <span style={{ marginRight: 6 }}>{T.categoryReviewLabel}</span>
   <strong>{catLabel(q.category_tag)}</strong>
@@ -1501,6 +1514,7 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
 
   </div>
 )}
+      </div>
       </div>
 
       <div

@@ -32,7 +32,7 @@ function PilotInner() {
         changeLanguage: "Change language",
         start: (n) => `Start Test ${n}`,
         resume: (n) => `Resume Test ${n}`,
-        completed: (n) => `Test ${n} Completed`,
+        review: (n) => `Review Test ${n}`,
         resetAll: "Reset All Tests",
         resetHintLocked: "Reset becomes available only after all 4 tests are completed.",
         resetHintReady: "All 4 tests are completed. You can reset to allow new attempts.",
@@ -46,7 +46,7 @@ function PilotInner() {
         changeLanguage: "Cambiar idioma",
         start: (n) => `Comenzar Examen ${n}`,
         resume: (n) => `Reanudar Examen ${n}`,
-        completed: (n) => `Examen ${n} Completado`,
+        review: (n) => `Revisar Examen ${n}`,
         resetAll: "Reiniciar Todos",
         resetHintLocked: "El reinicio se activa solo cuando completes los 4 exámenes.",
         resetHintReady: "Completaste los 4 exámenes. Puedes reiniciar para intentar de nuevo.",
@@ -84,6 +84,11 @@ function PilotInner() {
           "Reyinisyalize tout tès yo? Sa ap efase pwogrè Tès 1–4 sou aparèy sa a.",
       },
     };
+
+    t.en.review = (n) => `Review Test ${n}`;
+    t.es.review = (n) => `Revisar Examen ${n}`;
+    t.fr.review = (n) => `Revoir le Test ${n}`;
+    t.ht.review = (n) => `Revize TÃ¨s ${n}`;
 
     return t[lang] || t.en;
   }, [lang]);
@@ -144,7 +149,12 @@ useEffect(() => {
         }
 
         const mode = parsed?.mode;
-        if (mode === "finished" || mode === "time_expired") {
+        if (
+          mode === "finished" ||
+          mode === "time_expired" ||
+          mode === "analytics" ||
+          mode === "rationales"
+        ) {
           next[n] = "completed";
         } else {
           next[n] = "in_progress";
@@ -252,8 +262,8 @@ useEffect(() => {
 
           if (status === "completed") {
             return (
-              <button key={n} disabled style={btnDisabled} title="Completed">
-                {TEXT.completed(n)}
+              <button key={n} onClick={() => startOrResume(n)} style={btn} title="Completed">
+                {TEXT.review(n)}
               </button>
             );
           }

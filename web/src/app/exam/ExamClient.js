@@ -34,6 +34,24 @@ const UI_TEXT = {
     startRemediation: "Start Remediation",
     exitToHome: "Exit to Home",
     resultsOnly: "Results",
+    no: "No",
+    yes: "Yes",
+    summary: "Summary",
+    previous: "Previous",
+    next: "Next",
+    endTest: "End Test",
+    exit: "Exit",
+    backToExam: "Back to Exam",
+    all: "All",
+    question: "Question",
+    of: "of",
+    answered: "Answered",
+    notAnswered: "Not Answered",
+    markForReview: "Mark for Review",
+    markedForReview: "Marked for Review",
+    prevPage: "Prev Page",
+    nextPage: "Next Page",
+    page: "Page",
     scoreLine: (percent, didPass) => `Score: ${percent}% – ${didPass ? "Pass" : "Fail"}`,
     nextStepTitle: "Next step",
 nextStepOnTrack: "You’re on track. Review missed questions, or start a short remediation set to reinforce weak spots.",
@@ -98,6 +116,24 @@ timeExpiredExplanation:
     startRemediation: "Iniciar remediación",
     exitToHome: "Salir al inicio",
     resultsOnly: "Resultados",
+    no: "No",
+    yes: "Si­",
+    summary: "Resumen",
+    previous: "Anterior",
+    next: "Siguiente",
+    endTest: "Terminar examen",
+    exit: "Salir",
+    backToExam: "Volver al examen",
+    all: "Todas",
+    question: "Pregunta",
+    of: "de",
+    answered: "Respondidas",
+    notAnswered: "Sin responder",
+    markForReview: "Marcar para revisar",
+    markedForReview: "Marcada para revisar",
+    prevPage: "Pagina anterior",
+    nextPage: "Pagina siguiente",
+    page: "Pagina",
     scoreLine: (percent, didPass) => `Puntaje: ${percent}% – ${didPass ? "Aprobado" : "No aprobado"}`,
     nextStepTitle: "Siguiente paso",
 nextStepOnTrack: "Vas por buen camino. Revisa las preguntas falladas o inicia una remediación corta para reforzar puntos débiles.",
@@ -162,6 +198,24 @@ timeExpiredExplanation:
     startRemediation: "Commencer la remédiation",
     exitToHome: "Quitter vers l’accueil",
     resultsOnly: "Résultats",
+    no: "Non",
+    yes: "Oui",
+    summary: "Résumé",
+    previous: "Précédent",
+    next: "Suivant",
+    endTest: "Terminer le test",
+    exit: "Quitter",
+    backToExam: "Retour à l’examen",
+    all: "Toutes",
+    question: "Question",
+    of: "sur",
+    answered: "Répondues",
+    notAnswered: "Sans réponse",
+    markForReview: "Marquer pour révision",
+    markedForReview: "Marquée pour révision",
+    prevPage: "Page précédente",
+    nextPage: "Page suivante",
+    page: "Page",
     scoreLine: (percent, didPass) => `Score : ${percent}% – ${didPass ? "Réussi" : "Échoué"}`,
     nextStepTitle: "Prochaine étape",
 nextStepOnTrack: "Vous êtes sur la bonne voie. Revoyez les questions manquées ou commencez une courte remédiation pour renforcer vos points faibles.",
@@ -226,6 +280,24 @@ timeExpiredExplanation:
     startRemediation: "Kòmanse remedyasyon",
     exitToHome: "Soti pou ale lakay",
     resultsOnly: "Rezilta",
+    no: "Non",
+    yes: "Wi",
+    summary: "Rezime",
+    previous: "Anvan",
+    next: "Pwochen",
+    endTest: "Fini tès la",
+    exit: "Soti",
+    backToExam: "Tounen nan egzamen an",
+    all: "Tout",
+    question: "Kesyon",
+    of: "sou",
+    answered: "Reponn",
+    notAnswered: "San repons",
+    markForReview: "Make pou revize",
+    markedForReview: "Make pou revize",
+    prevPage: "Paj anvan",
+    nextPage: "Paj apre",
+    page: "Paj",
     scoreLine: (percent, didPass) => `Nòt: ${percent}% – ${didPass ? "Pase" : "Pa pase"}`,
     nextStepTitle: "Pwochen etap",
 nextStepOnTrack: "Ou sou bon wout la. Revize kestyon ou rate yo, oswa kòmanse yon ti remedyasyon pou ranfòse pwen fèb yo.",
@@ -553,7 +625,13 @@ if (typeof saved.pausedRemainingSec === "number") {
   const sec = Math.max(0, Math.ceil((saved.endAtMs - now) / 1000));
   setRemainingSec(sec);
 
-  if (sec === 0 && saved.mode !== "finished") {
+  if (
+    sec === 0 &&
+    saved.mode !== "finished" &&
+    saved.mode !== "time_expired" &&
+    saved.mode !== "rationales" &&
+    saved.mode !== "analytics"
+  ) {
     setMode("time_expired");
   }
 } else {
@@ -1475,7 +1553,7 @@ if (lang === "ht") {
   );
 })}
 </div>
-          <button onClick={() => setMode("finished")} style={{ ...btnSecondary, minWidth: "180px" }}>
+          <button onClick={() => setMode("analytics")} style={{ ...btnSecondary, minWidth: "180px" }}>
             {T.backToResults}
           </button>
         </div>
@@ -2095,7 +2173,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             }}
           >
             <button onClick={() => setMode(exitReturnMode)} style={{ ...btnSecondary, flex: 1 }}>
-              No
+              {T.no}
             </button>
 
             <button
@@ -2104,7 +2182,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               }}
               style={{ ...btnPrimary, flex: 1 }}
             >
-              Yes
+              {T.yes}
             </button>
           </div>
         </div>
@@ -2202,11 +2280,11 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             }}
           >
             <button onClick={() => setMode("review")} style={{ ...btnSecondary, flex: 1 }}>
-              No
+              {T.no}
             </button>
 
             <button onClick={() => setMode("finished")} style={{ ...btnPrimary, flex: 1 }}>
-              Yes
+              {T.yes}
             </button>
           </div>
         </div>
@@ -2275,12 +2353,12 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             marginBottom: "6px",
           }}
         >
-          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "600" }}>Summary</h1>
+          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "600" }}>{T.summary}</h1>
           <div style={{ fontWeight: "bold" }}>⏱ {formatRemaining(remainingSec)}</div>
         </div>
 
         <div style={{ marginBottom: "8px", color: "#333", fontSize: "13px" }}>
-          Page {summaryPage} of {totalFilteredPages}
+          {T.page} {summaryPage} {T.of} {totalFilteredPages}
         </div>
 
         <div style={{ display: "flex", gap: "12px", alignItems: "stretch" }}>
@@ -2340,10 +2418,14 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                             setMode("exam");
                           }}
                         >
-                          Question {number}
+                          {T.question} {number}
                         </span>
 
                         <span style={{ color: answered ? "#1a1a1a" : "#555" }}>
+                          - {answered ? T.answered : T.notAnswered}
+                        </span>
+
+                        <span style={{ color: answered ? "#1a1a1a" : "#555", display: "none" }}>
                           — {answered ? "Answered" : "Not Answered"}
                         </span>
 
@@ -2367,25 +2449,25 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
 
             <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
               <button onClick={() => setMode("exam")} style={{ ...btnSecondary, flex: 1 }}>
-                Back to Exam
+                {T.backToExam}
               </button>
 
               <button onClick={() => setMode("confirm_end")} style={{ ...btnPrimary, flex: 1 }}>
-                End Exam
+                {T.endTest}
               </button>
 
               <button onClick={() => openExitConfirm("review")} style={{ ...btnExit, minWidth: "90px" }}>
-                Exit
+                {T.exit}
               </button>
             </div>
           </div>
 
           <div style={{ width: "190px", display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {compactBtn("All", "all")}
-              {compactBtn("Answered", "answered")}
-              {compactBtn("Not Answered", "unanswered")}
-              {compactBtn("🚩 Mark for Review", "marked", { color: "red", fontWeight: "bold" })}
+              {compactBtn(T.all, "all")}
+              {compactBtn(T.answered, "answered")}
+              {compactBtn(T.notAnswered, "unanswered")}
+              {compactBtn(`🚩 ${T.markForReview}`, "marked", { color: "red", fontWeight: "bold" })}
             </div>
 
             <div style={{ flex: 1 }} />
@@ -2398,7 +2480,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                 style={{ ...btnSecondary, width: "100%", opacity: canPrev ? 1 : 0.5 }}
                 disabled={!canPrev}
               >
-                ◀ Prev Page
+                {`◀ ${T.prevPage}`}
               </button>
 
               <button style={{ ...btnSecondary, width: "100%" }} disabled>
@@ -2412,7 +2494,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                 style={{ ...btnSecondary, width: "100%", opacity: canNext ? 1 : 0.5 }}
                 disabled={!canNext}
               >
-                Next Page ▶
+                {`${T.nextPage} ▶`}
               </button>
             </div>
           </div>
@@ -2477,7 +2559,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
           }}
         >
           <strong style={{ fontSize: "18px" }}>
-            Question {index + 1} of {total}
+            {T.question} {index + 1} {T.of} {total}
           <span style={{ fontSize: "12px", fontWeight: "normal", marginLeft: "10px", color: "#555" }}>
     ({qid})
   </span>
@@ -2498,7 +2580,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                 onChange={toggleReview}
                 style={{ marginRight: "6px" }}
               />
-              {isMarked ? "🚩 Marked for Review" : "Mark for Review"}
+              {isMarked ? `🚩 ${T.markedForReview}` : T.markForReview}
             </label>
 
             <span style={{ fontWeight: "bold" }}>⏱ {formatRemaining(remainingSec)}</span>
@@ -2577,25 +2659,25 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             disabled={index === 0}
             style={{ ...btnSecondary, flex: 1, opacity: index === 0 ? 0.5 : 1 }}
           >
-            Previous
+            {T.previous}
           </button>
 
           <button onClick={() => setMode("review")} style={{ ...btnSecondary, flex: 1 }}>
-            Summary
+            {T.summary}
           </button>
 
           {isLast ? (
             <button onClick={() => setMode("review")} style={{ ...btnPrimary, flex: 1 }}>
-              End Test
+              {T.endTest}
             </button>
           ) : (
             <button onClick={() => setIndex(index + 1)} style={{ ...btnPrimary, flex: 1 }}>
-              Next
+              {T.next}
             </button>
           )}
 
           <button onClick={() => openExitConfirm("exam")} style={{ ...btnExit, minWidth: "90px" }}>
-            Exit
+            {T.exit}
           </button>
         </div>
       </div>
