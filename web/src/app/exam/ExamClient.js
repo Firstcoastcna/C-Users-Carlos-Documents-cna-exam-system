@@ -1276,6 +1276,45 @@ if (mode === "rationales") {
 
   // Count missed per chapter (missed = unanswered OR incorrect)
   const missedCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const REVIEW_TEXT = {
+    en: {
+      noMissedQuestions: "No missed questions.",
+      question: "Question",
+      yourAnswer: "Your Answer",
+      unanswered: "Unanswered",
+      correctAnswer: "Correct Answer",
+    },
+    es: {
+      noMissedQuestions: "No hay preguntas falladas.",
+      question: "Pregunta",
+      yourAnswer: "Tu respuesta",
+      unanswered: "Sin responder",
+      correctAnswer: "Respuesta correcta",
+    },
+    fr: {
+      noMissedQuestions: "Aucune question manquée.",
+      question: "Question",
+      yourAnswer: "Votre réponse",
+      unanswered: "Sans réponse",
+      correctAnswer: "Bonne réponse",
+    },
+    ht: {
+      noMissedQuestions: "Pa gen kestyon ou rate.",
+      question: "Kesyon",
+      yourAnswer: "Repons ou",
+      unanswered: "San repons",
+      correctAnswer: "Bon repons",
+    },
+  };
+
+  const REVIEW_SECTION_LABELS = {
+    EN: { rationale: "Rationale", signal: "Prometric Signal", unavailable: "Rationale not available.", signalUnavailable: "Prometric Signal not available." },
+    ES: { rationale: "Justificación", signal: "Señal de Prometric", unavailable: "Justificación no disponible.", signalUnavailable: "Señal de Prometric no disponible." },
+    FR: { rationale: "Justification", signal: "Signal Prometric", unavailable: "Justification non disponible.", signalUnavailable: "Signal Prometric non disponible." },
+    HT: { rationale: "Eksplikasyon", signal: "Siyal Prometric", unavailable: "Eksplikasyon pa disponib.", signalUnavailable: "Siyal Prometric pa disponib." },
+  };
+
+  const RT = REVIEW_TEXT[lang] || REVIEW_TEXT.en;
 
   deliveredQuestionIds.forEach((qid) => {
     const q = bankById[qid];
@@ -1409,7 +1448,7 @@ if (mode === "rationales") {
 });
 
     if (missedQids.length === 0) {
-      return <div style={{ fontSize: "14px", color: "#333" }}>No missed questions.</div>;
+      return <div style={{ fontSize: "14px", color: "#333" }}>{RT.noMissedQuestions}</div>;
     }
 
     return missedQids.map((qid) => {
@@ -1445,15 +1484,15 @@ if (lang === "ht") {
           }}
         >
           <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
-            Question {num}
+            {RT.question} {num}
           </div>
 
           <div style={{ marginBottom: "10px" }}>
             <div style={{ fontSize: "13px", marginBottom: "4px" }}>
-              <strong>Your Answer:</strong> {userAns ? userAns : "Unanswered"}
+              <strong>{RT.yourAnswer}:</strong> {userAns ? userAns : RT.unanswered}
             </div>
             <div style={{ fontSize: "13px" }}>
-              <strong>Correct Answer:</strong> {correct}
+              <strong>{RT.correctAnswer}:</strong> {correct}
             </div>
           </div>
 
@@ -1477,28 +1516,37 @@ if (lang === "ht") {
           <div style={{ borderTop: "1px solid #e2ebf4", paddingTop: "10px" }}>
   {rationaleBlocks.length === 0 ? (
     <div style={{ fontSize: "14px", color: "#333" }}>
-      Rationale not available.
+      {REVIEW_SECTION_LABELS[lang === "es" ? "ES" : lang === "fr" ? "FR" : lang === "ht" ? "HT" : "EN"].unavailable}
     </div>
   ) : (
-    rationaleBlocks.map((rb) => (
+    rationaleBlocks.map((rb) => {
+      const sectionLabels = REVIEW_SECTION_LABELS[rb.label] || REVIEW_SECTION_LABELS.EN;
+      return (
       <div key={rb.label} style={{ marginBottom: "12px" }}>
-        <div style={{ fontWeight: "bold", fontSize: "15px",marginBottom: "6px" }}>
+        <div style={{ fontWeight: "bold", fontSize: "15px", marginBottom: "6px" }}>
+          {rb.label} - {sectionLabels.rationale}
+        </div>
+        <div style={{ fontWeight: "bold", fontSize: "15px",marginBottom: "6px", display: "none" }}>
           {rb.label} — Rationale
         </div>
         <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#222" }}>
-          {rb.r?.why_correct || "Rationale not available."}
+          {rb.r?.why_correct || sectionLabels.unavailable}
         </div>
 
         <div style={{ marginTop: "10px" }}>
           <div style={{ fontWeight: "bold", fontSize: "15px", marginBottom: "6px" }}>
+            {rb.label} - {sectionLabels.signal}
+          </div>
+          <div style={{ fontWeight: "bold", fontSize: "15px", marginBottom: "6px", display: "none" }}>
             {rb.label} — Prometric Signal
           </div>
           <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#222" }}>
-            {rb.r?.prometric_signal || "Prometric Signal not available."}
+            {rb.r?.prometric_signal || sectionLabels.signalUnavailable}
           </div>
         </div>
       </div>
-    ))
+    );
+    })
   )}
 </div>
 </div>
