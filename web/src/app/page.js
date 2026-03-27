@@ -64,6 +64,22 @@ export default function HomePage() {
     width: "100%",
   };
 
+  function langButtonStyle(code) {
+    const active = lang === code;
+    return {
+      ...btnSecondary,
+      padding: isNarrow ? "14px" : "16px",
+      fontSize: isNarrow ? "16px" : "18px",
+      fontWeight: 700,
+      borderRadius: "14px",
+      background: active ? "white" : theme.secondaryBg,
+      color: active ? "var(--brand-teal-dark)" : theme.secondaryText,
+      border: active ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+      boxShadow: active ? "0 8px 18px rgba(37, 131, 166, 0.10)" : "none",
+      transform: active ? "translateY(-1px)" : "none",
+    };
+  }
+
   // Detect any saved in-progress exam state (any lang)
   useEffect(() => {
     try {
@@ -166,7 +182,7 @@ if (pausedRemainingSec === null) {
             {title}
           </div>
 
-          <div style={{ flex: 1, padding: "24px" }}>{children}</div>
+          <div style={{ flex: 1, padding: isNarrow ? "18px" : "24px" }}>{children}</div>
 
           <div
             style={{
@@ -258,9 +274,9 @@ if (pausedRemainingSec === null) {
         </div>
       }
       footer={
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", justifyContent: isNarrow ? "stretch" : "flex-end" }}>
           <button
-            style={{ ...btnPrimary, width: "220px" }}
+            style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", fontWeight: 700 }}
             onClick={() => {
   try {
     localStorage.setItem("cna_pilot_lang", lang);
@@ -288,18 +304,31 @@ if (pausedRemainingSec === null) {
         </div>
       }
     >
-      <div style={{ maxWidth: "760px", margin: "0 auto", display: "grid", gap: "24px" }}>
+      <div
+        style={{
+          maxWidth: "760px",
+          margin: "0 auto",
+          display: "grid",
+          gap: "20px",
+          gridTemplateColumns: isNarrow ? "1fr" : "minmax(0, 1.05fr) minmax(280px, 0.95fr)",
+          alignItems: "start",
+        }}
+      >
   <div
     style={{
-      maxWidth: "460px",
       marginTop: "10px",
       border: `1px solid ${theme.chromeBorder}`,
-      borderRadius: "16px",
-      background: "var(--surface-soft)",
-      padding: "22px",
+      borderRadius: "18px",
+      background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
+      padding: isNarrow ? "18px" : "22px",
+      boxShadow: "0 10px 24px rgba(31, 52, 74, 0.05)",
     }}
   >
-    <div style={{ fontSize: "28px", fontWeight: 800, marginBottom: "8px", color: "var(--heading)" }}>
+    <div style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--brand-teal-dark)", marginBottom: "8px" }}>
+      Exam Access
+    </div>
+
+    <div style={{ fontSize: isNarrow ? "24px" : "28px", fontWeight: 800, marginBottom: "8px", color: "var(--heading)" }}>
       {lang === "es"
         ? "Seleccione su idioma"
         : lang === "fr"
@@ -309,7 +338,7 @@ if (pausedRemainingSec === null) {
         : "Select your language"}
     </div>
 
-    <div style={{ fontSize: "15px", color: "#456173", lineHeight: "1.7", marginBottom: "16px" }}>
+    <div style={{ fontSize: "15px", color: "#456173", lineHeight: "1.7", marginBottom: "16px", maxWidth: "520px" }}>
       {lang === "es"
         ? "Elija el idioma para continuar."
         : lang === "fr"
@@ -319,60 +348,62 @@ if (pausedRemainingSec === null) {
         : "Choose the language to continue."}
     </div>
 
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
   <button
-    style={{
-      ...btnSecondary,
-      padding: "16px",
-      fontSize: "18px",
-      fontWeight: 600,
-      borderRadius: "14px",
-    }}
+    style={langButtonStyle("en")}
     onClick={() => setLang("en")}
   >
     English
   </button>
 
   <button
-    style={{
-      ...btnSecondary,
-      padding: "16px",
-      fontSize: "18px",
-      fontWeight: 600,
-      borderRadius: "14px",
-    }}
+    style={langButtonStyle("es")}
     onClick={() => setLang("es")}
   >
     Español
   </button>
 
   <button
-    style={{
-      ...btnSecondary,
-      padding: "16px",
-      fontSize: "18px",
-      fontWeight: 600,
-      borderRadius: "14px",
-    }}
+    style={langButtonStyle("fr")}
     onClick={() => setLang("fr")}
   >
     Français
   </button>
 
   <button
-    style={{
-      ...btnSecondary,
-      padding: "16px",
-      fontSize: "18px",
-      fontWeight: 600,
-      borderRadius: "14px",
-    }}
+    style={langButtonStyle("ht")}
     onClick={() => setLang("ht")}
   >
     Kreyòl Ayisyen
   </button>
 </div>
 
+    <div
+      style={{
+        marginTop: "14px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "8px 10px",
+        borderRadius: "999px",
+        background: "white",
+        border: `1px solid ${theme.chromeBorder}`,
+        color: "#4b5f71",
+        fontSize: "13px",
+        fontWeight: 600,
+      }}
+    >
+      <span style={{ color: "var(--brand-teal-dark)" }}>
+        {lang === "es"
+          ? "Idioma seleccionado:"
+          : lang === "fr"
+          ? "Langue choisie :"
+          : lang === "ht"
+          ? "Lang ou chwazi a:"
+          : "Selected language:"}
+      </span>
+      <span>{langLabel(lang)}</span>
+    </div>
 
 
     <div style={{ fontSize: "14px", color: "var(--brand-red)", marginTop: "12px" }}>
@@ -384,17 +415,23 @@ if (pausedRemainingSec === null) {
         ? "Ou pa ka chanje lang lan apre ou antre nan platfòm nan."
         : "Language cannot be changed after you enter the platform."}
     </div>
+
   </div>
 
   <div
     style={{
       border: `1px solid ${theme.chromeBorder}`,
-      borderRadius: "16px",
+      borderRadius: "18px",
       background: "white",
-      padding: "22px",
+      padding: isNarrow ? "18px" : "22px",
+      boxShadow: "0 10px 24px rgba(31, 52, 74, 0.05)",
     }}
   >
-    <div style={{ fontSize: "26px", fontWeight: 800, marginBottom: "10px", color: "var(--heading)" }}>
+    <div style={{ fontSize: "12px", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--brand-red)", marginBottom: "8px" }}>
+      Platform
+    </div>
+
+    <div style={{ fontSize: isNarrow ? "23px" : "26px", fontWeight: 800, marginBottom: "10px", color: "var(--heading)" }}>
       {lang === "es"
         ? "Plataforma de práctica del examen CNA"
         : lang === "fr"
@@ -404,7 +441,46 @@ if (pausedRemainingSec === null) {
         : "CNA Exam Practice Platform"}
     </div>
 
-    <div style={{ lineHeight: "1.7", color: "#456173", marginBottom: "10px", maxWidth: "680px" }}>
+    <div style={{ display: "grid", gap: "10px", lineHeight: "1.7", color: "#4c6172", fontSize: "14px", maxWidth: "680px", marginBottom: "14px" }}>
+      <div>
+        {lang === "es"
+          ? "Esta plataforma le ayuda a prepararse para el examen CNA mediante practica guiada y simulaciones completas y realistas de examen."
+          : lang === "fr"
+          ? "Cette plateforme vous aide a vous preparer a l'examen CNA grace a une pratique guidee et a des simulations completes et realistes d'examen."
+          : lang === "ht"
+          ? "Platfom sa a ede ou prepare pou egzamen CNA a ak pratik gide ansanm ak simulasyon egzamen konple ki sanble ak tès reyel."
+          : "This platform helps you prepare for the CNA exam through guided practice and realistic full exam simulations."}
+      </div>
+      <div>
+        {lang === "es"
+          ? "La practica esta diseniada para fortalecer areas debiles, aumentar la confianza y mejorar la toma de decisiones antes de su proximo examen completo."
+          : lang === "fr"
+          ? "La pratique est concue pour renforcer les points faibles, developper la confiance et ameliorer la prise de decision avant votre prochain examen complet."
+          : lang === "ht"
+          ? "Pratik la fet pou ranfose zon ki pi feb yo, ogmante konfyans, epi amelyore fason ou pran desizyon anvan pwochen egzamen konple ou."
+          : "Practice is designed to strengthen weak areas, build confidence, and improve decision-making before your next full exam."}
+      </div>
+      <div>
+        {lang === "es"
+          ? "Cada examen le ofrece un puntaje y comentarios sobre su rendimiento."
+          : lang === "fr"
+          ? "Chaque examen vous donne un score et un retour sur vos performances."
+          : lang === "ht"
+          ? "Chak egzamen ba ou yon not ak fidbak sou fason ou fe a."
+          : "Each exam gives you a score and performance feedback."}
+      </div>
+      <div>
+        {lang === "es"
+          ? "Despues de cada examen, recibira resultados, analisis y remediacion opcional para guiar sus proximos pasos."
+          : lang === "fr"
+          ? "Apres chaque examen, vous recevrez des resultats, une analyse et une remediation facultative pour guider la suite."
+          : lang === "ht"
+          ? "Apre chak egzamen, ou ap resevwa rezilta, analiz, ak remedyasyon opsyonel pou gide pwochen etap ou yo."
+          : "After each exam, you receive results, analytics, and optional remediation to guide your next steps."}
+      </div>
+    </div>
+
+    <div style={{ display: "none", lineHeight: "1.7", color: "#456173", marginBottom: "14px", maxWidth: "680px" }}>
       {lang === "es"
         ? "Esta plataforma le permite practicar exámenes tipo CNA en un entorno de prueba realista."
         : lang === "fr"
@@ -412,6 +488,15 @@ if (pausedRemainingSec === null) {
         : lang === "ht"
         ? "Platfòm sa a pèmèt ou pratike egzamen CNA nan yon anviwònman ki sanble ak tès reyèl."
         : "This platform allows you to practice taking CNA-style exams in a realistic testing environment."}
+    </div>
+    <div style={{ display: "none", lineHeight: "1.7", color: "#4c6172", fontSize: "14px", maxWidth: "680px" }}>
+      {lang === "es"
+        ? "DespuÃ©s de cada examen, recibirÃ¡ resultados, anÃ¡lisis y una remediaciÃ³n opcional para ayudarle a decidir quÃ© hacer despuÃ©s."
+        : lang === "fr"
+        ? "AprÃ¨s chaque examen, vous recevrez des rÃ©sultats, une analyse et une remÃ©diation facultative pour vous aider Ã  dÃ©cider de la suite."
+        : lang === "ht"
+        ? "Apre chak egzamen, ou ap resevwa rezilta, analiz, ak remedyasyon opsyonÃ¨l pou ede w konnen ki pwochen etap pou w pran."
+        : "After each exam, you will receive results, analytics, and optional remediation to help guide your next steps."}
     </div>
   </div>
 </div>

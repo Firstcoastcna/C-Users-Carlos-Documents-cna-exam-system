@@ -91,7 +91,7 @@ confirmExitTitle: "Confirm Exit",
 confirmExitLead: "You have requested to exit this test.",
 confirmExitQuestion: "Are you sure you want to exit?",
 confirmExitExplanation:
-  "Selecting YES will exit your test. Selecting NO will allow you to continue with your test.",
+  "Selecting YES will exit your test. You can resume it at any time on this device. Selecting NO will allow you to continue with your test.",
 
 confirmEndTitle: "Confirm End of Test",
 confirmEndLead: "You have requested to end and score this test.",
@@ -173,7 +173,7 @@ confirmExitTitle: "Confirmar salir del examen",
 confirmExitLead: "Has solicitado salir de este examen.",
 confirmExitQuestion: "¿Estás seguro de que deseas salir?",
 confirmExitExplanation:
-  "Seleccionar SÍ saldrá del examen. Seleccionar NO te permitirá continuar.",
+  "Seleccionar SI saldra del examen. Podras reanudarlo en cualquier momento en este dispositivo. Seleccionar NO te permitira continuar con el examen.",
 
 confirmEndTitle: "Confirmar fin del examen",
 confirmEndLead: "Has solicitado finalizar y calificar este examen.",
@@ -255,7 +255,7 @@ nextStepHighRisk: "Concentrez-vous d’abord sur les domaines critiques pour la 
 confirmExitLead: "Vous avez demandé à quitter cet examen.",
 confirmExitQuestion: "Êtes-vous sûr de vouloir quitter l’examen ?",
 confirmExitExplanation:
-  "Sélectionner OUI quittera l’examen. Sélectionner NON vous permettra de continuer.",
+  "Selectionner OUI quittera lexamen. Vous pourrez le reprendre a tout moment sur cet appareil. Selectionner NON vous permettra de continuer lexamen.",
 
 confirmEndTitle: "Confirmer la fin de l’examen",
 confirmEndLead: "Vous avez demandé de terminer et de noter cet examen.",
@@ -337,7 +337,7 @@ confirmExitTitle: "Konfime sòti",
 confirmExitLead: "Ou mande pou sòti nan egzamen sa a.",
 confirmExitQuestion: "Èske ou sèten ou vle sòti?",
 confirmExitExplanation:
-  "Chwazi WI ap fè ou sòti nan egzamen an. Chwazi NON ap pèmèt ou kontinye.",
+  "Chwazi WI ap fe ou soti nan egzamen an. Ou ka reprann li nenpot ki le sou aparey sa a. Chwazi NON ap pemet ou kontinye egzamen an.",
 
 confirmEndTitle: "Konfime fen egzamen an",
 confirmEndLead: "Ou mande pou fini epi nòt egzamen sa a.",
@@ -984,6 +984,96 @@ useEffect(() => {
     return [{ label: "EN", text: UI_TEXT.en[key] }];
   }
 
+  function renderUiLines(lines, options = {}) {
+    const {
+      tone = "body",
+      centered = false,
+      compact = false,
+    } = options;
+
+    const toneStyles =
+      tone === "headline"
+        ? {
+            textColor: "var(--heading)",
+            fontSize: isNarrow ? "18px" : "20px",
+            fontWeight: 800,
+          }
+        : tone === "warning"
+        ? {
+            textColor: "var(--brand-red)",
+            fontSize: isNarrow ? "14px" : "15px",
+            fontWeight: 700,
+          }
+        : {
+            textColor: "#445a6c",
+            fontSize: isNarrow ? "14px" : "15px",
+            fontWeight: 500,
+          };
+
+    const showLabels = lang === "fr" || lang === "ht";
+
+    return (
+      <div
+        style={{
+          display: "grid",
+          gap: compact ? "8px" : "10px",
+          justifyItems: centered ? "center" : "stretch",
+        }}
+      >
+        {lines.map((l) => (
+          <div
+            key={`${l.label}-${l.text}`}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: centered ? "center" : "flex-start",
+              gap: showLabels ? "10px" : "0px",
+              textAlign: centered ? "center" : "left",
+            }}
+          >
+            {showLabels && l.label ? (
+              <span
+                style={{
+                  minWidth: "34px",
+                  padding: "3px 8px",
+                  borderRadius: "999px",
+                  border: "1px solid var(--chrome-border)",
+                  background: "white",
+                  color: "var(--brand-teal-dark)",
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  letterSpacing: "0.04em",
+                  lineHeight: 1.2,
+                }}
+              >
+                {l.label}
+              </span>
+            ) : null}
+            <span
+              style={{
+                color: toneStyles.textColor,
+                fontSize: toneStyles.fontSize,
+                fontWeight: toneStyles.fontWeight,
+                lineHeight: 1.55,
+                maxWidth: "640px",
+              }}
+            >
+              {l.text}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function splitIntoTwoSentenceLines(text) {
+    const parts = String(text).split(". ");
+    if (parts.length <= 2) return [text];
+    const first = `${parts.slice(0, -1).join(". ")}.`;
+    const last = parts[parts.length - 1];
+    return [first, last];
+  }
+
 
   function openExitConfirm(fromMode) {
     setExitReturnMode(fromMode);
@@ -1239,13 +1329,10 @@ deliveredQuestionIds.forEach((qid) => {
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         <div
           style={{
-            height: "675px",
-            border: `2px solid ${theme.frameBorder}`,
-            borderRadius: "12px",
+            ...shellFrame,
+            minHeight: "675px",
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden",
-            background: "white",
           }}
         >
           <div
@@ -1266,11 +1353,18 @@ deliveredQuestionIds.forEach((qid) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "18px",
-              textAlign: "center",
+              padding: isNarrow ? "18px" : "22px",
             }}
           >
-            <div style={{ maxWidth: "720px" }}>
+            <div
+              style={{
+                ...softPanel,
+                width: "100%",
+                maxWidth: "720px",
+                padding: isNarrow ? "18px" : "22px",
+                background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
+              }}
+            >
               <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "12px" }}>
                 {getUiLines("timeExpiredHeadline").map((l) => (
   <div key={l.label}>{l.text}</div>
@@ -2205,33 +2299,37 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         <div
           style={{
-            height: "675px",
-            border: `2px solid ${theme.frameBorder}`,
-            borderRadius: "12px",
+            ...shellFrame,
+            minHeight: "675px",
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden",
-            background: "white",
           }}
         >
           <div
             style={{
-              borderBottom: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
+              ...shellHeader,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: "12px",
-              fontWeight: "bold",
             }}
           >
-            <span>
-              {getUiLines("confirmExitTitle")
-                .map((l) => `${l.text}`)
-                .join("  |  ")}
+            <span style={{ fontWeight: 800, fontSize: isNarrow ? "17px" : "18px" }}>
+              {T.confirmExitTitle}
             </span>
-            <span style={{ fontWeight: "bold" }}>⏱ {formatRemaining(remainingSec)}</span>
+            <span
+              style={{
+                fontWeight: 800,
+                color: "var(--brand-red)",
+                border: "1px solid rgba(204, 0, 0, 0.35)",
+                background: "white",
+                borderRadius: "999px",
+                padding: isNarrow ? "7px 10px" : "8px 12px",
+                fontSize: isNarrow ? "13px" : "14px",
+              }}
+            >
+              ⏱ {formatRemaining(remainingSec)}
+            </span>
           </div>
 
           <div
@@ -2240,52 +2338,71 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: "18px",
-              textAlign: "center",
+              padding: isNarrow ? "18px" : "22px",
             }}
           >
-            <div style={{ maxWidth: "720px" }}>
+            <div
+              style={{
+                ...softPanel,
+                width: "100%",
+                maxWidth: "720px",
+                padding: isNarrow ? "18px" : "22px",
+                background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
+              }}
+            >
               <div style={{ marginBottom: "18px" }}>
-                {getUiLines("confirmExitLead").map((l) => (
-  <div key={l.label}>{l.text}</div>
-))}
+                {renderUiLines(getUiLines("confirmExitLead"), {
+                  centered: true,
+                })}
               </div>
 
               <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
-                  alignItems: "center",
-                  gap: "10px",
                   marginBottom: "14px",
                 }}
               >
-                <div style={{ fontSize: "20px", lineHeight: "1" }}>⚠️</div>
-                <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {getUiLines("confirmExitQuestion").map((l) => (
-  <div key={l.label}>{l.text}</div>
-))}
-                </div>
+                <div style={{ fontSize: isNarrow ? "22px" : "24px", lineHeight: "1" }}>⚠️</div>
               </div>
 
-              <div style={{ lineHeight: "1.5" }}>
-                {getUiLines("confirmExitExplanation").map((l) => (
-  <div key={l.label}>{l.text}</div>
-))}
+              <div style={{ marginBottom: "16px" }}>
+                {renderUiLines(getUiLines("confirmExitQuestion"), {
+                  tone: "headline",
+                  centered: true,
+                  compact: true,
+                })}
+              </div>
+
+              <div>
+                {renderUiLines(
+                  getUiLines("confirmExitExplanation").flatMap((l) =>
+                    splitIntoTwoSentenceLines(l.text).map((text, index) => ({
+                      label: index === 0 ? l.label : "",
+                      text,
+                    }))
+                  ),
+                  {
+                    centered: true,
+                  }
+                )}
               </div>
             </div>
           </div>
 
           <div
             style={{
+              ...shellFooter,
               display: "flex",
               gap: "10px",
-              borderTop: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
+              flexWrap: isNarrow ? "wrap" : "nowrap",
+              justifyContent: "flex-end",
             }}
           >
-            <button onClick={() => setMode(exitReturnMode)} style={{ ...btnSecondary, flex: 1 }}>
+            <button
+              onClick={() => setMode(exitReturnMode)}
+              style={{ ...btnSecondary, ...(isNarrow ? { width: "100%" } : { minWidth: "180px" }) }}
+            >
               {T.no}
             </button>
 
@@ -2293,7 +2410,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               onClick={() => {
                 router.push("/pilot");
               }}
-              style={{ ...btnPrimary, flex: 1 }}
+              style={{ ...btnPrimary, ...(isNarrow ? { width: "100%" } : { minWidth: "220px" }) }}
             >
               {T.yes}
             </button>
@@ -2312,29 +2429,37 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         <div
           style={{
-            height: "675px",
-            border: `2px solid ${theme.frameBorder}`,
-            borderRadius: "12px",
+            ...shellFrame,
+            minHeight: "675px",
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden",
-            background: "white",
           }}
         >
           <div
             style={{
-              borderBottom: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
+              ...shellHeader,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: "12px",
-              fontWeight: "bold",
             }}
           >
-            <span>{getUiLines("confirmEndTitle").map((l) => l.text).join(" / ")}</span>
-            <span style={{ fontWeight: "bold" }}>⏱ {formatRemaining(remainingSec)}</span>
+            <span style={{ fontWeight: 800, fontSize: isNarrow ? "17px" : "18px" }}>
+              {T.confirmEndTitle}
+            </span>
+            <span
+              style={{
+                fontWeight: 800,
+                color: "var(--brand-red)",
+                border: "1px solid rgba(204, 0, 0, 0.35)",
+                background: "white",
+                borderRadius: "999px",
+                padding: isNarrow ? "7px 10px" : "8px 12px",
+                fontSize: isNarrow ? "13px" : "14px",
+              }}
+            >
+              ⏱ {formatRemaining(remainingSec)}
+            </span>
           </div>
 
           <div
@@ -2349,54 +2474,68 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
           >
             <div style={{ maxWidth: "720px" }}>
               <div style={{ marginBottom: "18px" }}>
-  {getUiLines("confirmEndLead").map((l) => (
-    <div key={l.label}>{l.text}</div>
-  ))}
-</div>
+                {renderUiLines(getUiLines("confirmEndLead"), {
+                  centered: true,
+                })}
+              </div>
 
               <div
                 style={{
                   display: "flex",
                   justifyContent: "center",
-                  alignItems: "center",
-                  gap: "10px",
                   marginBottom: "14px",
                 }}
               >
-                <div style={{ fontSize: "20px", lineHeight: "1" }}>⚠️</div>
-                <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-  {getUiLines("confirmEndQuestion").map((l) => (
-    <div key={l.label}>{l.text}</div>
-  ))}
-</div>
+                <div style={{ fontSize: isNarrow ? "22px" : "24px", lineHeight: "1" }}>⚠️</div>
               </div>
 
-<div style={{ marginBottom: "10px", fontSize: "16px", color: "red" }}>
-  {T.onceEnded}
-</div>
+              <div style={{ marginBottom: "14px" }}>
+                {renderUiLines(getUiLines("confirmEndQuestion"), {
+                  tone: "headline",
+                  centered: true,
+                  compact: true,
+                })}
+              </div>
 
-              <div style={{ lineHeight: "1.5" }}>
-  {getUiLines("confirmEndExplanation").map((l) => (
-    <div key={l.label}>{l.text}</div>
-  ))}
-</div>
+              <div style={{ marginBottom: "14px" }}>
+                {renderUiLines(
+                  [{ label: getUiLines("confirmEndQuestion")[0]?.label || "EN", text: T.onceEnded }],
+                  {
+                    tone: "warning",
+                    centered: true,
+                    compact: true,
+                  }
+                )}
+              </div>
+
+              <div>
+                {renderUiLines(getUiLines("confirmEndExplanation"), {
+                  centered: true,
+                })}
+              </div>
             </div>
           </div>
 
           <div
             style={{
+              ...shellFooter,
               display: "flex",
               gap: "10px",
-              borderTop: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
+              flexWrap: isNarrow ? "wrap" : "nowrap",
+              justifyContent: "flex-end",
             }}
           >
-            <button onClick={() => setMode("review")} style={{ ...btnSecondary, flex: 1 }}>
+            <button
+              onClick={() => setMode("review")}
+              style={{ ...btnSecondary, ...(isNarrow ? { width: "100%" } : { minWidth: "180px" }) }}
+            >
               {T.no}
             </button>
 
-            <button onClick={() => setMode("finished")} style={{ ...btnPrimary, flex: 1 }}>
+            <button
+              onClick={() => setMode("finished")}
+              style={{ ...btnPrimary, ...(isNarrow ? { width: "100%" } : { minWidth: "220px" }) }}
+            >
               {T.yes}
             </button>
           </div>

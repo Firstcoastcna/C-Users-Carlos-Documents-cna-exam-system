@@ -1202,14 +1202,34 @@ if (view === "confirm_exit" && session) {
       <div
         style={{
           ...softPanel,
-          padding: 18,
+          padding: isNarrow ? 18 : 22,
+          background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
         }}
       >
-        <div style={{ fontWeight: "bold", marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+          <div
+            style={{
+              width: isNarrow ? 44 : 48,
+              height: isNarrow ? 44 : 48,
+              borderRadius: 999,
+              background: "rgba(204, 0, 0, 0.10)",
+              color: "var(--brand-red)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: isNarrow ? 22 : 24,
+              fontWeight: 800,
+            }}
+          >
+            !
+          </div>
+        </div>
+
+        <div style={{ fontWeight: "bold", fontSize: 20, color: "var(--heading)", marginBottom: 10, textAlign: "center" }}>
           {T.endTitle}
         </div>
 
-        <div style={{ fontSize: 14, color: "#333", lineHeight: "1.6" }}>
+        <div style={{ fontSize: 15, color: "#445a6c", lineHeight: "1.65", textAlign: "center" }}>
             
           {T.endBody(unanswered)}
         </div>
@@ -1218,8 +1238,9 @@ if (view === "confirm_exit" && session) {
           style={{
             display: "flex",
             gap: 10,
-            marginTop: 14,
+            marginTop: 18,
             flexWrap: "wrap",
+            justifyContent: "flex-end",
           }}
         >
           <button onClick={() => setView("session")} style={{ ...btnPrimary, ...actionButtonStyle }}>
@@ -1227,7 +1248,16 @@ if (view === "confirm_exit" && session) {
 </button>
 
 
-<button onClick={exitToResultsAnyway} style={{ ...btnSecondary, ...actionButtonStyle }}>
+<button
+  onClick={exitToResultsAnyway}
+  style={{
+    ...btnSecondary,
+    ...actionButtonStyle,
+    background: "white",
+    color: "#5a6f80",
+    border: "1px solid #cfdde6",
+  }}
+>
   {T.btnEndAnyway}
 </button>
 
