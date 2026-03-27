@@ -480,24 +480,6 @@ if (pausedRemainingSec === null) {
       </div>
     </div>
 
-    <div style={{ display: "none", lineHeight: "1.7", color: "#456173", marginBottom: "14px", maxWidth: "680px" }}>
-      {lang === "es"
-        ? "Esta plataforma le permite practicar exámenes tipo CNA en un entorno de prueba realista."
-        : lang === "fr"
-        ? "Cette plateforme vous permet de vous entraîner avec des examens de type CNA dans un environnement réaliste."
-        : lang === "ht"
-        ? "Platfòm sa a pèmèt ou pratike egzamen CNA nan yon anviwònman ki sanble ak tès reyèl."
-        : "This platform allows you to practice taking CNA-style exams in a realistic testing environment."}
-    </div>
-    <div style={{ display: "none", lineHeight: "1.7", color: "#4c6172", fontSize: "14px", maxWidth: "680px" }}>
-      {lang === "es"
-        ? "DespuÃ©s de cada examen, recibirÃ¡ resultados, anÃ¡lisis y una remediaciÃ³n opcional para ayudarle a decidir quÃ© hacer despuÃ©s."
-        : lang === "fr"
-        ? "AprÃ¨s chaque examen, vous recevrez des rÃ©sultats, une analyse et une remÃ©diation facultative pour vous aider Ã  dÃ©cider de la suite."
-        : lang === "ht"
-        ? "Apre chak egzamen, ou ap resevwa rezilta, analiz, ak remedyasyon opsyonÃ¨l pou ede w konnen ki pwochen etap pou w pran."
-        : "After each exam, you will receive results, analytics, and optional remediation to help guide your next steps."}
-    </div>
   </div>
 </div>
         </Frame>

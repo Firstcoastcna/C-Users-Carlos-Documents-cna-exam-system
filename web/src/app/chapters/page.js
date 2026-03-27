@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -54,6 +54,7 @@ function ChaptersInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
+  const [isNarrow, setIsNarrow] = useState(false);
 
   // Access gate + keep pilot language consistent (pilot-safe)
   useEffect(() => {
@@ -73,6 +74,17 @@ function ChaptersInner() {
       } catch {}
     }
   }, [router, lang]);
+
+  useEffect(() => {
+    function syncWidth() {
+      if (typeof window === "undefined") return;
+      setIsNarrow(window.innerWidth < 760);
+    }
+
+    syncWidth();
+    window.addEventListener("resize", syncWidth);
+    return () => window.removeEventListener("resize", syncWidth);
+  }, []);
 
   const theme = useMemo(
     () => ({
@@ -120,20 +132,22 @@ function ChaptersInner() {
 
   const detailsStyle = {
     border: `1px solid ${theme.chromeBorder}`,
-    borderRadius: "14px",
-    padding: "16px",
-    background: "var(--surface-soft)",
+    borderRadius: "16px",
+    padding: isNarrow ? "16px" : "18px",
+    background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
+    boxShadow: "0 8px 20px rgba(31, 52, 74, 0.04)",
   };
 
   const summaryStyle = {
     cursor: "pointer",
     fontWeight: 800,
-    fontSize: "16px",
+    fontSize: isNarrow ? "15px" : "16px",
     outline: "none",
     color: "var(--heading)",
+    lineHeight: 1.4,
   };
 
-  const h3 = { marginTop: 12, marginBottom: 6, fontSize: 14, fontWeight: 800, color: "var(--heading)" };
+  const h3 = { marginTop: 14, marginBottom: 6, fontSize: 14, fontWeight: 800, color: "var(--heading)" };
 
   const ul = { marginTop: 6, marginBottom: 0, paddingLeft: 18, lineHeight: 1.7, color: "#334e61" };
 
@@ -548,24 +562,48 @@ function ChaptersInner() {
       theme={theme}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-          <button style={{ ...btnPrimary, width: "220px" }} onClick={() => router.push(`/pilot?lang=${lang}`)}>
+          <button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", fontWeight: 700 }} onClick={() => router.push(`/pilot?lang=${lang}`)}>
             {t("Go to Exam Hub", "Ir al Centro de Exámenes", "Aller au hub d’examen", "Ale nan Hub Egzamen an")}
           </button>
         </div>
       }
     >
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 8 }}>
-          {t("What to study (high-yield focus)", "Qué estudiar (alto rendimiento)", "Quoi étudier (priorités)", "Sa pou etidye (pi enpòtan)")}
-        </div>
+        <div
+          style={{
+            border: `1px solid ${theme.chromeBorder}`,
+            borderRadius: "16px",
+            background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
+            padding: isNarrow ? "18px" : "22px",
+            marginBottom: "16px",
+            boxShadow: "0 8px 20px rgba(31, 52, 74, 0.04)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--brand-teal-dark)",
+              marginBottom: "8px",
+            }}
+          >
+            {t("Quick Review", "Repaso rapido", "Revision rapide", "Ti revizyon")}
+          </div>
 
-        <div style={{ color: "#333", lineHeight: 1.6, marginBottom: 14 }}>
-          {t(
-            "Use these chapter summaries to focus your review. This page is informational only (no scores, no analytics).",
-            "Use estos resúmenes para enfocar su repaso. Esta página es solo informativa (sin puntajes, sin analíticas).",
-            "Utilisez ces résumés pour cibler votre révision. Page informative uniquement (pas de score, pas d’analytique).",
-            "Sèvi ak rezime sa yo pou konsantre etid ou. Paj sa a se enfòmasyon sèlman (pa gen nòt, pa gen analiz)."
-          )}
+          <div style={{ fontSize: isNarrow ? 22 : 24, fontWeight: 900, marginBottom: 8, color: "var(--heading)", lineHeight: 1.2 }}>
+            {t("Chapter review", "Revision de capitulos", "Revision des chapitres", "Revizyon chapit yo")}
+          </div>
+
+          <div style={{ color: "#456173", lineHeight: 1.7 }}>
+            {t(
+              "This page is for quick review only. Use these brief chapter summaries to refresh the main ideas before testing.",
+              "Esta pagina es solo para revision rapida. Use estos resumenes breves para repasar las ideas principales antes del examen.",
+              "Cette page sert uniquement de revision rapide. Utilisez ces resumes brefs pour revoir les idees principales avant le test.",
+              "Paj sa a se pou ti revizyon rapid selman. Svi ak rezime kout sa yo pou revize ide prensipal yo anvan ou teste."
+            )}
+          </div>
         </div>
 
         {chapterNums.map((n) => {

@@ -59,7 +59,6 @@ useEffect(() => {
     }
     setResultsPayload(JSON.parse(raw));
   } catch (e) {
-    console.log("TEMP DEBUG — failed to load results payload", e);
     setResultsPayload(null);
   }
 }, [attemptIdParam]);
@@ -174,9 +173,7 @@ useEffect(() => {
       setSession(fresh);
       setLoopStateVersion((v) => v + 1);
     }
-  } catch (e) {
-    console.log("TEMP DEBUG — finalize completion failed", e);
-  }
+  } catch (e) {}
 }, [view, session]);
 
 useEffect(() => {

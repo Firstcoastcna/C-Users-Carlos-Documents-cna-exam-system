@@ -389,14 +389,6 @@ const T = UI_TEXT[lang] || UI_TEXT.en;
       if (byChapter[ch]) byChapter[ch].push(qid);
     });
    
-    console.log("UNSEEN PER CHAPTER:", {
-  1: byChapter[1].length,
-  2: byChapter[2].length,
-  3: byChapter[3].length,
-  4: byChapter[4].length,
-  5: byChapter[5].length,
-});
-
     // For each chapter: shuffle and take perChapter
     let picked = [];
 chapterTags.forEach((ch) => {
@@ -1154,8 +1146,8 @@ deliveredQuestionIds.forEach((qid) => {
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         <div
           style={{
-            height: "min(675px, calc(100svh - 40px))",
             ...shellFrame,
+            minHeight: "675px",
             marginTop: "20px",
           }}
         >
@@ -1181,7 +1173,6 @@ deliveredQuestionIds.forEach((qid) => {
     justifyContent: "center",
     padding: "18px",
     textAlign: "center",
-    overflowY: "auto",
   }}
 >
             <div style={{ maxWidth: "720px", width: "100%" }}>
@@ -1337,14 +1328,12 @@ deliveredQuestionIds.forEach((qid) => {
         >
           <div
             style={{
-              borderBottom: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
-              fontWeight: "bold",
-              textTransform: "uppercase",
+              ...shellHeader,
             }}
           >
-            {getUiLines("timeExpiredTitle").map((l) => l.text).join(" / ")}
+            <span style={{ fontWeight: 800, fontSize: isNarrow ? "17px" : "18px" }}>
+              {T.timeExpiredTitle}
+            </span>
           </div>
 
           <div
@@ -1365,31 +1354,46 @@ deliveredQuestionIds.forEach((qid) => {
                 background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
               }}
             >
-              <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "12px" }}>
-                {getUiLines("timeExpiredHeadline").map((l) => (
-  <div key={l.label}>{l.text}</div>
-))}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: "14px",
+                }}
+              >
+                <div style={{ fontSize: isNarrow ? "22px" : "24px", lineHeight: "1" }}>⚠️</div>
               </div>
 
-              <div style={{ marginBottom: "18px" }}>
-                {getUiLines("timeExpiredExplanation").map((l) => (
-  <div key={l.label}>{l.text}</div>
-))}
+              <div style={{ marginBottom: "14px" }}>
+                {renderUiLines(getUiLines("timeExpiredHeadline"), {
+                  tone: "headline",
+                  centered: true,
+                  compact: true,
+                })}
               </div>
 
-              <button onClick={() => setMode("finished")} style={{ ...btnPrimary, minWidth: "220px" }}>
-                {T.resultsOnly}
-              </button>
+              <div style={{ marginBottom: "16px" }}>
+                {renderUiLines(getUiLines("timeExpiredExplanation"), {
+                  centered: true,
+                })}
+              </div>
             </div>
           </div>
 
           <div
             style={{
-              borderTop: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
+              ...shellFooter,
+              display: "flex",
+              justifyContent: "flex-end",
             }}
-          />
+          >
+            <button
+              onClick={() => setMode("finished")}
+              style={{ ...btnPrimary, ...(isNarrow ? { width: "100%" } : { minWidth: "220px" }) }}
+            >
+              {T.resultsOnly}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1645,9 +1649,6 @@ if (lang === "ht") {
         <div style={{ fontWeight: "bold", fontSize: "15px", marginBottom: "6px" }}>
           {rb.label} - {sectionLabels.rationale}
         </div>
-        <div style={{ fontWeight: "bold", fontSize: "15px",marginBottom: "6px", display: "none" }}>
-          {rb.label} — Rationale
-        </div>
         <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#222" }}>
           {rb.r?.why_correct || sectionLabels.unavailable}
         </div>
@@ -1655,9 +1656,6 @@ if (lang === "ht") {
         <div style={{ marginTop: "10px" }}>
           <div style={{ fontWeight: "bold", fontSize: "15px", marginBottom: "6px" }}>
             {rb.label} - {sectionLabels.signal}
-          </div>
-          <div style={{ fontWeight: "bold", fontSize: "15px", marginBottom: "6px", display: "none" }}>
-            {rb.label} — Prometric Signal
           </div>
           <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#222" }}>
             {rb.r?.prometric_signal || sectionLabels.signalUnavailable}
