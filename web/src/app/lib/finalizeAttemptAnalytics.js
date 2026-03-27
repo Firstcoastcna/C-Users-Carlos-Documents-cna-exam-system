@@ -33,6 +33,11 @@ export function finalizeAttemptAnalytics({
     contentTags[qid] = {
       category_id: q.category_tag,
       chapter_id: q.chapter_tag,
+      prometric_signal: q?.variants?.en?.rationale?.prometric_signal || "",
+      cue_type_tag: q.cue_type_tag ?? null,
+      judgment_move_tag: q.judgment_move_tag ?? null,
+      skill_domain_tag: q.skill_domain_tag ?? null,
+      difficulty_tag: q.difficulty_tag ?? q.difficulty ?? null,
     };
   });
 

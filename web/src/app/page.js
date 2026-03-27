@@ -11,21 +11,32 @@ export default function HomePage() {
   // UI state
   const [lang, setLang] = useState("en");
   const [loading, setLoading] = useState(true);
+  const [isNarrow, setIsNarrow] = useState(false);
 
   // Resume detection
   const [resumeInfo, setResumeInfo] = useState(null);
 
+  useEffect(() => {
+    function handleResize() {
+      setIsNarrow(window.innerWidth <= 700);
+    }
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Styling aligned with your current look
   const theme = useMemo(
     () => ({
-      frameBorder: "#9fb2c7",
-      chromeBg: "#e9f0f7",
-      chromeBorder: "#b7c6d6",
-      primaryBg: "#2b6cb0",
+      frameBorder: "var(--frame-border)",
+      chromeBg: "var(--chrome-bg)",
+      chromeBorder: "var(--chrome-border)",
+      primaryBg: "var(--brand-teal)",
       primaryText: "white",
-      secondaryBg: "#f4f6f8",
-      secondaryText: "#1a1a1a",
-      buttonBorder: "#9aa8b5",
+      secondaryBg: "var(--brand-teal-soft)",
+      secondaryText: "var(--brand-teal-dark)",
+      buttonBorder: "var(--button-border)",
     }),
     []
   );
@@ -130,34 +141,38 @@ if (pausedRemainingSec === null) {
       <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
         <div
           style={{
-            height: "675px",
+            minHeight: "675px",
             border: `2px solid ${theme.frameBorder}`,
-            borderRadius: "12px",
+            borderRadius: "16px",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             background: "white",
+            boxShadow: "0 12px 32px rgba(31, 52, 74, 0.08)",
           }}
         >
           <div
             style={{
               borderBottom: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
-              fontWeight: "bold",
+              padding: "18px 20px",
+              background: "linear-gradient(180deg, var(--surface-tint) 0%, var(--chrome-bg) 100%)",
+              fontWeight: 800,
               textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              color: "var(--heading)",
+              fontSize: "20px",
             }}
           >
             {title}
           </div>
 
-          <div style={{ flex: 1, padding: "18px" }}>{children}</div>
+          <div style={{ flex: 1, padding: "24px" }}>{children}</div>
 
           <div
             style={{
               borderTop: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
+              padding: "16px 20px",
+              background: "var(--surface-soft)",
             }}
           >
             {footer}
@@ -229,7 +244,19 @@ if (pausedRemainingSec === null) {
   // ============================
   return (
     <Frame
-      title="FIRST COAST CNA"
+      title={
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <img
+            src={encodeURI("/FCCNA Logo n name.png")}
+            alt="First Coast CNA"
+            style={{
+              width: isNarrow ? "220px" : "240px",
+              height: "auto",
+              display: "block",
+            }}
+          />
+        </div>
+      }
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <button
@@ -261,9 +288,18 @@ if (pausedRemainingSec === null) {
         </div>
       }
     >
-      <div style={{ maxWidth: "720px", margin: "0 auto" }}>
-  <div style={{ maxWidth: "420px", marginTop: "10px" }}>
-    <div style={{ fontSize: "22px", fontWeight: "bold", marginBottom: "8px" }}>
+      <div style={{ maxWidth: "760px", margin: "0 auto", display: "grid", gap: "24px" }}>
+  <div
+    style={{
+      maxWidth: "460px",
+      marginTop: "10px",
+      border: `1px solid ${theme.chromeBorder}`,
+      borderRadius: "16px",
+      background: "var(--surface-soft)",
+      padding: "22px",
+    }}
+  >
+    <div style={{ fontSize: "28px", fontWeight: 800, marginBottom: "8px", color: "var(--heading)" }}>
       {lang === "es"
         ? "Seleccione su idioma"
         : lang === "fr"
@@ -273,7 +309,7 @@ if (pausedRemainingSec === null) {
         : "Select your language"}
     </div>
 
-    <div style={{ fontSize: "14px", color: "#444", lineHeight: "1.6", marginBottom: "12px" }}>
+    <div style={{ fontSize: "15px", color: "#456173", lineHeight: "1.7", marginBottom: "16px" }}>
       {lang === "es"
         ? "Elija el idioma para continuar."
         : lang === "fr"
@@ -339,7 +375,7 @@ if (pausedRemainingSec === null) {
 
 
 
-    <div style={{ fontSize: "14px", color: "#ce0707", marginTop: "10px" }}>
+    <div style={{ fontSize: "14px", color: "var(--brand-red)", marginTop: "12px" }}>
       {lang === "es"
         ? "El idioma no se puede cambiar después de ingresar a la plataforma."
         : lang === "fr"
@@ -350,8 +386,15 @@ if (pausedRemainingSec === null) {
     </div>
   </div>
 
-  <div style={{ marginTop: "22px" }}>
-    <div style={{ fontSize: "22px", fontWeight: "bold", marginBottom: "10px" }}>
+  <div
+    style={{
+      border: `1px solid ${theme.chromeBorder}`,
+      borderRadius: "16px",
+      background: "white",
+      padding: "22px",
+    }}
+  >
+    <div style={{ fontSize: "26px", fontWeight: 800, marginBottom: "10px", color: "var(--heading)" }}>
       {lang === "es"
         ? "Plataforma de práctica del examen CNA"
         : lang === "fr"
@@ -361,7 +404,7 @@ if (pausedRemainingSec === null) {
         : "CNA Exam Practice Platform"}
     </div>
 
-    <div style={{ lineHeight: "1.6", color: "#333", marginBottom: "10px" }}>
+    <div style={{ lineHeight: "1.7", color: "#456173", marginBottom: "10px", maxWidth: "680px" }}>
       {lang === "es"
         ? "Esta plataforma le permite practicar exámenes tipo CNA en un entorno de prueba realista."
         : lang === "fr"

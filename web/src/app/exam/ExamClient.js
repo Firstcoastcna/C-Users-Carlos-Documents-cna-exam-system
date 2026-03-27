@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { scoreExam } from "../lib/scoring";
 import { finalizeAttemptAnalytics } from "../lib/finalizeAttemptAnalytics";
+import { assembleExamQuestionIds } from "../lib/examAssembly";
 
 export default function ExamClient({ form, bankById, lang }) {
   const router = useRouter();
+  const [isNarrow, setIsNarrow] = useState(false);
   
 function generateAttemptId() {
     return `att_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -515,23 +517,24 @@ function pauseAndPersist() {
   // Theme / buttons
   // ----------------------------
   const theme = {
-    frameBorder: "#9fb2c7",
-    chromeBg: "#e9f0f7",
-    chromeBorder: "#b7c6d6",
-    primaryBg: "#2b6cb0",
+    frameBorder: "var(--frame-border)",
+    chromeBg: "var(--chrome-bg)",
+    chromeBorder: "var(--chrome-border)",
+    primaryBg: "var(--brand-teal)",
     primaryText: "white",
-    secondaryBg: "#f4f6f8",
-    secondaryText: "#1a1a1a",
-    buttonBorder: "#9aa8b5",
-    link: "#1f6fb2",
+    secondaryBg: "var(--brand-teal-soft)",
+    secondaryText: "var(--brand-teal-dark)",
+    buttonBorder: "var(--button-border)",
+    link: "var(--brand-teal-dark)",
   };
 
   const btnBase = {
-    padding: "10px 12px",
+    padding: "11px 14px",
     fontSize: "14px",
-    borderRadius: "10px",
+    borderRadius: "12px",
     border: `1px solid ${theme.buttonBorder}`,
     cursor: "pointer",
+    fontWeight: 600,
   };
 
   const btnSecondary = {
@@ -554,6 +557,39 @@ function pauseAndPersist() {
     opacity: 0.85,
   };
 
+  const shellFrame = {
+    border: `2px solid ${theme.frameBorder}`,
+    borderRadius: "16px",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    background: "white",
+    boxShadow: "0 12px 32px rgba(31, 52, 74, 0.08)",
+  };
+
+  const shellHeader = {
+    borderBottom: `1px solid ${theme.chromeBorder}`,
+    padding: "18px 20px",
+    background: "linear-gradient(180deg, var(--surface-tint) 0%, var(--chrome-bg) 100%)",
+    color: "var(--heading)",
+  };
+
+  const shellFooter = {
+    borderTop: `1px solid ${theme.chromeBorder}`,
+    padding: "16px 20px",
+    background: "var(--surface-soft)",
+  };
+
+  const softPanel = {
+    border: "1px solid var(--chrome-border)",
+    borderRadius: "14px",
+    background: "var(--surface-soft)",
+  };
+
+  const actionButtonStyle = isNarrow
+    ? { width: "100%", flex: "1 1 100%" }
+    : { minWidth: "180px", flex: "1 1 220px" };
+
   function formatRemaining(sec) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -562,6 +598,17 @@ function pauseAndPersist() {
     return `${mm}:${ss}`;
   }
 
+  useEffect(() => {
+    function syncWidth() {
+      if (typeof window === "undefined") return;
+      setIsNarrow(window.innerWidth < 760);
+    }
+
+    syncWidth();
+    window.addEventListener("resize", syncWidth);
+    return () => window.removeEventListener("resize", syncWidth);
+  }, []);
+
   // ----------------------------
   // Load saved state on first mount
   // ----------------------------
@@ -569,7 +616,7 @@ function pauseAndPersist() {
   const saved = safeReadState();
   const now = Date.now();
 
-  // 🔒 LANGUAGE MISMATCH → HARD RESET EXAM STATE
+  // LANGUAGE MISMATCH: hard reset exam state
   if (
     saved &&
     saved.exam_form_id === form.exam_form_id &&
@@ -590,7 +637,7 @@ function pauseAndPersist() {
     return;
   }
 
-  // 🔹 NORMAL RESTORE (same language)
+  // NORMAL RESTORE (same language)
  if (saved && saved.exam_form_id === form.exam_form_id && Array.isArray(saved.question_ids)) {
   if (saved.attempt_id) setAttemptId(saved.attempt_id);
 
@@ -609,7 +656,7 @@ function pauseAndPersist() {
     if (typeof saved.summaryPage === "number") setSummaryPage(saved.summaryPage);
     if (typeof saved.summaryFilter === "string") setSummaryFilter(saved.summaryFilter);
 
-  // ✅ PAUSE-FRIENDLY RESUME:
+  // PAUSE-FRIENDLY RESUME:
 // If we saved a pausedRemainingSec snapshot, rebuild endAtMs from "now".
 if (typeof saved.pausedRemainingSec === "number") {
   const sec = Math.max(0, Math.floor(saved.pausedRemainingSec));
@@ -644,9 +691,8 @@ if (typeof saved.pausedRemainingSec === "number") {
   const newAttemptId = generateAttemptId();
   setAttemptId(newAttemptId);
 
-  const picked = pickQuestionsPerChapter({
-    perChapter: 12,
-    chapterTags: [1, 2, 3, 4, 5],
+  const picked = assembleExamQuestionIds({
+    questionBankSnapshot: Object.values(bankById),
   });
   setDeliveredQuestionIds(picked);
 
@@ -1019,20 +1065,13 @@ deliveredQuestionIds.forEach((qid) => {
         <div
           style={{
             height: "min(675px, calc(100svh - 40px))",
-            border: `2px solid ${theme.frameBorder}`,
-            borderRadius: "12px",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            background: "white",
+            ...shellFrame,
             marginTop: "20px",
           }}
         >
           <div
-            style={{
-              borderBottom: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
+          style={{
+              ...shellHeader,
               fontWeight: "bold",
               textTransform: "uppercase",
               display: "flex",
@@ -1090,9 +1129,7 @@ deliveredQuestionIds.forEach((qid) => {
     style={{
       margin: "0 auto 14px",
       maxWidth: "640px",
-      border: "1px solid #d4dee8",
-      borderRadius: "12px",
-      background: "#fbfdff",
+      ...softPanel,
       padding: "8px 10px",
       textAlign: "left",
     }}
@@ -1117,9 +1154,7 @@ deliveredQuestionIds.forEach((qid) => {
                 style={{
                   maxWidth: "640px",
                   margin: "0 auto",
-                  border: "1px solid #d4dee8",
-                  borderRadius: "12px",
-                  background: "#fbfdff",
+                  ...softPanel,
                   padding: "14px",
                   textAlign: "left",
                 }}
@@ -1160,16 +1195,14 @@ deliveredQuestionIds.forEach((qid) => {
     justifyContent: "flex-end",
     gap: "10px",
     flexWrap: "wrap",
-    borderTop: `1px solid ${theme.chromeBorder}`,
-    padding: "12px 14px",
-    background: theme.chromeBg,
+    ...shellFooter,
   }}
 >
 <button
   onClick={() => {
     router.push("/pilot");
   }}
-  style={{ ...btnSecondary, flex: "1 1 220px" }}
+  style={{ ...btnSecondary, ...actionButtonStyle }}
 >
   {T.exitToHome}
 </button>
@@ -1187,7 +1220,7 @@ deliveredQuestionIds.forEach((qid) => {
     setAnalyticsUnavailable(false);
     setMode("analytics");
   }}
-  style={{ ...btnPrimary, flex: "1 1 220px" }}
+  style={{ ...btnPrimary, ...actionButtonStyle }}
 >
   {T.reviewResults || T.analytics}
 </button>
@@ -1332,21 +1365,13 @@ if (mode === "rationales") {
     <div style={{ maxWidth: "900px", margin: "0 auto" }}>
       <div
         style={{
-          height: "675px",
-          border: `2px solid ${theme.frameBorder}`,
-          borderRadius: "12px",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          background: "white",
+          ...shellFrame,
           marginTop: "20px",
         }}
       >
         <div
           style={{
-            borderBottom: `1px solid ${theme.chromeBorder}`,
-            padding: "12px 14px",
-            background: theme.chromeBg,
+            ...shellHeader,
             fontWeight: "bold",
             textTransform: "uppercase",
             display: "flex",
@@ -1589,8 +1614,8 @@ if (lang === "ht") {
         ...btnSecondary,
         minWidth: "100px",
         padding: "8px 10px",
-        border: isActive ? "2px solid #2b6cb0" : btnSecondary.border,
-        background: isActive ? "#e7f1ff" : btnSecondary.background,
+        border: isActive ? "2px solid var(--brand-teal)" : btnSecondary.border,
+        background: isActive ? "var(--surface-tint)" : btnSecondary.background,
         fontWeight: isActive ? "bold" : "normal",
         opacity: isEnabled ? 1 : 0.35,
         cursor: isEnabled ? "pointer" : "not-allowed",
@@ -1785,22 +1810,14 @@ let resultsPayload = null;
     <div style={{ maxWidth: "900px", margin: "0 auto" }}>
       <div
         style={{
-          height: "675px",
-          border: `2px solid ${theme.frameBorder}`,
-          borderRadius: "12px",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          background: "white",
+          ...shellFrame,
           marginTop: "20px",
         }}
       >
         {/* Header */}
         <div
           style={{
-            borderBottom: `1px solid ${theme.chromeBorder}`,
-            padding: "12px 14px",
-            background: theme.chromeBg,
+            ...shellHeader,
             fontWeight: "bold",
             textTransform: "uppercase",
             display: "flex",
@@ -1814,9 +1831,7 @@ let resultsPayload = null;
         {/* Body */}
         <div
           style={{
-            flex: 1,
             padding: "18px",
-            overflowY: "auto",
           }}
         >
           <div style={{ maxWidth: "700px", margin: "0 auto" }}>
@@ -2084,62 +2099,60 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
     </div>
   )}
 
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "10px",
+              flexWrap: "wrap",
+              flexDirection: isNarrow ? "column" : "row",
+              alignItems: isNarrow ? "stretch" : "center",
+              marginTop: "18px",
+            }}
+          >
+            <button
+              onClick={() => {
+                setRationaleChapter(1);
+                setMode("rationales");
+              }}
+              style={{ ...btnSecondary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
+            >
+              {T.reviewQuestions}
+            </button>
+
+            <button
+              onClick={() => {
+                if (!attemptId) {
+                  alert("Remediation is unavailable because the attempt id was not found.");
+                  return;
+                }
+
+                const key = `cna:results:${attemptId}`;
+                const raw = localStorage.getItem(key);
+
+                if (!raw) {
+                  alert("Remediation is unavailable because the results payload was not found.");
+                  return;
+                }
+
+                router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}`);
+              }}
+              style={{ ...btnPrimary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
+            >
+              {T.startRemediation}
+            </button>
+
+            <button
+              onClick={() => {
+                router.push("/pilot");
+              }}
+              style={{ ...btnSecondary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
+            >
+              {T.exitToHome}
+            </button>
+          </div>
 
           </div>
-        </div>
-
-        {/* Footer */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "10px",
-            flexWrap: "wrap",
-            borderTop: `1px solid ${theme.chromeBorder}`,
-            padding: "12px 14px",
-            background: theme.chromeBg,
-          }}
-        >
-          <button
-            onClick={() => {
-              setRationaleChapter(1);
-              setMode("rationales");
-            }}
-            style={{ ...btnSecondary, flex: "1 1 220px" }}
-          >
-            {T.reviewQuestions}
-          </button>
-
-          <button
-            onClick={() => {
-              if (!attemptId) {
-                alert("Remediation is unavailable because the attempt id was not found.");
-                return;
-              }
-
-              const key = `cna:results:${attemptId}`;
-              const raw = localStorage.getItem(key);
-
-              if (!raw) {
-                alert("Remediation is unavailable because the results payload was not found.");
-                return;
-              }
-
-              router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}`);
-            }}
-            style={{ ...btnPrimary, flex: "1 1 220px" }}
-          >
-            {T.startRemediation}
-          </button>
-
-          <button
-            onClick={() => {
-              router.push("/pilot");
-            }}
-            style={{ ...btnSecondary, flex: "1 1 220px" }}
-          >
-            {T.exitToHome}
-          </button>
         </div>
       </div>
     </div>
@@ -2391,8 +2404,8 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             padding: "7px 9px",
             fontSize: "13px",
             borderRadius: "9px",
-            border: isActive ? "2px solid #2b6cb0" : `1px solid ${theme.buttonBorder}`,
-            background: isActive ? "#e7f1ff" : theme.secondaryBg,
+            border: isActive ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+            background: isActive ? "var(--surface-tint)" : theme.secondaryBg,
             ...extraStyle,
           }}
         >
@@ -2602,50 +2615,87 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
       <div
         style={{
           height: "675px",
-          border: `2px solid ${theme.frameBorder}`,
-          borderRadius: "12px",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          background: "white",
+          ...shellFrame,
         }}
       >
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
-            borderBottom: `1px solid ${theme.chromeBorder}`,
-            padding: "12px 14px",
-            background: theme.chromeBg,
+            alignItems: "flex-start",
+            gap: "12px",
+            flexWrap: isNarrow ? "wrap" : "nowrap",
+            ...shellHeader,
           }}
         >
-          <strong style={{ fontSize: "18px" }}>
-            {T.question} {index + 1} {T.of} {total}
-          <span style={{ fontSize: "12px", fontWeight: "normal", marginLeft: "10px", color: "#555" }}>
-    ({qid})
-  </span>
-          </strong>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontSize: isNarrow ? "20px" : "22px",
+                fontWeight: 800,
+                color: "var(--heading)",
+                lineHeight: 1.2,
+              }}
+            >
+              {T.question} {index + 1} {T.of} {total}
+            </div>
+            <div style={{ fontSize: "12px", color: "#607282", marginTop: "4px" }}>
+              ID: {qid}
+            </div>
+          </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
- 
+          <div
+            style={{
+              display: "flex",
+              alignItems: isNarrow ? "stretch" : "center",
+              justifyContent: "flex-end",
+              gap: "10px",
+              flexWrap: "wrap",
+              marginLeft: "auto",
+            }}
+          >
             <label
               style={{
                 cursor: "pointer",
-                fontWeight: isMarked ? "bold" : "normal",
-                color: isMarked ? "red" : "inherit",
+                fontWeight: 600,
+                color: isMarked ? "var(--brand-red)" : "var(--brand-teal-dark)",
+                border: `1px solid ${isMarked ? "var(--brand-red)" : "var(--button-border)"}`,
+                background: isMarked ? "var(--brand-red-soft)" : "white",
+                borderRadius: "999px",
+                padding: isNarrow ? "6px 10px" : "8px 12px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                minHeight: isNarrow ? "32px" : "38px",
+                fontSize: isNarrow ? "12px" : "14px",
               }}
             >
               <input
                 type="checkbox"
                 checked={isMarked}
                 onChange={toggleReview}
-                style={{ marginRight: "6px" }}
+                style={{ margin: 0 }}
               />
-              {isMarked ? `🚩 ${T.markedForReview}` : T.markForReview}
+              <span>{isMarked ? `🚩 ${T.markedForReview}` : T.markForReview}</span>
             </label>
 
-            <span style={{ fontWeight: "bold" }}>⏱ {formatRemaining(remainingSec)}</span>
+            <div
+              style={{
+                fontWeight: 800,
+                color: "var(--brand-red)",
+                border: "1px solid var(--brand-red)",
+                background: "white",
+                borderRadius: "999px",
+                padding: isNarrow ? "7px 11px" : "8px 12px",
+                minHeight: isNarrow ? "34px" : "38px",
+                display: "inline-flex",
+                alignItems: "center",
+                whiteSpace: "nowrap",
+                fontSize: isNarrow ? "13px" : "14px",
+              }}
+            >
+              ⏱ {formatRemaining(remainingSec)}
+            </div>
           </div>
         </div>
 
@@ -2656,10 +2706,6 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
 
             return (
               <div key={b.label} style={{ marginBottom: "18px" }}>
-                <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
-                  {b.label}
-                </div>
-
                 <div
                   style={{
                     fontSize: "18px",
@@ -2668,6 +2714,18 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                     marginBottom: "15px",
                   }}
                 >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      fontSize: "13px",
+                      fontWeight: 800,
+                      letterSpacing: "0.04em",
+                      color: "#607282",
+                      marginRight: "8px",
+                    }}
+                  >
+                    {b.label}
+                  </span>
                   {b.v.question_text}
                 </div>
 
@@ -2682,10 +2740,10 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                         padding: "10px",
                         marginBottom: "6px",
                         fontSize: "16px",
-                        border: "1px solid #c6d3e0",
-                        borderRadius: "10px",
+                        border: "1px solid var(--chrome-border)",
+                        borderRadius: "12px",
                         cursor: isInteractive ? "pointer" : "default",
-                        background: isSelected ? "#e7f1ff" : "white",
+                        background: isSelected ? "var(--surface-tint)" : "white",
                       }}
                     >
                       <input
@@ -2709,38 +2767,72 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
 
         <div
           style={{
-            display: "flex",
+            display: "grid",
             gap: "10px",
-            borderTop: `1px solid ${theme.chromeBorder}`,
-            padding: "12px 14px",
-            background: theme.chromeBg,
+            ...shellFooter,
           }}
         >
-          <button
-            onClick={() => index > 0 && setIndex(index - 1)}
-            disabled={index === 0}
-            style={{ ...btnSecondary, flex: 1, opacity: index === 0 ? 0.5 : 1 }}
-          >
-            {T.previous}
-          </button>
+          {isNarrow ? (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <button
+                  onClick={() => index > 0 && setIndex(index - 1)}
+                  disabled={index === 0}
+                  style={{ ...btnSecondary, width: "100%", opacity: index === 0 ? 0.5 : 1 }}
+                >
+                  {T.previous}
+                </button>
 
-          <button onClick={() => setMode("review")} style={{ ...btnSecondary, flex: 1 }}>
-            {T.summary}
-          </button>
+                <button onClick={() => setMode("review")} style={{ ...btnSecondary, width: "100%" }}>
+                  {T.summary}
+                </button>
+              </div>
 
-          {isLast ? (
-            <button onClick={() => setMode("review")} style={{ ...btnPrimary, flex: 1 }}>
-              {T.endTest}
-            </button>
+              {isLast ? (
+                <button onClick={() => setMode("review")} style={{ ...btnPrimary, width: "100%" }}>
+                  {T.endTest}
+                </button>
+              ) : (
+                <button onClick={() => setIndex(index + 1)} style={{ ...btnPrimary, width: "100%" }}>
+                  {T.next}
+                </button>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => openExitConfirm("exam")} style={{ ...btnExit, minWidth: "90px" }}>
+                  {T.exit}
+                </button>
+              </div>
+            </>
           ) : (
-            <button onClick={() => setIndex(index + 1)} style={{ ...btnPrimary, flex: 1 }}>
-              {T.next}
-            </button>
-          )}
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => index > 0 && setIndex(index - 1)}
+                disabled={index === 0}
+                style={{ ...btnSecondary, flex: 1, opacity: index === 0 ? 0.5 : 1 }}
+              >
+                {T.previous}
+              </button>
 
-          <button onClick={() => openExitConfirm("exam")} style={{ ...btnExit, minWidth: "90px" }}>
-            {T.exit}
-          </button>
+              <button onClick={() => setMode("review")} style={{ ...btnSecondary, flex: 1 }}>
+                {T.summary}
+              </button>
+
+              {isLast ? (
+                <button onClick={() => setMode("review")} style={{ ...btnPrimary, flex: 1 }}>
+                  {T.endTest}
+                </button>
+              ) : (
+                <button onClick={() => setIndex(index + 1)} style={{ ...btnPrimary, flex: 1 }}>
+                  {T.next}
+                </button>
+              )}
+
+              <button onClick={() => openExitConfirm("exam")} style={{ ...btnExit, minWidth: "90px" }}>
+                {T.exit}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

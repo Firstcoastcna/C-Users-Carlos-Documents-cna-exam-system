@@ -3,6 +3,51 @@
 import React, { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+function Frame({ title, children, footer, theme }) {
+  return (
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
+      <div
+        style={{
+          minHeight: "675px",
+          border: `2px solid ${theme.frameBorder}`,
+          borderRadius: "16px",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          background: "white",
+          boxShadow: "0 12px 32px rgba(31, 52, 74, 0.08)",
+        }}
+      >
+        <div
+          style={{
+            borderBottom: `1px solid ${theme.chromeBorder}`,
+            padding: "18px 20px",
+            background: "linear-gradient(180deg, var(--surface-tint) 0%, var(--chrome-bg) 100%)",
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            color: "var(--heading)",
+          }}
+        >
+          {title}
+        </div>
+
+        <div style={{ flex: 1, padding: "24px" }}>{children}</div>
+
+        <div
+          style={{
+            borderTop: `1px solid ${theme.chromeBorder}`,
+            padding: "16px 20px",
+            background: "var(--surface-soft)",
+          }}
+        >
+          {footer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AccessInner() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -13,14 +58,14 @@ function AccessInner() {
 
   const theme = useMemo(
     () => ({
-      frameBorder: "#9fb2c7",
-      chromeBg: "#e9f0f7",
-      chromeBorder: "#b7c6d6",
-      primaryBg: "#2b6cb0",
+      frameBorder: "var(--frame-border)",
+      chromeBg: "var(--chrome-bg)",
+      chromeBorder: "var(--chrome-border)",
+      primaryBg: "var(--brand-teal)",
       primaryText: "white",
-      secondaryBg: "#f4f6f8",
-      secondaryText: "#1a1a1a",
-      buttonBorder: "#9aa8b5",
+      secondaryBg: "var(--brand-teal-soft)",
+      secondaryText: "var(--brand-teal-dark)",
+      buttonBorder: "var(--button-border)",
     }),
     []
   );
@@ -40,48 +85,6 @@ function AccessInner() {
     border: `1px solid ${theme.primaryBg}`,
     width: "100%",
   };
-
-  function Frame({ title, children, footer }) {
-    return (
-      <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
-        <div
-          style={{
-            height: "675px",
-            border: `2px solid ${theme.frameBorder}`,
-            borderRadius: "12px",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            background: "white",
-          }}
-        >
-          <div
-            style={{
-              borderBottom: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
-              fontWeight: "bold",
-              textTransform: "uppercase",
-            }}
-          >
-            {title}
-          </div>
-
-          <div style={{ flex: 1, padding: "18px" }}>{children}</div>
-
-          <div
-            style={{
-              borderTop: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
-            }}
-          >
-            {footer}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
@@ -113,20 +116,31 @@ function AccessInner() {
   return (
     <Frame
       title={t("ACCESS", "ACCESO", "ACCÈS", "AKSÈ")}
+      theme={theme}
       footer={
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
           <button style={{ ...btnPrimary, width: "220px" }} onClick={submit}>
             {t("Continue", "Continuar", "Continuer", "Kontinye")}
           </button>
         </div>
       }
     >
-      <div style={{ maxWidth: "520px", margin: "0 auto", paddingTop: "40px" }}>
-        <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "10px" }}>
+      <div
+        style={{
+          maxWidth: "560px",
+          margin: "0 auto",
+          paddingTop: "24px",
+          border: `1px solid ${theme.chromeBorder}`,
+          borderRadius: "16px",
+          background: "var(--surface-soft)",
+          padding: "28px",
+        }}
+      >
+        <div style={{ fontSize: "26px", fontWeight: 800, marginBottom: "10px", color: "var(--heading)" }}>
           {t("Enter your access code", "Ingrese su código de acceso", "Entrez votre code d’accès", "Antre kòd aksè ou")}
         </div>
 
-        <div style={{ color: "#333", lineHeight: "1.6", marginBottom: "16px" }}>
+        <div style={{ color: "#456173", lineHeight: "1.7", marginBottom: "18px" }}>
           {t(
             "You are entering a CNA exam practice platform. Enter your access code to continue.",
             "Está ingresando a una plataforma de práctica del examen CNA. Ingrese su código de acceso para continuar.",
@@ -142,15 +156,16 @@ function AccessInner() {
           autoFocus
           style={{
             width: "100%",
-            padding: "12px",
-            borderRadius: "10px",
+            padding: "14px 15px",
+            borderRadius: "12px",
             border: `1px solid ${theme.buttonBorder}`,
             fontSize: "16px",
+            background: "white",
           }}
         />
 
         {err ? (
-          <div style={{ marginTop: "10px", color: "#ce0707", fontSize: "14px" }}>
+          <div style={{ marginTop: "12px", color: "var(--brand-red)", fontSize: "14px" }}>
             {err}
           </div>
         ) : null}

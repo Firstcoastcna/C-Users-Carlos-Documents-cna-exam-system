@@ -5,6 +5,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --brand-red: #cc0000;
+  --brand-red-soft: #fff1f1;
+  --brand-teal: #2583a6;
+  --brand-teal-dark: #1d6c89;
+  --brand-teal-soft: #e8f5fa;
+  --surface-soft: #f7fafc;
+  --surface-tint: #edf6f9;
+  --frame-border: #b9d2dc;
+  --chrome-bg: #eef7fa;
+  --chrome-border: #c8dbe3;
+  --button-border: #9db8c4;
+  --heading: #17384a;
 
   /* Tell browsers we intentionally use light colors */
   color-scheme: light;
@@ -16,7 +28,7 @@ body {
   overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-app-sans), "Segoe UI", Tahoma, sans-serif;
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -33,4 +45,11 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }

@@ -4,6 +4,51 @@ import React, { Suspense, useEffect, useMemo } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
+function Frame({ title, children, footer, theme }) {
+  return (
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
+      <div
+        style={{
+          minHeight: "675px",
+          border: `2px solid ${theme.frameBorder}`,
+          borderRadius: "16px",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          background: "white",
+          boxShadow: "0 12px 32px rgba(31, 52, 74, 0.08)",
+        }}
+      >
+        <div
+          style={{
+            borderBottom: `1px solid ${theme.chromeBorder}`,
+            padding: "18px 20px",
+            background: "linear-gradient(180deg, var(--surface-tint) 0%, var(--chrome-bg) 100%)",
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            color: "var(--heading)",
+          }}
+        >
+          {title}
+        </div>
+
+        <div style={{ flex: 1, padding: "24px", overflowY: "auto" }}>{children}</div>
+
+        <div
+          style={{
+            borderTop: `1px solid ${theme.chromeBorder}`,
+            padding: "16px 20px",
+            background: "var(--surface-soft)",
+          }}
+        >
+          {footer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ChaptersInner() {
 
   const router = useRouter();
@@ -31,14 +76,14 @@ function ChaptersInner() {
 
   const theme = useMemo(
     () => ({
-      frameBorder: "#9fb2c7",
-      chromeBg: "#e9f0f7",
-      chromeBorder: "#b7c6d6",
-      primaryBg: "#2b6cb0",
+      frameBorder: "var(--frame-border)",
+      chromeBg: "var(--chrome-bg)",
+      chromeBorder: "var(--chrome-border)",
+      primaryBg: "var(--brand-teal)",
       primaryText: "white",
-      secondaryBg: "#f4f6f8",
-      secondaryText: "#1a1a1a",
-      buttonBorder: "#9aa8b5",
+      secondaryBg: "var(--brand-teal-soft)",
+      secondaryText: "var(--brand-teal-dark)",
+      buttonBorder: "var(--button-border)",
     }),
     []
   );
@@ -66,48 +111,6 @@ function ChaptersInner() {
     width: "100%",
   };
 
-  function Frame({ title, children, footer }) {
-    return (
-      <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
-        <div
-          style={{
-            height: "675px",
-            border: `2px solid ${theme.frameBorder}`,
-            borderRadius: "12px",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            background: "white",
-          }}
-        >
-          <div
-            style={{
-              borderBottom: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
-              fontWeight: "bold",
-              textTransform: "uppercase",
-            }}
-          >
-            {title}
-          </div>
-
-          <div style={{ flex: 1, padding: "18px", overflowY: "auto" }}>{children}</div>
-
-          <div
-            style={{
-              borderTop: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
-            }}
-          >
-            {footer}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
     if (lang === "fr") return fr;
@@ -117,9 +120,9 @@ function ChaptersInner() {
 
   const detailsStyle = {
     border: `1px solid ${theme.chromeBorder}`,
-    borderRadius: "12px",
-    padding: "12px",
-    background: "#fafcff",
+    borderRadius: "14px",
+    padding: "16px",
+    background: "var(--surface-soft)",
   };
 
   const summaryStyle = {
@@ -127,11 +130,12 @@ function ChaptersInner() {
     fontWeight: 800,
     fontSize: "16px",
     outline: "none",
+    color: "var(--heading)",
   };
 
-  const h3 = { marginTop: 12, marginBottom: 6, fontSize: 14, fontWeight: 800, color: "#1a1a1a" };
+  const h3 = { marginTop: 12, marginBottom: 6, fontSize: 14, fontWeight: 800, color: "var(--heading)" };
 
-  const ul = { marginTop: 6, marginBottom: 0, paddingLeft: 18, lineHeight: 1.65, color: "#333" };
+  const ul = { marginTop: 6, marginBottom: 0, paddingLeft: 18, lineHeight: 1.7, color: "#334e61" };
 
   function handleToggle(ch, e) {
     // Only collapse others when this one is opening
@@ -541,14 +545,11 @@ function ChaptersInner() {
   return (
     <Frame
       title={t("CHAPTERS & STUDY GUIDANCE", "CAPÍTULOS Y GUÍA DE ESTUDIO", "CHAPITRES & GUIDE D’ÉTUDE", "CHAPIT & GID ETID")}
+      theme={theme}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-          <button style={{ ...btnSecondary, width: "220px" }} onClick={() => router.push(`/welcome?lang=${lang}`)}>
-            {t("Back to Welcome", "Volver a Bienvenida", "Retour à Bienvenue", "Tounen Byenveni")}
-          </button>
-
           <button style={{ ...btnPrimary, width: "220px" }} onClick={() => router.push(`/pilot?lang=${lang}`)}>
-            {t("Go to Pilot Hub", "Ir al Piloto", "Aller au hub pilote", "Ale nan Pilot")}
+            {t("Go to Exam Hub", "Ir al Centro de Exámenes", "Aller au hub d’examen", "Ale nan Hub Egzamen an")}
           </button>
         </div>
       }

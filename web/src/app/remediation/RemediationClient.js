@@ -30,6 +30,7 @@ const reviewParam = searchParams.get("review"); // "1" means view-only
 const qaParam = searchParams.get("qa"); // "1" enables QA debug overlay
 
 const [lang, setLang] = useState("en");
+const [isNarrow, setIsNarrow] = useState(false);
 useEffect(() => {
   if (urlLang) setLang(urlLang);
 }, [urlLang]);
@@ -540,23 +541,24 @@ function outcomeLabel(outcome) {
 // Theme / buttons (match ExamClient)
 // ----------------------------
 const theme = {
-  frameBorder: "#9fb2c7",
-  chromeBg: "#e9f0f7",
-  chromeBorder: "#b7c6d6",
-  primaryBg: "#2b6cb0",
+  frameBorder: "var(--frame-border)",
+  chromeBg: "var(--chrome-bg)",
+  chromeBorder: "var(--chrome-border)",
+  primaryBg: "var(--brand-teal)",
   primaryText: "white",
-  secondaryBg: "#f4f6f8",
-  secondaryText: "#1a1a1a",
-  buttonBorder: "#9aa8b5",
-  link: "#1f6fb2",
+  secondaryBg: "var(--brand-teal-soft)",
+  secondaryText: "var(--brand-teal-dark)",
+  buttonBorder: "var(--button-border)",
+  link: "var(--brand-teal-dark)",
 };
 
 const btnBase = {
-  padding: "10px 12px",
+  padding: "11px 14px",
   fontSize: "14px",
-  borderRadius: "10px",
+  borderRadius: "12px",
   border: `1px solid ${theme.buttonBorder}`,
   cursor: "pointer",
+  fontWeight: 600,
 };
 
 const btnSecondary = {
@@ -578,6 +580,49 @@ const btnExit = {
   fontSize: "12px",
   opacity: 0.85,
 };
+
+const softPanel = {
+  border: "1px solid var(--chrome-border)",
+  borderRadius: 14,
+  background: "var(--surface-soft)",
+};
+
+const shellFrame = {
+  border: "2px solid var(--frame-border)",
+  borderRadius: 16,
+  overflow: "hidden",
+  background: "white",
+  boxShadow: "0 12px 32px rgba(31, 52, 74, 0.08)",
+};
+
+const shellHeader = {
+  padding: "18px 20px",
+  borderBottom: "1px solid var(--chrome-border)",
+  background: "linear-gradient(180deg, var(--surface-tint) 0%, var(--chrome-bg) 100%)",
+  color: "var(--heading)",
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+};
+
+const shellBody = {
+  padding: 18,
+};
+
+const actionButtonStyle = isNarrow
+  ? { width: "100%", flex: "1 1 100%" }
+  : { minWidth: 180, flex: "1 1 220px" };
+
+useEffect(() => {
+  function syncWidth() {
+    if (typeof window === "undefined") return;
+    setIsNarrow(window.innerWidth < 760);
+  }
+
+  syncWidth();
+  window.addEventListener("resize", syncWidth);
+  return () => window.removeEventListener("resize", syncWidth);
+}, []);
 
 
   // Load language preference (reuse same storage key pattern you likely use elsewhere)
@@ -905,14 +950,13 @@ if (view === "intro") {
 
   return (
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
-      <div style={{ fontWeight: "bold", marginBottom: 10 }}>{T.remediationTitle}</div>
-
+      <div style={shellFrame}>
+      <div style={shellHeader}>{T.remediationTitle}</div>
+      <div style={shellBody}>
       <div
         style={{
-          border: "1px solid #d4dee8",
-          borderRadius: 12,
-          padding: 14,
-          background: "#fbfdff",
+          ...softPanel,
+          padding: 18,
         }}
       >
         <div style={{ fontWeight: "bold", marginBottom: 8 }}>{T.introTitle}</div>
@@ -935,12 +979,12 @@ if (view === "intro") {
 
         <QaOverlay data={qaOverlayData} />
 
-        <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+<div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
   <button
     onClick={() => {
       router.push(`/exam?lang=${lang}`);
     }}
-    style={btnSecondary}
+    style={{ ...btnSecondary, ...actionButtonStyle }}
   >
     {T.btnBackToResults}
   </button>
@@ -953,7 +997,7 @@ if (view === "intro") {
           `/remediation?attemptId=${encodeURIComponent(attemptIdParam)}&session_id=${loopState.lastCompleted.session_id}&lang=${lang}&review=1`
         );
       }}
-      style={btnSecondary}
+      style={{ ...btnSecondary, ...actionButtonStyle }}
     >
       {T.btnReviewLast}
     </button>
@@ -1015,7 +1059,8 @@ try {
 
   const priorRemediationState = {
     seenQuestionIds: mergedSeen,
-    rotationOffset: (loopState.completedSorted || []).length + globalSameCatSetCompleted.length,
+    previousSessions: globalSameCatSetCompleted,
+    lastSessionQuestionIds: (loopState.lastCompleted?.questionIds || []).slice(),
   };
 
 
@@ -1043,13 +1088,14 @@ try {
 }
 
     }}
-    style={{ ...btnPrimary, flexGrow: 1, minWidth: 220 }}
+    style={{ ...btnPrimary, ...actionButtonStyle }}
   >
     {loopState.activeSession?.session_id ? T.btnContinueRemediation : T.btnStartNewAttempt}
   </button>
   )}
 </div>
-
+      </div>
+      </div>
       </div>
   
   );
@@ -1126,16 +1172,13 @@ if (view === "confirm_exit" && session) {
 
   return (
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
-      <div style={{ fontWeight: "bold", marginBottom: 10 }}>
-        {T.remediationTitle}
-      </div>
-
+      <div style={shellFrame}>
+      <div style={shellHeader}>{T.remediationTitle}</div>
+      <div style={shellBody}>
       <div
         style={{
-          border: "1px solid #d4dee8",
-          borderRadius: 12,
-          padding: 14,
-          background: "#fbfdff",
+          ...softPanel,
+          padding: 18,
         }}
       >
         <div style={{ fontWeight: "bold", marginBottom: 8 }}>
@@ -1155,17 +1198,19 @@ if (view === "confirm_exit" && session) {
             flexWrap: "wrap",
           }}
         >
-          <button onClick={() => setView("session")} style={btnPrimary}>
+          <button onClick={() => setView("session")} style={{ ...btnPrimary, ...actionButtonStyle }}>
   {T.btnContinue}
 </button>
 
 
-<button onClick={exitToResultsAnyway} style={{ ...btnSecondary, marginLeft: "auto" }}>
+<button onClick={exitToResultsAnyway} style={{ ...btnSecondary, ...actionButtonStyle }}>
   {T.btnEndAnyway}
 </button>
 
 
         </div>
+      </div>
+      </div>
       </div>
     </div>
   );
@@ -1196,14 +1241,13 @@ if (view === "complete" && session) {
 
   return (
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
-      <div style={{ fontWeight: "bold", marginBottom: 10 }}>{T.remediationTitle}</div>
-
+      <div style={shellFrame}>
+      <div style={shellHeader}>{T.remediationTitle}</div>
+      <div style={shellBody}>
       <div
         style={{
-          border: "1px solid #d4dee8",
-          borderRadius: 12,
-          padding: 14,
-          background: "#fbfdff",
+          ...softPanel,
+          padding: 18,
         }}
       >
         <div style={{ fontWeight: "bold", marginBottom: 8 }}>{T.completeTitle}</div>
@@ -1300,11 +1344,9 @@ if (view === "complete" && session) {
             <>
               <div
                 style={{
+                  ...softPanel,
                   marginTop: 14,
                   padding: "12px 14px",
-                  borderRadius: 12,
-                  border: "1px solid #d6e0ec",
-                  background: "#f4f7fb",
                   fontSize: 13,
                   color: "#333",
                   lineHeight: "1.6",
@@ -1318,7 +1360,7 @@ if (view === "complete" && session) {
 
              <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
   <div style={{ display: "flex", gap: "12px", marginLeft: "auto" }}>
-    <button onClick={goToHub} style={btnPrimary}>
+    <button onClick={goToHub} style={{ ...btnPrimary, ...actionButtonStyle }}>
       {T.btnBackToOverview}
     </button>
   </div>
@@ -1329,6 +1371,8 @@ if (view === "complete" && session) {
         })()}
 
 
+      </div>
+      </div>
       </div>
     </div>
   );
@@ -1359,45 +1403,84 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
 
   return (
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 10 }}>
-  <div style={{ fontWeight: "bold" }}>{T.remediationTitle}</div>
-
-  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-    <div style={{ fontSize: 12, color: "#555" }}>
-      {session.currentIndex + 1} / {(session.questionIds || []).length}
+      <div style={shellFrame}>
+      <div
+        style={{
+          ...shellHeader,
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "flex-start",
+          flexWrap: isNarrow ? "wrap" : "nowrap",
+        }}
+      >
+  <div>
+    <div style={{ fontWeight: "bold", fontSize: "22px", color: "var(--heading)", lineHeight: 1.2 }}>
+      Question {session.currentIndex + 1} of {(session.questionIds || []).length}
     </div>
+    <div style={{ fontSize: "12px", color: "#607282", marginTop: "4px" }}>
+      ID: {questionId}
+    </div>
+  </div>
 
+  <div style={{ display: "flex", alignItems: "center", gap: 10, marginLeft: "auto" }}>
     <button onClick={requestExitToResults} style={btnExit}>
   {T.btnExit}
 </button>
 
   </div>
 </div>
-
+      <div style={shellBody}>
 
       <div
         style={{
-          border: "1px solid #d4dee8",
-          borderRadius: 12,
-          padding: 14,
-          background: "#fbfdff",
+          ...softPanel,
+          padding: 18,
           display: "flex",
           flexDirection: "column",
-          minHeight: 500,
-          maxHeight: 500,
+          minHeight: isNarrow ? "unset" : 500,
+          maxHeight: isNarrow ? "unset" : 500,
+          boxShadow: "0 12px 28px rgba(31, 52, 74, 0.06)",
         }}
       >
-        <div style={{ flex: 1, overflowY: "auto", paddingRight: 4 }}>
-        <div style={{ fontSize: 14, color: "red", marginBottom: 8 }}>
-  <span style={{ marginRight: 6 }}>{T.categoryReviewLabel}</span>
+        <div style={{ flex: isNarrow ? "unset" : 1, overflowY: isNarrow ? "visible" : "auto", paddingRight: isNarrow ? 0 : 4 }}>
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 13,
+            color: "var(--brand-teal-dark)",
+            marginBottom: 14,
+            padding: "6px 10px",
+            borderRadius: 999,
+            background: "var(--brand-teal-soft)",
+            border: "1px solid var(--frame-border)",
+          }}
+        >
+  <span>{T.categoryReviewLabel}</span>
   <strong>{catLabel(q.category_tag)}</strong>
 </div>
 
 
-       <div style={{ marginBottom: 10 }}>
+       <div style={{ marginBottom: 16 }}>
   {getDisplayBlocks(q).map((b) => (
-    <div key={b.label} style={{ fontWeight: "bold", marginTop: b.label === "EN" ? 0 : 6 }}>
-      {b.v?.question_text}
+    <div key={b.label} style={{ marginTop: b.label === "EN" ? 0 : 12 }}>
+      <div style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.5, color: "#1e3342" }}>
+        <span
+          style={{
+            display: "inline-block",
+            fontWeight: "bold",
+            fontSize: 13,
+            color: "#607282",
+            marginRight: 8,
+            letterSpacing: "0.04em",
+          }}
+        >
+          {b.label}
+        </span>
+        {b.v?.question_text}
+      </div>
     </div>
   ))}
 </div>
@@ -1417,12 +1500,13 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
     <div
       key={key}
       style={{
-        padding: "10px",
-        marginBottom: "6px",
+        padding: "12px 14px",
+        marginBottom: "10px",
         fontSize: "16px",
-        border: "1px solid #c6d3e0",
-        borderRadius: "10px",
-        background: isSelected ? "#e7f1ff" : "white",
+        border: "1px solid var(--chrome-border)",
+        borderRadius: "12px",
+        background: isSelected ? "var(--surface-tint)" : "white",
+        boxShadow: isSelected ? "0 6px 14px rgba(37, 131, 166, 0.10)" : "none",
       }}
     >
       <label style={{ display: "block", cursor: submitted ? "default" : "pointer" }}>
@@ -1463,26 +1547,26 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
 {submitted && selected && saved && (
   <div
     style={{
-      marginTop: 12,
-      padding: "10px 12px",
-      borderRadius: 10,
-      border: "1px solid #d4dee8",
-      background: "#fbfdff",
+      marginTop: 16,
+      padding: "14px 16px",
+      borderRadius: 14,
+      border: "1px solid var(--chrome-border)",
+      background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
       textAlign: "left",
     }}
   >
-    <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 6 }}>
+    <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8, color: saved.is_correct ? "#21693f" : "var(--brand-red)" }}>
       {saved.is_correct ? T.fbCorrect : T.fbIncorrect(q.correct_answer)}
     </div>
 
    {(whyPrimary || sigPrimary || whySupport || sigSupport) && (
 
   <details>
-    <summary style={{ cursor: "pointer", fontSize: 15 }}>{T.fbShowWhy}</summary>
+    <summary style={{ cursor: "pointer", fontSize: 14, fontWeight: 700, color: "var(--brand-teal-dark)" }}>{T.fbShowWhy}</summary>
 
     {(whyPrimary || whySupport) && (
 
-      <div style={{ marginTop: 8, fontSize: 13, color: "#333", lineHeight: "1.6" }}>
+      <div style={{ marginTop: 10, fontSize: 13, color: "#333", lineHeight: "1.7" }}>
         <div style={{ fontWeight: "bold", marginBottom: 4 }}>{T.fbWhyCorrect}</div>
 
         {/* Primary explanation (EN/ES uses active language; FR/HT uses EN) */}
@@ -1497,7 +1581,7 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
     )}
 
     {(sigPrimary || sigSupport) && (
-      <div style={{ marginTop: 10, fontSize: 13, color: "#333", lineHeight: "1.6" }}>
+      <div style={{ marginTop: 12, fontSize: 13, color: "#333", lineHeight: "1.7" }}>
         <div style={{ fontWeight: "bold", marginBottom: 4 }}>{T.fbPrometricSignal}</div>
 
         {/* Primary signal (EN/ES uses active language; FR/HT uses EN) */}
@@ -1529,11 +1613,11 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
 >
 
         {session.currentIndex > 0 ? (
-  <button onClick={goPrev} style={btnSecondary}>
+  <button onClick={goPrev} style={{ ...btnSecondary, ...actionButtonStyle }}>
     {T.btnBack}
   </button>
 ) : (
-  <div />   // keeps spacing consistent
+  <div style={isNarrow ? { display: "none" } : actionButtonStyle} />
 )}
 
 
@@ -1541,7 +1625,7 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
   <button
     onClick={goNext}
     disabled={session.currentIndex >= (session.questionIds || []).length - 1}
-    style={btnPrimary}
+    style={{ ...btnPrimary, ...actionButtonStyle }}
   >
     {T.btnNext}
   </button>
@@ -1549,7 +1633,7 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
   <button
   onClick={() => setView("complete")}
   disabled={countUnanswered(session) > 0}
-  style={btnPrimary}
+  style={{ ...btnPrimary, ...actionButtonStyle }}
 >
   {T.btnFinish}
 </button>
@@ -1557,6 +1641,8 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
 )}
 
       </div>
+    </div>
+    </div>
     </div>
   );
 }

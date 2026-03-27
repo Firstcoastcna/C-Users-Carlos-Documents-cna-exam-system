@@ -22,7 +22,7 @@ if (!lang) {
   });
 
   return (
-    <main style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+    <main style={{ padding: "20px" }}>
       <ExamClient form={form} bankById={bankById} lang={lang} />
     </main>
   );

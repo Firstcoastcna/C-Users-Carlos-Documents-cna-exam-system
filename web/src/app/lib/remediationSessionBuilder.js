@@ -1,203 +1,178 @@
 import { selectRemediationQuestions } from "./remediationQuestionSelector";
 import { saveRemediationSession } from "./remediationSessionStorage";
 
-// Phase 6 — Step 6.1
-// Remediation Session Builder (logic only)
-// IMPORTANT: No UI, no persistence, no ResultsPayload updates.
-
-// Canon category → chapter mapping
-// This mapping is remediation-specific and must reflect the real question-bank distribution
-// (category_tag × chapter_tag pools). Update only when the bank/tagging changes.
-
 const CATEGORY_TO_CHAPTERS = {
   "Scope of Practice & Reporting": {
     primary: [1],
     secondary: [4, 5],
   },
-
   "Change in Condition": {
     primary: [4],
     secondary: [3, 5],
   },
-
   "Observation & Safety": {
     primary: [4],
     secondary: [3, 2],
   },
-
-    "Environment & Safety": {
+  "Environment & Safety": {
     primary: [2],
     secondary: [3],
   },
-
   "Infection Control": {
     primary: [2],
     secondary: [3, 4],
   },
-
   "Personal Care & Comfort": {
     primary: [3],
     secondary: [4],
   },
-
   "Mobility & Positioning": {
     primary: [3],
     secondary: [4],
   },
-
   "Communication & Emotional Support": {
     primary: [5],
     secondary: [1, 3],
   },
-
   "Dignity & Resident Rights": {
     primary: [1],
     secondary: [3, 5],
   },
 };
 
-export function buildRemediationSession({
-  mode,                 // "targeted" | "focused" (mapping later to Canon Mode A/B)
-  resultsPayload,        // read-only Phase 4 output (persisted)
-  questionBankSnapshot,  // bank index / questions (read-only)
-  priorRemediationState, // optional: used later for loop control (Step 6.5)
-}) {
-    // ---- Guardrails (Step 6.1) ----
+const TOTAL_QUESTIONS = 12;
 
+function normalizeQuestionBank(questionBankSnapshot) {
+  return Array.isArray(questionBankSnapshot)
+    ? questionBankSnapshot
+    : Object.values(questionBankSnapshot || {});
+}
+
+function pickTargetCategories(rankedCategories) {
+  const sorted = [...rankedCategories].sort((a, b) => {
+    if ((b.priority_score || 0) !== (a.priority_score || 0)) {
+      return (b.priority_score || 0) - (a.priority_score || 0);
+    }
+    if ((a.accuracy ?? 1) !== (b.accuracy ?? 1)) {
+      return (a.accuracy ?? 1) - (b.accuracy ?? 1);
+    }
+    return String(a.category_id).localeCompare(String(b.category_id));
+  });
+
+  const highRiskPriority = sorted.filter((category) => category.is_high_risk && category.level !== "Strong");
+  const weakPriority = sorted.filter((category) => !category.is_high_risk && category.level === "Weak");
+  const developingPriority = sorted.filter(
+    (category) => !category.is_high_risk && category.level === "Developing"
+  );
+
+  return (highRiskPriority.length > 0 ? highRiskPriority : [...weakPriority, ...developingPriority])
+    .slice(0, 2)
+    .map((category) => category.category_id);
+}
+
+function buildPerCategoryCount(selectedCategories, rankedCategories) {
+  const counts = {};
+  if (selectedCategories.length === 0) return counts;
+
+  if (selectedCategories.length === 1) {
+    counts[selectedCategories[0]] = TOTAL_QUESTIONS;
+    return counts;
+  }
+
+  const byCategoryId = Object.fromEntries(
+    rankedCategories.map((category) => [category.category_id, category])
+  );
+
+  const first = byCategoryId[selectedCategories[0]] || {};
+  const second = byCategoryId[selectedCategories[1]] || {};
+  const firstScore = Number(first.priority_score || 0);
+  const secondScore = Number(second.priority_score || 0);
+  const scoreGap = firstScore - secondScore;
+
+  let firstCount = 6;
+  if (scoreGap >= 0.2) firstCount = 8;
+  else if (scoreGap >= 0.08) firstCount = 7;
+
+  counts[selectedCategories[0]] = firstCount;
+  counts[selectedCategories[1]] = TOTAL_QUESTIONS - firstCount;
+  return counts;
+}
+
+export function buildRemediationSession({
+  mode,
+  resultsPayload,
+  questionBankSnapshot,
+  priorRemediationState,
+}) {
   if (!resultsPayload) {
     throw new Error("buildRemediationSession: resultsPayload is required (read-only)");
   }
-
   if (!questionBankSnapshot) {
     throw new Error("buildRemediationSession: questionBankSnapshot is required (read-only)");
   }
-
   if (mode !== "targeted" && mode !== "focused") {
     throw new Error("buildRemediationSession: invalid mode");
   }
-
-
-  // NOTE:
-  // - resultsPayload MUST be treated as read-only
-  // - No exam analytics may be recomputed here
-  // - No readiness, scoring, or persistence allowed
-
-  // TODO (Step 6.1): Select up to 2 categories deterministically using locked Phase 5 rules.
-  // TODO (Step 6.1): Allocate 10–15 questions fixed at session start.
-  // TODO (Step 6.1): Source questions from Primary then Secondary chapters, respecting 2-chapter cap.
-  // TODO (Step 6.1): Return a pure session object (no side effects).
-
-    // ---- Step 6.1: Read persisted category priority (read-only) ----
 
   const rankedCategories = Array.isArray(resultsPayload.category_priority)
     ? resultsPayload.category_priority
     : [];
 
-    // ---- Step 6.1: Select target categories (Phase 5 rules) ----
-
-  const highRiskPriority = rankedCategories.filter(
-    (c) => c.is_high_risk && c.level !== "Strong"
-  );
-
-  const weakPriority = rankedCategories.filter(
-    (c) => !c.is_high_risk && c.level === "Weak"
-  );
-
-  const developingPriority = rankedCategories.filter(
-    (c) => !c.is_high_risk && c.level === "Developing"
-  );
-
-  const selectedCategories = (
-    highRiskPriority.length > 0
-      ? highRiskPriority
-      : [...weakPriority, ...developingPriority]
-  )
-    .slice(0, 2)
-    .map((c) => c.category_id);
-
-    // ---- Step 6.1: Lock remediation question count ----
-
-  // Canon rule: 10–15 questions total, fixed at session start
-  const TOTAL_QUESTIONS = 12; // deterministic default within allowed range
-
-  let perCategoryCount = {};
-
-  if (selectedCategories.length === 2) {
-    const half = Math.floor(TOTAL_QUESTIONS / 2);
-    perCategoryCount[selectedCategories[0]] = half;
-    perCategoryCount[selectedCategories[1]] = TOTAL_QUESTIONS - half;
-  } else if (selectedCategories.length === 1) {
-    perCategoryCount[selectedCategories[0]] = TOTAL_QUESTIONS;
-  }
-
-    // ---- Step 6.1: Determine chapter sourcing per category ----
-
+  const selectedCategories = pickTargetCategories(rankedCategories);
+  const perCategoryCount = buildPerCategoryCount(selectedCategories, rankedCategories);
   const categoryChapterSources = {};
 
-  selectedCategories.forEach((category_id) => {
-    const mapping = CATEGORY_TO_CHAPTERS[category_id];
+  selectedCategories.forEach((categoryId) => {
+    const mapping = CATEGORY_TO_CHAPTERS[categoryId];
     if (!mapping) {
-      throw new Error(`Missing chapter mapping for category: ${category_id}`);
+      throw new Error(`Missing chapter mapping for category: ${categoryId}`);
     }
 
-    // Canon rule: Primary first, then Secondary, max 2 chapters
-    const chapters = [
-      ...mapping.primary,
-      ...mapping.secondary,
-    ].slice(0, 2);
-
-    categoryChapterSources[category_id] = chapters;
+    categoryChapterSources[categoryId] = [...mapping.primary, ...mapping.secondary].slice(0, 2);
   });
 
+  const preferredPatternsByCategory = Object.fromEntries(
+    selectedCategories.map((categoryId) => {
+      const categoryMeta = rankedCategories.find((category) => category.category_id === categoryId);
+      return [categoryId, categoryMeta?.dominant_error_pattern || null];
+    })
+  );
 
-  // ---- Step 6.3: Populate remediation questions ----
-const rotationOffset = Number(priorRemediationState?.rotationOffset || 0);
+  const normalizedBank = normalizeQuestionBank(questionBankSnapshot);
+  const { selectedQuestionIds } = selectRemediationQuestions({
+    selectedCategories,
+    perCategoryCount,
+    categoryChapterSources,
+    questionBankSnapshot: normalizedBank,
+    previouslySeenQuestionIds: priorRemediationState?.seenQuestionIds || [],
+    previousSessions: priorRemediationState?.previousSessions || [],
+    lastSessionQuestionIds: priorRemediationState?.lastSessionQuestionIds || [],
+    preferredPatternsByCategory,
+  });
 
-const { selectedQuestionIds } = selectRemediationQuestions({
-  selectedCategories,
-  perCategoryCount,
-  categoryChapterSources,
-  questionBankSnapshot,
-  previouslySeenQuestionIds: priorRemediationState?.seenQuestionIds || [],
-  rotationOffset,
-});
-
-
-    // ---- Step 6.3: Create remediation session object ----
+  const questionsById = Object.fromEntries(
+    selectedQuestionIds.map((qid) => [
+      qid,
+      normalizedBank.find((question) => question.question_id === qid),
+    ])
+  );
 
   const session = {
     session_id: `rem_${Date.now()}`,
     created_at: Date.now(),
     mode,
     results_attempt_id: resultsPayload.attempt_id,
-
-
-    // Locked at session start
     selectedCategories,
     totalQuestions: TOTAL_QUESTIONS,
     perCategoryCount,
     categoryChapterSources,
-
-    // To be filled by Step 6.2 selector
-        questionIds: selectedQuestionIds,
-
-  questionsById: Object.fromEntries(
-    selectedQuestionIds.map((qid) => [qid, questionBankSnapshot.find(q => q.question_id === qid)])
-  ),
-
-    // Session flow state
+    questionIds: selectedQuestionIds,
+    questionsById,
     currentIndex: 0,
-
-    // Micro-outcomes (Step 6.4)
     answers: {},
-
-    // Status
-    status: "active", // active | completed | exited
+    status: "active",
   };
 
   saveRemediationSession(session);
-
   return session;
-
-
 }

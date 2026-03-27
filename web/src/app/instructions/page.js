@@ -3,48 +3,89 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+function Frame({ title, children, footer, theme }) {
+  return (
+    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
+      <div
+        style={{
+          minHeight: "675px",
+          border: `2px solid ${theme.frameBorder}`,
+          borderRadius: "16px",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          background: "white",
+          boxShadow: "0 12px 32px rgba(31, 52, 74, 0.08)",
+        }}
+      >
+        <div
+          style={{
+            borderBottom: `1px solid ${theme.chromeBorder}`,
+            padding: "18px 20px",
+            background: "linear-gradient(180deg, var(--surface-tint) 0%, var(--chrome-bg) 100%)",
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            color: "var(--heading)",
+          }}
+        >
+          {title}
+        </div>
+
+        <div style={{ flex: 1, padding: "24px", overflowY: "auto" }}>{children}</div>
+
+        <div
+          style={{
+            borderTop: `1px solid ${theme.chromeBorder}`,
+            padding: "16px 20px",
+            background: "var(--surface-soft)",
+          }}
+        >
+          {footer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function InstructionsInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
+  const [isNarrow, setIsNarrow] = useState(false);
 
-  const [showNextTime, setShowNextTime] = useState(true);
-
-  // Access gate + initialize toggle state
   useEffect(() => {
     let granted = false;
     try {
       granted = localStorage.getItem("cna_access_granted") === "1";
+      localStorage.setItem("cna_instructions_seen", "1");
     } catch {}
     if (!granted) {
       router.replace(`/access?lang=${lang}`);
-      return;
+    }
+  }, [router, lang]);
+
+  useEffect(() => {
+    function syncWidth() {
+      if (typeof window === "undefined") return;
+      setIsNarrow(window.innerWidth < 760);
     }
 
-    try {
-      // Mark as "seen" (so future continues can skip if toggle is off)
-      localStorage.setItem("cna_instructions_seen", "1");
-
-      const v = localStorage.getItem("cna_show_instructions_next_time");
-      if (v === null) {
-        localStorage.setItem("cna_show_instructions_next_time", "1");
-        setShowNextTime(true);
-      } else {
-        setShowNextTime(v !== "0");
-      }
-    } catch {}
-  }, [router, lang]);
+    syncWidth();
+    window.addEventListener("resize", syncWidth);
+    return () => window.removeEventListener("resize", syncWidth);
+  }, []);
 
   const theme = useMemo(
     () => ({
-      frameBorder: "#9fb2c7",
-      chromeBg: "#e9f0f7",
-      chromeBorder: "#b7c6d6",
-      primaryBg: "#2b6cb0",
+      frameBorder: "var(--frame-border)",
+      chromeBg: "var(--chrome-bg)",
+      chromeBorder: "var(--chrome-border)",
+      primaryBg: "var(--brand-teal)",
       primaryText: "white",
-      secondaryBg: "#f4f6f8",
-      secondaryText: "#1a1a1a",
-      buttonBorder: "#9aa8b5",
+      secondaryBg: "var(--brand-teal-soft)",
+      secondaryText: "var(--brand-teal-dark)",
+      buttonBorder: "var(--button-border)",
     }),
     []
   );
@@ -72,48 +113,6 @@ function InstructionsInner() {
     width: "100%",
   };
 
-  function Frame({ title, children, footer }) {
-    return (
-      <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
-        <div
-          style={{
-            height: "675px",
-            border: `2px solid ${theme.frameBorder}`,
-            borderRadius: "12px",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            background: "white",
-          }}
-        >
-          <div
-            style={{
-              borderBottom: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
-              fontWeight: "bold",
-              textTransform: "uppercase",
-            }}
-          >
-            {title}
-          </div>
-
-          <div style={{ flex: 1, padding: "18px", overflowY: "auto" }}>{children}</div>
-
-          <div
-            style={{
-              borderTop: `1px solid ${theme.chromeBorder}`,
-              padding: "12px 14px",
-              background: theme.chromeBg,
-            }}
-          >
-            {footer}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
     if (lang === "fr") return fr;
@@ -121,159 +120,108 @@ function InstructionsInner() {
     return en;
   }
 
-  function saveToggle(value) {
-    setShowNextTime(value);
-    try {
-      localStorage.setItem("cna_show_instructions_next_time", value ? "1" : "0");
-    } catch {}
-  }
-
   return (
     <Frame
       title={t("INSTRUCTIONS", "INSTRUCCIONES", "INSTRUCTIONS", "ENSTRIKSYON")}
+      theme={theme}
       footer={
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "12px",
+            flexWrap: "wrap",
+            flexDirection: isNarrow ? "column" : "row",
+            alignItems: isNarrow ? "stretch" : "center",
+          }}
+        >
           <button
-            style={{ ...btnSecondary, width: "220px" }}
-            onClick={() => router.push(`/chapters?lang=${lang}`)}
+            style={{ ...btnSecondary, width: isNarrow ? "100%" : "220px" }}
+            onClick={() => router.push(`/welcome?lang=${lang}`)}
           >
-            {t("Chapters", "Capítulos", "Chapitres", "Chapit")}
+            {t("Back to Welcome", "Volver a bienvenida", "Retour a l'accueil", "Retounen nan byenvini")}
           </button>
 
           <button
-            style={{ ...btnPrimary, width: "220px" }}
+            style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }}
             onClick={() => router.push(`/pilot?lang=${lang}`)}
           >
-            {t("Go to Exam Hub", "Ir al Centro de Exámenes", "Aller au hub d’examen", "Ale nan Hub Egzamen an")}
+            {t("Go to Exam Hub", "Ir al Centro de Examenes", "Aller au hub d'examen", "Ale nan Hub Egzamen an")}
           </button>
         </div>
       }
     >
-      <div style={{ maxWidth: "720px", margin: "0 auto" }}>
-        <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "10px" }}>
-          {t("How this works", "Cómo funciona", "Comment ça marche", "Kijan sa mache")}
+      <div style={{ maxWidth: "740px", margin: "0 auto" }}>
+        <div
+          style={{
+            padding: "18px 20px",
+            border: `1px solid ${theme.chromeBorder}`,
+            borderRadius: "14px",
+            background: "var(--surface-soft)",
+          }}
+        >
+        <div style={{ fontSize: "26px", fontWeight: 800, marginBottom: "10px", color: "var(--heading)" }}>
+          {t("How this works", "Como funciona", "Comment cela fonctionne", "Kijan sa mache")}
         </div>
 
-        <ul style={{ lineHeight: "1.7", color: "#333", paddingLeft: "18px" }}>
+        <ul style={{ lineHeight: "1.8", color: "#334e61", paddingLeft: "20px" }}>
           <li>
             {t(
               "This is a timed 60-question exam. The timer continues until you finish or time expires.",
-              "Este es un examen cronometrado de 60 preguntas. El tiempo continúa hasta que termine o se agote.",
-              "C’est un examen chronométré de 60 questions. Le temps continue jusqu’à la fin ou l’expiration.",
-              "Sa a se yon egzamen 60 kesyon ki gen tan. Tan an kontinye jiskaske ou fini oswa tan an fini."
+              "Este es un examen cronometrado de 60 preguntas. El tiempo continua hasta que termine o se agote.",
+              "Ceci est un examen chronometre de 60 questions. Le temps continue jusqu'a la fin ou jusqu'a l'expiration.",
+              "Sa a se yon egzamen 60 kestyon ak tan. Tan an kontinye jiskaske ou fini oswa tan an fini."
             )}
           </li>
-
           <li>
             {t(
               "Use Previous and Next to move between questions. Your selected answer is saved automatically.",
-              "Use Anterior y Siguiente para moverse entre preguntas. Su respuesta se guarda automáticamente.",
-              "Utilisez Précédent et Suivant pour naviguer. Votre réponse est enregistrée automatiquement.",
-              "Sèvi ak Previous ak Next pou deplase. Repons ou chwazi a sove otomatikman."
+              "Use Anterior y Siguiente para moverse entre preguntas. Su respuesta seleccionada se guarda automaticamente.",
+              "Utilisez Precedent et Suivant pour passer d'une question a l'autre. Votre reponse selectionnee est enregistree automatiquement.",
+              "Sevi ak Previous ak Next pou deplase ant kestyon yo. Repons ou chwazi a sove otomatikman."
             )}
           </li>
-
           <li>
             {t(
               "Use Summary to see all questions, jump to any item, and filter by Answered / Unanswered / Marked.",
-              "Use Resumen para ver todas las preguntas, saltar a cualquier ítem y filtrar por Respondidas / Sin responder / Marcadas.",
-              "Utilisez Résumé pour voir toutes les questions, aller à n’importe quel item et filtrer par Répondues / Sans réponse / Marquées.",
-              "Sèvi ak Summary pou wè tout kesyon yo, ale sou nenpòt kestyon, epi filtre: Reponn / San repons / Make."
+              "Use Resumen para ver todas las preguntas, saltar a cualquier item y filtrar por Respondidas / Sin responder / Marcadas.",
+              "Utilisez Resume pour voir toutes les questions, aller a n'importe quel element et filtrer par Repondues / Sans reponse / Marquees.",
+              "Sevi ak Summary pou we tout kestyon yo, ale sou nenpot kestyon, epi filtre pa Reponn / San repons / Make."
             )}
           </li>
-
           <li>
             {t(
-              "Use 🚩 Mark for Review to flag a question you want to revisit. Use 🚩 Unmark Review to remove the flag.",
-              "Use 🚩 Marcar para revisar para señalar una pregunta. Use 🚩 Quitar marca para eliminarla.",
-              "Utilisez 🚩 Marquer à revoir pour signaler une question. Utilisez 🚩 Retirer la marque pour l’enlever.",
-              "Sèvi ak 🚩 Mark for Review pou make yon kestyon ou vle retounen. Sèvi ak 🚩 Unmark Review pou retire mak la."
+              "Use Mark for Review to place a 🚩 on a question you want to revisit. Use Unmark Review to remove the flag.",
+              "Use Marcar para revisar para colocar una 🚩 en una pregunta a la que quiera volver. Use Quitar marca para eliminarla.",
+              "Utilisez Marquer a revoir pour placer un 🚩 sur une question que vous souhaitez revoir. Utilisez Retirer la marque pour l'enlever.",
+              "Sevi ak Mark for Review pou mete yon 🚩 sou yon kestyon ou vle retounen sou li. Sevi ak Unmark Review pou retire mak la."
             )}
           </li>
-
           <li>
             {t(
-              "Use Exit if you need to leave mid-exam. Your progress stays saved on this device, and you can resume later (same question + same timer).",
-              "Use Salir si necesita salir a mitad del examen. Su progreso queda guardado en este dispositivo y puede reanudar después (misma pregunta + mismo tiempo).",
-              "Utilisez Quitter si vous devez sortir en cours d’examen. Votre progression est sauvegardée sur cet appareil et vous pourrez reprendre (même question + même minuteur).",
-              "Sèvi ak Exit si ou bezwen sòti nan mitan egzamen an. Pwogrè ou rete sove sou aparèy sa a epi ou ka reprann pita (menm kestyon + menm tan)."
+              "Use Exit if you need to leave mid-exam. Your progress stays saved on this device, and you can resume later from the same question with the same timer.",
+              "Use Salir si necesita salir a mitad del examen. Su progreso queda guardado en este dispositivo y puede reanudar despues desde la misma pregunta con el mismo tiempo.",
+              "Utilisez Quitter si vous devez sortir en cours d'examen. Votre progression reste enregistree sur cet appareil et vous pourrez reprendre a la meme question avec le meme minuteur.",
+              "Sevi ak Exit si ou bezwen soti nan mitan egzamen an. Pwogre ou rete sove sou aparey sa a epi ou ka reprann pita sou menm kestyon an ak menm tan an."
             )}
           </li>
-
           <li>
             {t(
               "Use End Test only when you are ready to submit. After you end the test, answers cannot be changed.",
-              "Use Finalizar examen solo cuando esté listo para enviar. Después de finalizar, no se pueden cambiar las respuestas.",
-              "Utilisez Terminer le test seulement quand vous êtes prêt. Après la fin, les réponses ne peuvent plus être modifiées.",
-              "Sèvi ak End Test sèlman lè ou pare pou fini. Apre ou fini, ou pa ka chanje repons yo ankò."
+              "Use Finalizar examen solo cuando este listo para enviar. Despues de finalizar, no se pueden cambiar las respuestas.",
+              "Utilisez Terminer le test seulement lorsque vous etes pret a soumettre. Apres cela, les reponses ne peuvent plus etre modifiees.",
+              "Sevi ak End Test selman le ou pare pou soumet. Apre ou fini tes la, ou pa ka chanje repons yo ankò."
             )}
           </li>
-
           <li>
             {t(
-              "After finishing (or if time expires), you will see a Results Page, then Analytics and Review Questions for study guidance.",
-              "Después de finalizar (o si se agota el tiempo), verá una página de Resultados, luego Análisis y Revisar preguntas para guiar su estudio.",
-              "Après la fin (ou si le temps expire), vous verrez la page Résultats, puis Analyse et Revoir les questions pour guider vos révisions.",
-              "Apre ou fini (oswa tan an fini), ou pral wè paj Rezilta, epi Analiz ak Revize kesyon yo pou gid etid."
-            )}
-          </li>
-
-          <li>
-            {t(
-              "The Chapters button is optional study guidance (high-level overview). It does not affect your exam attempts.",
-              "El botón Capítulos es una guía opcional (resumen general). No afecta sus intentos del examen.",
-              "Le bouton Chapitres est un guide optionnel (aperçu général). Il n’affecte pas vos tentatives.",
-              "Bouton Chapit yo se yon gid opsyonèl (apèsi jeneral). Li pa chanje tantativ egzamen ou."
+              "After finishing, or if time expires, you will see a Results Page followed by Analytics, Review Questions, and a Remediation Page for study guidance.",
+              "Despues de finalizar, o si se agota el tiempo, vera una pagina de Resultados seguida de Analitica, Revisar preguntas y una pagina de Remediacion para guiar su estudio.",
+              "Apres la fin, ou si le temps expire, vous verrez une page de Resultats suivie d'Analyse, Revoir les questions et une page de Remediation pour guider vos revisions.",
+              "Apre ou fini, oswa si tan an fini, ou pral we yon paj Rezilta epi apre sa Analiz, Revize kestyon yo, ak yon paj Remedyasyon pou gide etid ou."
             )}
           </li>
         </ul>
-
-        <div
-          style={{
-            marginTop: "18px",
-            padding: "12px",
-            border: `1px solid ${theme.chromeBorder}`,
-            borderRadius: "10px",
-            background: "#fafcff",
-          }}
-        >
-          <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
-            {t(
-              "Show instructions again?",
-              "¿Mostrar instrucciones otra vez?",
-              "Afficher les instructions à nouveau ?",
-              "Montre enstriksyon ankò?"
-            )}
-          </div>
-
-          <label style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <input
-              type="checkbox"
-              checked={!showNextTime}
-              onChange={(e) => {
-                const skip = e.target.checked; // checked = skip instructions
-                const show = !skip; // show instructions when continuing
-                saveToggle(show); // writes localStorage + updates state
-              }}
-            />
-            <span style={{ color: "#333" }}>
-              {t(
-                "Skip instructions and go directly to the Exam Hub",
-                "Omitir las instrucciones e ir directamente al Centro de Exámenes",
-                "Ignorer les instructions et aller directement au hub d’examen",
-                "Sote enstriksyon yo epi ale dirèkteman nan Pilot la"
-              )}
-            </span>
-          </label>
-
-          <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
-            {t(
-              "If checked, you will skip this page next time.",
-              "Si está marcado, omitirá esta página la próxima vez.",
-              "Si coché, cette page sera ignorée la prochaine fois.",
-              "Si bwat la make, paj sa a pap parèt pwochen fwa."
-            )}
-          </div>
         </div>
       </div>
     </Frame>
