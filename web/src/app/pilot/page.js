@@ -95,7 +95,7 @@ function SectionCard({ title, body, action, theme, tone = "default" }) {
   );
 }
 
-function TestCard({ label, statusLabel, onClick, theme, statusTone }) {
+function TestCard({ label, statusLabel, onClick, theme, statusTone, description }) {
   const tones = {
     not_started: {
       background: "#ffffff",
@@ -152,13 +152,7 @@ function TestCard({ label, statusLabel, onClick, theme, statusTone }) {
         {statusLabel}
       </div>
       <div style={{ fontSize: 19, fontWeight: 800, color: "var(--heading)", lineHeight: 1.25 }}>{label}</div>
-      <div style={{ color: "#66788a", lineHeight: 1.5 }}>
-        {statusTone === "completed"
-          ? "Open this completed test to review the exam and results."
-          : statusTone === "in_progress"
-            ? "Continue this saved test on this device."
-            : "Start a new full 60-question practice exam."}
-      </div>
+      <div style={{ color: "#66788a", lineHeight: 1.5 }}>{description}</div>
     </button>
   );
 }
@@ -203,16 +197,22 @@ function PilotInner() {
           "These chapters are brief refreshers only. They are not a full chapter-by-chapter review.",
         studyButton: "Open Study Chapters",
         testsTitle: "Available Practice Exams",
+        testsIntro:
+          "Each card below opens one full 60-question practice exam. Unfinished tests can be resumed on this device, and completed tests reopen in review mode.",
         statusNotStarted: "Ready",
         statusInProgress: "In Progress",
         statusCompleted: "Completed",
         start: (n) => `Start Test ${n}`,
         resume: (n) => `Resume Test ${n}`,
         review: (n) => `Review Test ${n}`,
+        descNotStarted: "Start a new full 60-question practice exam.",
+        descInProgress: "Continue this saved test on this device.",
+        descCompleted: "Open this completed test to review your results.",
         resetTitle: "Refresh the Full Exam Set",
         resetAll: "Reset All Tests",
         resetHintLocked: "Reset becomes available only after all 4 tests are completed.",
         resetHintReady: "All 4 tests are completed. You can reset the full set to start over.",
+        resetDetail: "Resetting clears the saved exam progress and results for Tests 1-4 on this device.",
         confirmReset: "Reset all tests? This clears saved progress for Tests 1-4 on this device.",
       },
       es: {
@@ -227,16 +227,22 @@ function PilotInner() {
           "Estos capitulos son recordatorios breves. No son una revision completa capitulo por capitulo.",
         studyButton: "Abrir capitulos de estudio",
         testsTitle: "Examenes de practica disponibles",
+        testsIntro:
+          "Cada tarjeta de abajo abre un examen completo de practica de 60 preguntas. Los examenes sin terminar se pueden reanudar en este dispositivo, y los examenes completados se vuelven a abrir en modo de revision.",
         statusNotStarted: "Listo",
         statusInProgress: "En curso",
         statusCompleted: "Completado",
         start: (n) => `Comenzar Examen ${n}`,
         resume: (n) => `Reanudar Examen ${n}`,
         review: (n) => `Revisar Examen ${n}`,
+        descNotStarted: "Comience un nuevo examen completo de practica de 60 preguntas.",
+        descInProgress: "Continue este examen guardado en este dispositivo.",
+        descCompleted: "Abra este examen completado para revisar sus resultados.",
         resetTitle: "Renovar el conjunto completo",
         resetAll: "Reiniciar todos",
         resetHintLocked: "El reinicio estara disponible solo despues de completar los 4 examenes.",
         resetHintReady: "Ya completo los 4 examenes. Puede reiniciar el conjunto completo para comenzar otra vez.",
+        resetDetail: "Al reiniciar se borran el progreso y los resultados guardados de los Examenes 1-4 en este dispositivo.",
         confirmReset: "Reiniciar todos los examenes? Esto borra el progreso guardado de los Examenes 1-4 en este dispositivo.",
       },
       fr: {
@@ -251,16 +257,22 @@ function PilotInner() {
           "Ces chapitres sont de brefs rappels seulement. Ils ne remplacent pas une revision complete chapitre par chapitre.",
         studyButton: "Ouvrir les chapitres d'etude",
         testsTitle: "Examens de pratique disponibles",
+        testsIntro:
+          "Chaque carte ci-dessous ouvre un examen de pratique complet de 60 questions. Les tests non termines peuvent etre repris sur cet appareil, et les tests termines se rouvrent en mode revision.",
         statusNotStarted: "Pret",
         statusInProgress: "En cours",
         statusCompleted: "Termine",
         start: (n) => `Demarrer le Test ${n}`,
         resume: (n) => `Reprendre le Test ${n}`,
         review: (n) => `Revoir le Test ${n}`,
+        descNotStarted: "Commencez un nouvel examen de pratique complet de 60 questions.",
+        descInProgress: "Continuez ce test enregistre sur cet appareil.",
+        descCompleted: "Ouvrez ce test termine pour revoir vos resultats.",
         resetTitle: "Renouveler l'ensemble complet",
         resetAll: "Reinitialiser tout",
         resetHintLocked: "La reinitialisation sera disponible seulement apres avoir termine les 4 tests.",
         resetHintReady: "Les 4 tests sont termines. Vous pouvez reinitialiser l'ensemble complet pour recommencer.",
+        resetDetail: "La reinitialisation efface la progression et les resultats enregistres pour les Tests 1-4 sur cet appareil.",
         confirmReset: "Reinitialiser tous les tests ? Cela efface la progression enregistree des Tests 1-4 sur cet appareil.",
       },
       ht: {
@@ -275,16 +287,22 @@ function PilotInner() {
           "Chapit sa yo se ti rapel kout selman. Yo pa yon revizyon konple chapit pa chapit.",
         studyButton: "Louvri chapit etid yo",
         testsTitle: "Egzamen pratik ki disponib",
+        testsIntro:
+          "Chak kat ki anba a louvri yon egzamen pratik konple ak 60 kestyon. Ou ka reprann tes ou poko fini yo sou aparey sa a, epi tes ou deja fini yo ap relouvri nan mod revizyon.",
         statusNotStarted: "Pare",
         statusInProgress: "An pwogre",
         statusCompleted: "Fini",
         start: (n) => `Komanse Tes ${n}`,
         resume: (n) => `Kontinye Tes ${n}`,
         review: (n) => `Revize Tes ${n}`,
+        descNotStarted: "Komanse yon nouvo egzamen pratik konple ak 60 kestyon.",
+        descInProgress: "Kontinye tes sa a ki te deja sove sou aparey sa a.",
+        descCompleted: "Louvri tes sa a ou deja fini pou revize rezilta ou yo.",
         resetTitle: "Rafrechi tout seri egzamen an",
         resetAll: "Reyinisyalize tout",
         resetHintLocked: "Reyinisyalizasyon ap disponib selman apre ou fin konplete 4 tes yo.",
         resetHintReady: "Ou fini 4 tes yo. Ou ka rafrechi tout seri a pou rekomanse.",
+        resetDetail: "Lè ou reyinisyalize, sa efase pwogre ak rezilta ki te sove pou Tes 1-4 sou aparey sa a.",
         confirmReset: "Reyinisyalize tout tes yo? Sa ap efase pwogre ki te sove pou Tes 1-4 sou aparey sa a.",
       },
     };
@@ -412,6 +430,12 @@ function PilotInner() {
     return TEXT.statusNotStarted;
   }
 
+  function getStatusDescription(status) {
+    if (status === "completed") return TEXT.descCompleted;
+    if (status === "in_progress") return TEXT.descInProgress;
+    return TEXT.descNotStarted;
+  }
+
   return (
     <Frame
       title={TEXT.title}
@@ -457,7 +481,7 @@ function PilotInner() {
             theme={theme}
             tone="accent"
             title={TEXT.testsTitle}
-            body="Each card below opens one full 60-question practice exam. Unfinished tests can be resumed on this device, and completed tests reopen in review mode."
+            body={TEXT.testsIntro}
           />
 
           <SectionCard
@@ -502,6 +526,7 @@ function PilotInner() {
               key={n}
               label={getTestLabel(n)}
               statusLabel={getStatusLabel(testStatus[n])}
+              description={getStatusDescription(testStatus[n])}
               statusTone={testStatus[n]}
               onClick={() => startOrResume(n)}
               theme={theme}
@@ -517,7 +542,7 @@ function PilotInner() {
             <div>
               <div>{allCompleted ? TEXT.resetHintReady : TEXT.resetHintLocked}</div>
               <div style={{ marginTop: 8, fontSize: 13 }}>
-                Resetting clears the saved exam progress and results for Tests 1-4 on this device.
+                {TEXT.resetDetail}
               </div>
             </div>
           }
