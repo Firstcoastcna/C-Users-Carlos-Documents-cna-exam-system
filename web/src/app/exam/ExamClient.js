@@ -2112,6 +2112,15 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
           >
             <button
               onClick={() => {
+                setMode("finished");
+              }}
+              style={{ ...btnSecondary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
+            >
+              {T.backToResults}
+            </button>
+
+            <button
+              onClick={() => {
                 setRationaleChapter(1);
                 setMode("rationales");
               }}
@@ -2142,14 +2151,43 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               {T.startRemediation}
             </button>
 
-            <button
-              onClick={() => {
-                router.push("/pilot");
-              }}
-              style={{ ...btnSecondary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
-            >
-              {T.exitToHome}
-            </button>
+            {isNarrow ? (
+              <button
+                onClick={() => {
+                  router.push("/pilot");
+                }}
+                style={{
+                  ...btnSecondary,
+                  width: "100%",
+                  opacity: 0.92,
+                  background: "white",
+                  color: "#536779",
+                  border: "1px solid #cfdde6",
+                }}
+              >
+                {T.exitToHome}
+              </button>
+            ) : (
+              <div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  onClick={() => {
+                    router.push("/pilot");
+                  }}
+                  style={{
+                    ...btnSecondary,
+                    minWidth: "130px",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    opacity: 0.92,
+                    background: "white",
+                    color: "#536779",
+                    border: "1px solid #cfdde6",
+                  }}
+                >
+                  {T.exitToHome}
+                </button>
+              </div>
+            )}
           </div>
 
           </div>
