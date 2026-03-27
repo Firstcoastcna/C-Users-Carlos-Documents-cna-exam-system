@@ -2422,34 +2422,52 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
         <div
           style={{
             display: "flex",
-            alignItems: "baseline",
+            alignItems: "center",
             justifyContent: "space-between",
             gap: "12px",
-            marginBottom: "6px",
+            marginBottom: "10px",
+            padding: "16px 18px",
+            border: `1px solid ${theme.chromeBorder}`,
+            borderRadius: "14px",
+            background: "linear-gradient(180deg, var(--surface-tint) 0%, var(--chrome-bg) 100%)",
+            flexWrap: isNarrow ? "wrap" : "nowrap",
           }}
         >
-          <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "600" }}>{T.summary}</h1>
-          <div style={{ fontWeight: "bold" }}>⏱ {formatRemaining(remainingSec)}</div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: isNarrow ? "20px" : "22px", fontWeight: "800", color: "var(--heading)" }}>{T.summary}</h1>
+          </div>
+          <div
+            style={{
+              fontWeight: 800,
+              color: "var(--brand-red)",
+              border: "1px solid var(--brand-red)",
+              background: "white",
+              borderRadius: "999px",
+              padding: isNarrow ? "7px 11px" : "8px 12px",
+              display: "inline-flex",
+              alignItems: "center",
+              whiteSpace: "nowrap",
+              fontSize: isNarrow ? "13px" : "14px",
+            }}
+          >
+            ⏱ {formatRemaining(remainingSec)}
+          </div>
         </div>
 
-        <div style={{ marginBottom: "8px", color: "#333", fontSize: "13px" }}>
-          {T.page} {summaryPage} {T.of} {totalFilteredPages}
-        </div>
-
-        <div style={{ display: "flex", gap: "12px", alignItems: "stretch" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "stretch" }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
             <div
               style={{
                 flex: 1,
                 border: "1px solid #d4dee8",
-                borderRadius: "10px",
-                padding: "10px",
+                borderRadius: "12px",
+                padding: "12px",
                 background: "#fbfdff",
               }}
             >
               {pageQids.length === 0 ? (
-  <div style={{ color: "#555", fontSize: "13px" }}>
-    No questions match this filter on this page.
+  <div style={{ color: "#5c6d7d", fontSize: "14px", padding: "4px 2px" }}>
+    No questions match this filter.
   </div>
 ) : (
   pageQids.map((qid, idxOnFiltered) => {
@@ -2466,27 +2484,34 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                     <div
                       key={qid}
                       style={{
-                        padding: "8px 6px",
-                        borderBottom:
-                          idxOnFiltered === pageQids.length - 1
-                            ? "none"
-                            : "1px solid #e2ebf4",
+                        padding: "14px 16px",
+                        border: "1px solid #dde8f0",
+                        borderRadius: "12px",
+                        background: "white",
+                        marginBottom: idxOnFiltered === pageQids.length - 1 ? 0 : "10px",
                       }}
                     >
                       <div
                         style={{
                           display: "flex",
-                          gap: "8px",
-                          alignItems: "baseline",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: "10px",
+                          flexWrap: isNarrow ? "wrap" : "nowrap",
                           fontSize: "13px",
                         }}
                       >
-                        <span
+                        <button
                           style={{
-                            textDecoration: "underline",
                             cursor: "pointer",
-                            color: theme.link,
-                            fontWeight: "bold",
+                            color: "var(--brand-teal-dark)",
+                            fontWeight: 800,
+                            fontSize: "16px",
+                            border: "none",
+                            background: "transparent",
+                            padding: 0,
+                            margin: 0,
+                            textAlign: "left",
                           }}
                           onClick={() => {
                             setIndex(absoluteIndex);
@@ -2494,25 +2519,45 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                           }}
                         >
                           {T.question} {number}
-                        </span>
+                        </button>
 
-                        <span style={{ color: answered ? "#1a1a1a" : "#555" }}>
-                          - {answered ? T.answered : T.notAnswered}
-                        </span>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: "999px",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              background: answered ? "var(--surface-tint)" : "var(--surface-soft)",
+                              color: answered ? "var(--brand-teal-dark)" : "#5c6d7d",
+                              border: `1px solid ${answered ? "var(--frame-border)" : "var(--chrome-border)"}`,
+                            }}
+                          >
+                            {answered ? T.answered : T.notAnswered}
+                          </span>
 
-                        <span style={{ color: answered ? "#1a1a1a" : "#555", display: "none" }}>
-                          — {answered ? "Answered" : "Not Answered"}
-                        </span>
-
-                        {flagged ? (
-                          <span style={{ color: "red", fontWeight: "bold" }}>— MARKED</span>
-                        ) : null}
+                          {flagged ? (
+                            <span
+                              style={{
+                                padding: "4px 10px",
+                                borderRadius: "999px",
+                                fontSize: "12px",
+                                fontWeight: 700,
+                                background: "var(--brand-red-soft)",
+                                color: "var(--brand-red)",
+                                border: "1px solid var(--brand-red)",
+                              }}
+                            >
+                              🚩 {T.markedForReview}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
 
-                      <div style={{ marginTop: "4px", fontSize: "12px", color: "#333" }}>
+                      <div style={{ marginTop: "10px", fontSize: "13px", color: "#33495b", display: "grid", gap: "4px" }}>
                         {lines.map((l) => (
-                          <div key={l.label} style={{ marginBottom: "2px" }}>
-                            <strong>{l.label}:</strong> {l.text}
+                          <div key={l.label}>
+                            <strong style={{ color: "#607282" }}>{l.label}:</strong> {l.text}
                           </div>
                         ))}
                       </div>
@@ -2522,51 +2567,151 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               )}
             </div>
 
-            <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-              <button onClick={() => setMode("exam")} style={{ ...btnSecondary, flex: 1 }}>
+            {isNarrow ? (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  marginTop: "12px",
+                }}
+              >
+                <button
+                  style={{
+                    ...btnSecondary,
+                    width: "100%",
+                    background: "white",
+                    color: "var(--brand-red)",
+                    border: "1px solid #e4b7b7",
+                  }}
+                  disabled
+                >
+                  {T.page} {summaryPage} {T.of} {totalFilteredPages}
+                </button>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <button
+                    onClick={() => {
+                      if (canPrev) setSummaryPage(summaryPage - 1);
+                    }}
+                    style={{
+                      ...btnSecondary,
+                      width: "100%",
+                      opacity: canPrev ? 1 : 0.5,
+                      background: "white",
+                      color: "var(--brand-red)",
+                      border: "1px solid #e4b7b7",
+                    }}
+                    disabled={!canPrev}
+                  >
+                    {`◀ ${T.prevPage}`}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (canNext) setSummaryPage(summaryPage + 1);
+                    }}
+                    style={{
+                      ...btnSecondary,
+                      width: "100%",
+                      opacity: canNext ? 1 : 0.5,
+                      background: "white",
+                      color: "var(--brand-red)",
+                      border: "1px solid #e4b7b7",
+                    }}
+                    disabled={!canNext}
+                  >
+                    {`${T.nextPage} ▶`}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            <div style={{ display: "flex", gap: "10px", marginTop: "12px", flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+              <button onClick={() => setMode("exam")} style={{ ...btnSecondary, ...(isNarrow ? { width: "100%" } : { flex: 1 }) }}>
                 {T.backToExam}
               </button>
 
-              <button onClick={() => setMode("confirm_end")} style={{ ...btnPrimary, flex: 1 }}>
+              <button onClick={() => setMode("confirm_end")} style={{ ...btnPrimary, ...(isNarrow ? { width: "100%" } : { flex: 1 }) }}>
                 {T.endTest}
               </button>
 
-              <button onClick={() => openExitConfirm("review")} style={{ ...btnExit, minWidth: "90px" }}>
+              <button onClick={() => openExitConfirm("review")} style={{ ...btnExit, ...(isNarrow ? { width: "100%" } : { minWidth: "110px" }) }}>
                 {T.exit}
               </button>
             </div>
           </div>
 
-          <div style={{ width: "190px", display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", order: -1 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isNarrow ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
+                gap: "8px",
+                padding: "10px",
+                border: "1px solid #d4dee8",
+                borderRadius: "12px",
+                background: "#fbfdff",
+              }}
+            >
               {compactBtn(T.all, "all")}
               {compactBtn(T.answered, "answered")}
               {compactBtn(T.notAnswered, "unanswered")}
-              {compactBtn(`🚩 ${T.markForReview}`, "marked", { color: "red", fontWeight: "bold" })}
+              {compactBtn(`🚩 ${T.markedForReview}`, "marked", { color: "var(--brand-red)", fontWeight: "bold" })}
             </div>
 
-            <div style={{ flex: 1 }} />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "10px" }}>
+            <div
+              style={{
+                display: isNarrow ? "none" : "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "8px",
+                marginTop: "10px",
+                flexWrap: isNarrow ? "wrap" : "nowrap",
+              }}
+            >
               <button
                 onClick={() => {
                   if (canPrev) setSummaryPage(summaryPage - 1);
                 }}
-                style={{ ...btnSecondary, width: "100%", opacity: canPrev ? 1 : 0.5 }}
+                style={{
+                  ...btnSecondary,
+                  width: isNarrow ? "100%" : "auto",
+                  opacity: canPrev ? 1 : 0.5,
+                  background: "white",
+                  color: "var(--brand-red)",
+                  border: "1px solid #e4b7b7",
+                }}
                 disabled={!canPrev}
               >
                 {`◀ ${T.prevPage}`}
               </button>
 
-              <button style={{ ...btnSecondary, width: "100%" }} disabled>
-                Page {summaryPage} / {totalFilteredPages}
+              <button
+                style={{
+                  ...btnSecondary,
+                  width: isNarrow ? "100%" : "auto",
+                  background: "white",
+                  color: "var(--brand-red)",
+                  border: "1px solid #e4b7b7",
+                }}
+                disabled
+              >
+                {T.page} {summaryPage} {T.of} {totalFilteredPages}
               </button>
 
               <button
                 onClick={() => {
                   if (canNext) setSummaryPage(summaryPage + 1);
                 }}
-                style={{ ...btnSecondary, width: "100%", opacity: canNext ? 1 : 0.5 }}
+                style={{
+                  ...btnSecondary,
+                  width: isNarrow ? "100%" : "auto",
+                  opacity: canNext ? 1 : 0.5,
+                  background: "white",
+                  color: "var(--brand-red)",
+                  border: "1px solid #e4b7b7",
+                }}
                 disabled={!canNext}
               >
                 {`${T.nextPage} ▶`}
@@ -2708,16 +2853,16 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               <div key={b.label} style={{ marginBottom: "18px" }}>
                 <div
                   style={{
-                    fontSize: "18px",
+                    fontSize: isNarrow ? "16px" : "18px",
                     fontWeight: "500",
-                    lineHeight: "1.4",
-                    marginBottom: "15px",
+                    lineHeight: isNarrow ? "1.38" : "1.4",
+                    marginBottom: isNarrow ? "12px" : "15px",
                   }}
                 >
                   <span
                     style={{
                       display: "inline-block",
-                      fontSize: "13px",
+                      fontSize: isNarrow ? "12px" : "13px",
                       fontWeight: 800,
                       letterSpacing: "0.04em",
                       color: "#607282",
@@ -2737,9 +2882,9 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                       key={key}
                       style={{
                         display: "block",
-                        padding: "10px",
+                        padding: isNarrow ? "9px" : "10px",
                         marginBottom: "6px",
-                        fontSize: "16px",
+                        fontSize: isNarrow ? "15px" : "16px",
                         border: "1px solid var(--chrome-border)",
                         borderRadius: "12px",
                         cursor: isInteractive ? "pointer" : "default",
@@ -2774,7 +2919,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
         >
           {isNarrow ? (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "10px" }}>
                 <button
                   onClick={() => index > 0 && setIndex(index - 1)}
                   disabled={index === 0}
@@ -2783,7 +2928,10 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                   {T.previous}
                 </button>
 
-                <button onClick={() => setMode("review")} style={{ ...btnSecondary, width: "100%" }}>
+                <button
+                  onClick={() => setMode("review")}
+                  style={{ ...btnSecondary, width: "100%", padding: "8px 10px", fontSize: "13px", opacity: 0.92 }}
+                >
                   {T.summary}
                 </button>
               </div>
@@ -2809,21 +2957,24 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               <button
                 onClick={() => index > 0 && setIndex(index - 1)}
                 disabled={index === 0}
-                style={{ ...btnSecondary, flex: 1, opacity: index === 0 ? 0.5 : 1 }}
+                style={{ ...btnSecondary, flex: 1.15, opacity: index === 0 ? 0.5 : 1 }}
               >
                 {T.previous}
               </button>
 
-              <button onClick={() => setMode("review")} style={{ ...btnSecondary, flex: 1 }}>
+              <button
+                onClick={() => setMode("review")}
+                style={{ ...btnSecondary, flex: 0.78, padding: "8px 10px", fontSize: "13px", opacity: 0.92 }}
+              >
                 {T.summary}
               </button>
 
               {isLast ? (
-                <button onClick={() => setMode("review")} style={{ ...btnPrimary, flex: 1 }}>
+                <button onClick={() => setMode("review")} style={{ ...btnPrimary, flex: 1.15 }}>
                   {T.endTest}
                 </button>
               ) : (
-                <button onClick={() => setIndex(index + 1)} style={{ ...btnPrimary, flex: 1 }}>
+                <button onClick={() => setIndex(index + 1)} style={{ ...btnPrimary, flex: 1.15 }}>
                   {T.next}
                 </button>
               )}

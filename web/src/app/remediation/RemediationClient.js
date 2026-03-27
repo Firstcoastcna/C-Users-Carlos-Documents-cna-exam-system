@@ -191,6 +191,10 @@ const UI_TEXT = {
     introTitle: "Remediation Session",
 introBody: (cats) =>
   `This practice set is based on your last exam. It focuses on: ${cats}. The goal is to strengthen the decisions you miss most so your next score improves.`,
+introHowItWorks:
+  "Each remediation session gives you a short targeted set based on weaker areas from your exam. If you are not showing enough improvement, another session is recommended before moving on.",
+introRecommendation:
+  "You may complete up to 3 remediation sessions for the same focus areas. Remediation is optional, but doing more than one session is recommended when you still need reinforcement.",
 introStart: "Start",
     remediationTitle: "Remediation",
     loading: "Loading…",
@@ -250,6 +254,10 @@ outcomeStabilizing: "Needs reinforcement",
     introTitle: "Sesión de remediación",
 introBody: (cats) =>
   `Este set de práctica se basa en tu último examen. Se enfoca en: ${cats}. El objetivo es fortalecer las decisiones que más fallas para mejorar tu próximo puntaje.`,
+introHowItWorks:
+  "Cada sesion de remediacion te da un set corto y dirigido basado en las areas mas debiles de tu examen. Si no estas mostrando suficiente mejoria, se recomienda otra sesion antes de continuar.",
+introRecommendation:
+  "Puedes completar hasta 3 sesiones de remediacion para las mismas areas de enfoque. La remediacion es opcional, pero hacer mas de una sesion es recomendable cuando aun necesitas refuerzo.",
 introStart: "Comenzar",
     remediationTitle: "Remediación",
     loading: "Cargando…",
@@ -309,6 +317,10 @@ outcomeStabilizing: "Necesita refuerzo",
     introTitle: "Session de remédiation",
 introBody: (cats) =>
   `Cette série de pratique est basée sur votre dernier examen. Elle se concentre sur : ${cats}. L’objectif est de renforcer les décisions que vous manquez le plus afin d’améliorer votre prochain score.`,
+introHowItWorks:
+  "Chaque session de remediation vous donne une courte serie ciblee basee sur les points faibles de votre examen. Si votre progression reste limitee, une autre session est recommandee avant de continuer.",
+introRecommendation:
+  "Vous pouvez faire jusqu'a 3 sessions de remediation pour les memes domaines de travail. La remediation reste facultative, mais faire plus d'une session est recommande si vous avez encore besoin de renforcement.",
 introStart: "Commencer",
     remediationTitle: "Remédiation",
     loading: "Chargement…",
@@ -365,6 +377,10 @@ outcomeStabilizing: "Besoin de renforcement",
     introTitle: "Sesyon Remedyasyon",
 introBody: (cats) =>
   `Set kestyon pratik sa a baze sou dènye egzamen ou. Li konsantre sou: ${cats}. Objektif la se ranfòse desizyon ou rate plis yo pou pwochen nòt ou ka monte.`,
+introHowItWorks:
+  "Chak sesyon remedyasyon ba ou yon ti set kestyon ki sible sou zon ki pi fe ou difikilte nan egzamen an. Si ou poko montre ase amelyorasyon, yon lot sesyon toujou rekomande anvan ou kontinye.",
+introRecommendation:
+  "Ou ka fe jiska 3 sesyon remedyasyon pou menm zon fokis yo. Remedyasyon an opsyonel, men li rekomande pou fe plis pase yon sesyon si ou toujou bezwen plis ranfosman.",
 introStart: "Kòmanse",
     remediationTitle: "Remedyasyon",
     loading: "Ap chaje…",
@@ -961,9 +977,17 @@ if (view === "intro") {
       >
         <div style={{ fontWeight: "bold", marginBottom: 8 }}>{T.introTitle}</div>
 
-        <div style={{ fontSize: 14, color: "#333", lineHeight: "1.6" }}>
+        <div style={{ fontSize: 14, color: "#33495b", lineHeight: "1.6" }}>
           <div style={{ marginBottom: 6 }}>
             {T.introBody((loopState.selectedCats || []).map(catLabel).join(" + ") || "—")}
+          </div>
+
+          <div style={{ marginBottom: 6 }}>
+            {T.introHowItWorks}
+          </div>
+
+          <div style={{ marginBottom: 6 }}>
+            {T.introRecommendation}
           </div>
 
           <div style={{ marginTop: 10, fontSize: 13, color: "#333" }}>
@@ -1250,34 +1274,31 @@ if (view === "complete" && session) {
           padding: 18,
         }}
       >
-        <div style={{ fontWeight: "bold", marginBottom: 8 }}>{T.completeTitle}</div>
+        <div style={{ fontWeight: "bold", fontSize: 20, color: "var(--heading)", marginBottom: 8 }}>{T.completeTitle}</div>
 
         <div style={{ fontSize: 14, color: "#333", lineHeight: "1.6" }}>
             
           <div style={{ marginBottom: 10 }}>{T.completeBodyTop}</div>
 
           {strengthened.length > 0 && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontWeight: "bold", marginBottom: 4 }}>{T.completeStrengthsLabel}</div>
+            <div style={{ marginBottom: 10, border: "1px solid #cfe7d8", borderRadius: 14, background: "#f4fbf7", padding: 14 }}>
+              <div style={{ fontWeight: "bold", color: "#1d6a3e", marginBottom: 6 }}>{T.completeStrengthsLabel}</div>
               <div>{strengthened.join(" • ")}</div>
             </div>
           )}
 
           {keepPracticing.length > 0 && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontWeight: "bold", marginBottom: 4 }}>{T.completeNeedsLabel}</div>
+            <div style={{ marginBottom: 10, border: "1px solid #efd6b8", borderRadius: 14, background: "#fff8ef", padding: 14 }}>
+              <div style={{ fontWeight: "bold", color: "#9a5b12", marginBottom: 6 }}>{T.completeNeedsLabel}</div>
               <div>{keepPracticing.join(" • ")}</div>
             </div>
           )}
 
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 10, border: "1px solid var(--chrome-border)", borderRadius: 14, background: "white", padding: 14 }}>
             {allStrength ? T.completeIfAllStrength : T.completeIfNeedsWork}
           </div>
         </div>
 
-<div style={{ marginTop: 12, fontSize: 13, color: "#555", lineHeight: "1.5" }}>
-    <div style={{ height: 18 }} />
-</div>
   {/* (Removed: button navigation explainer bubble — only one button remains) */}
 
 
@@ -1466,12 +1487,12 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
        <div style={{ marginBottom: 16 }}>
   {getDisplayBlocks(q).map((b) => (
     <div key={b.label} style={{ marginTop: b.label === "EN" ? 0 : 12 }}>
-      <div style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.5, color: "#1e3342" }}>
+      <div style={{ fontSize: isNarrow ? 17 : 20, fontWeight: 600, lineHeight: isNarrow ? 1.42 : 1.5, color: "#1e3342" }}>
         <span
           style={{
             display: "inline-block",
             fontWeight: "bold",
-            fontSize: 13,
+            fontSize: isNarrow ? 12 : 13,
             color: "#607282",
             marginRight: 8,
             letterSpacing: "0.04em",
@@ -1500,9 +1521,9 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
     <div
       key={key}
       style={{
-        padding: "12px 14px",
+        padding: isNarrow ? "10px 12px" : "12px 14px",
         marginBottom: "10px",
-        fontSize: "16px",
+        fontSize: isNarrow ? "15px" : "16px",
         border: "1px solid var(--chrome-border)",
         borderRadius: "12px",
         background: isSelected ? "var(--surface-tint)" : "white",
@@ -1529,7 +1550,7 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
           style={{
             marginTop: 6,
             paddingLeft: 28,
-            fontSize: "16px",
+            fontSize: isNarrow ? "14px" : "16px",
             color: "#333",
             opacity: 0.92,
             userSelect: "none",
