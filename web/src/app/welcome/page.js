@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-function Frame({ title, children, footer, theme }) {
+function Frame({ title, children, footer, theme, headerAction }) {
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
       <div
@@ -27,9 +27,14 @@ function Frame({ title, children, footer, theme }) {
             textTransform: "uppercase",
             letterSpacing: "0.04em",
             color: "var(--heading)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
           }}
         >
-          {title}
+          <span>{title}</span>
+          {headerAction ? <div>{headerAction}</div> : null}
         </div>
 
         <div style={{ flex: 1, padding: "24px", overflowY: "auto", background: "white" }}>{children}</div>
@@ -139,6 +144,24 @@ function WelcomeInner() {
     <Frame
       title={t("WELCOME", "BIENVENIDO", "BIENVENUE", "BYENVENI")}
       theme={theme}
+      headerAction={
+        <button
+          style={{
+            ...btnSecondary,
+            width: "auto",
+            background: "white",
+            border: `1px solid ${theme.chromeBorder}`,
+            padding: "8px 11px",
+            fontSize: "13px",
+            fontWeight: 700,
+          }}
+          onClick={() => {
+            router.push("/?force_lang=1");
+          }}
+        >
+          {t("Change Language", "Cambiar idioma", "Changer de langue", "Chanje lang")}
+        </button>
+      }
       footer={
         <div
           style={{

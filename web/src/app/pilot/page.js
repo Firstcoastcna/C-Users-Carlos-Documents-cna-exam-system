@@ -189,7 +189,7 @@ function PilotInner() {
         subtitle:
           "Choose one of the four full practice exams below. You can return to an unfinished test on the same device, review completed tests, and reset the full set after all four are done.",
         language: "Language",
-        returnToStart: "Return to Start",
+        returnToStart: "Back to Welcome",
         studyTitle: "Quick Study Refresher",
         studyText:
           "Before you begin, you can open a short study-chapters guide with the main ideas from each chapter.",
@@ -219,7 +219,7 @@ function PilotInner() {
         title: "Examenes de Practica CNA",
         subtitle:
           "Elija uno de los cuatro examenes completos de practica. Puede volver a un examen sin terminar en este dispositivo, revisar examenes completados y reiniciar el conjunto cuando termine los cuatro.",
-        returnToStart: "Volver al inicio",
+        returnToStart: "Volver a la bienvenida",
         studyTitle: "Repaso rapido de estudio",
         studyText:
           "Antes de comenzar, puede abrir una guia corta de capitulos de estudio con las ideas principales de cada capitulo.",
@@ -249,7 +249,7 @@ function PilotInner() {
         title: "Tests de Pratique de l'Examen CNA",
         subtitle:
           "Choisissez l'un des quatre examens blancs complets. Vous pouvez reprendre un test non termine sur cet appareil, revoir les tests termines et reinitialiser l'ensemble une fois les quatre termines.",
-        returnToStart: "Retour au debut",
+        returnToStart: "Retour a l'accueil",
         studyTitle: "Rappel d'etude rapide",
         studyText:
           "Avant de commencer, vous pouvez ouvrir un court guide des chapitres d'etude avec les idees principales de chaque chapitre.",
@@ -279,7 +279,7 @@ function PilotInner() {
         title: "Tes Pratik Egzamen CNA",
         subtitle:
           "Chwazi youn nan kat egzamen pratik konple yo. Ou ka retounen nan yon tes ou poko fini sou menm aparey la, revize tes ou fin fe yo, epi rafrechi tout ansanm apre ou fin fe kat la.",
-        returnToStart: "Retounen nan komansman",
+        returnToStart: "Retounen nan byenvini",
         studyTitle: "Ti revizyon etid rapid",
         studyText:
           "Anvan ou komanse, ou ka louvri yon gid kout sou chapit etid yo ak ide prensipal chak chapit.",
@@ -443,7 +443,7 @@ function PilotInner() {
       theme={theme}
           headerAction={
         <button
-          onClick={() => router.push("/?force_lang=1")}
+          onClick={() => router.push(`/welcome?lang=${lang}`)}
           style={{
             padding: "9px 12px",
             fontSize: "14px",
