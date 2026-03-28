@@ -196,6 +196,12 @@ function PilotInner() {
         studyHint:
           "These chapters are brief refreshers only. They are not a full chapter-by-chapter review.",
         studyButton: "Open Study Chapters",
+        categoryTitle: "Decision Categories",
+        categoryText:
+          "Open a review page that explains the 9 decision categories used to measure how you think through CNA-style questions.",
+        categoryHint:
+          "This guide helps explain what each category means and why categories are used in analytics and remediation.",
+        categoryButton: "Open Category Review",
         testsTitle: "Available Practice Exams",
         testsIntro:
           "Each card below opens one full 60-question practice exam. Unfinished tests can be resumed on this device, and completed tests reopen in review mode.",
@@ -226,6 +232,12 @@ function PilotInner() {
         studyHint:
           "Estos capitulos son recordatorios breves. No son una revision completa capitulo por capitulo.",
         studyButton: "Abrir capitulos de estudio",
+        categoryTitle: "Categorias de decision",
+        categoryText:
+          "Abra una pagina de repaso que explica las 9 categorias de decision que se utilizan para evaluar como usted razona en preguntas similares a las del examen CNA.",
+        categoryHint:
+          "Esta guia le ayuda a entender que significa cada categoria y por que se utiliza en el analisis y la remediacion.",
+        categoryButton: "Abrir repaso de categorias",
         testsTitle: "Examenes de practica disponibles",
         testsIntro:
           "Cada tarjeta de abajo abre un examen completo de practica de 60 preguntas. Los examenes sin terminar se pueden reanudar en este dispositivo, y los examenes completados se vuelven a abrir en modo de revision.",
@@ -256,6 +268,12 @@ function PilotInner() {
         studyHint:
           "Ces chapitres sont de brefs rappels seulement. Ils ne remplacent pas une revision complete chapitre par chapitre.",
         studyButton: "Ouvrir les chapitres d'etude",
+        categoryTitle: "Categories de decision",
+        categoryText:
+          "Ouvrez une page de revision qui explique les 9 categories de decision utilisees pour evaluer votre raisonnement dans des questions semblables a celles de l'examen CNA.",
+        categoryHint:
+          "Ce guide vous aide a comprendre ce que signifie chaque categorie et pourquoi elle est utilisee dans l'analyse et la remediation.",
+        categoryButton: "Ouvrir la revision des categories",
         testsTitle: "Examens de pratique disponibles",
         testsIntro:
           "Chaque carte ci-dessous ouvre un examen de pratique complet de 60 questions. Les tests non termines peuvent etre repris sur cet appareil, et les tests termines se rouvrent en mode revision.",
@@ -286,6 +304,12 @@ function PilotInner() {
         studyHint:
           "Chapit sa yo se ti rapel kout selman. Yo pa yon revizyon konple chapit pa chapit.",
         studyButton: "Louvri chapit etid yo",
+        categoryTitle: "Kategori desizyon",
+        categoryText:
+          "Louvri yon paj revizyon ki esplike 9 kategori desizyon yo itilize pou evalye fason ou reflechi sou kestyon ki sanble ak kestyon egzamen CNA a.",
+        categoryHint:
+          "Gid sa a ede ou konprann sa chak kategori vle di ak poukisa yo itilize li nan analiz ak remedyasyon.",
+        categoryButton: "Louvri revizyon kategori yo",
         testsTitle: "Egzamen pratik ki disponib",
         testsIntro:
           "Chak kat ki anba a louvri yon egzamen pratik konple ak 60 kestyon. Ou ka reprann tes ou poko fini yo sou aparey sa a, epi tes ou deja fini yo ap relouvri nan mod revizyon.",
@@ -473,7 +497,7 @@ function PilotInner() {
             display: "grid",
             gridTemplateColumns: isNarrow
               ? "minmax(0, 1fr)"
-              : "minmax(0, 1.25fr) minmax(320px, 0.9fr)",
+              : "minmax(0, 1.15fr) minmax(260px, 0.8fr) minmax(260px, 0.8fr)",
             gap: 14,
           }}
         >
@@ -507,6 +531,33 @@ function PilotInner() {
                 }}
               >
                 {TEXT.studyButton}
+              </button>
+            }
+          />
+
+          <SectionCard
+            theme={theme}
+            title={TEXT.categoryTitle}
+            body={
+              <>
+                <div>{TEXT.categoryText}</div>
+                <div style={{ marginTop: 8, fontSize: 13 }}>{TEXT.categoryHint}</div>
+              </>
+            }
+            action={
+              <button
+                onClick={() => router.push(`/categories?lang=${lang}`)}
+                style={{
+                  padding: "9px 12px",
+                  fontSize: "14px",
+                  borderRadius: "10px",
+                  border: `1px solid ${theme.buttonBorder}`,
+                  background: theme.secondaryBg,
+                  color: theme.secondaryText,
+                  cursor: "pointer",
+                }}
+              >
+                {TEXT.categoryButton}
               </button>
             }
           />
