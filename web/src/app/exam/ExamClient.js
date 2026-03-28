@@ -1463,6 +1463,11 @@ if (mode === "rationales") {
     if (missed) missedCounts[ch] += 1;
   });
 
+  const availableReviewChapters = [1, 2, 3, 4, 5].filter((ch) => (missedCounts[ch] || 0) > 0);
+  const activeRationaleChapter = availableReviewChapters.includes(Number(rationaleChapter))
+    ? Number(rationaleChapter)
+    : (availableReviewChapters[0] || 1);
+
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto" }}>
       <div
@@ -1567,7 +1572,7 @@ if (mode === "rationales") {
   if (!q) return false;
 
   const ch = Number(q.chapter_tag);
-  if (ch !== Number(rationaleChapter)) return false;
+  if (ch !== activeRationaleChapter) return false;
 
   const userAns = answersByQid[qid];
   if (!userAns) return true; // unanswered
@@ -1688,8 +1693,8 @@ if (lang === "ht") {
           }}
         >
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-  {[1, 2, 3, 4, 5].map((ch) => {
-  const isActive = ch === rationaleChapter;
+  {availableReviewChapters.map((ch) => {
+  const isActive = ch === activeRationaleChapter;
   const count = missedCounts[ch] || 0;
   const isEnabled = count > 0;
 
@@ -1710,10 +1715,18 @@ if (lang === "ht") {
         ...btnSecondary,
         minWidth: "100px",
         padding: "8px 10px",
-        border: isActive ? "2px solid var(--brand-teal)" : btnSecondary.border,
-        background: isActive ? "var(--surface-tint)" : btnSecondary.background,
-        fontWeight: isActive ? "bold" : "normal",
-        opacity: isEnabled ? 1 : 0.35,
+        border: isEnabled
+          ? isActive
+            ? "2px solid var(--brand-red)"
+            : "1px solid rgba(204, 0, 0, 0.35)"
+          : "1px solid #d7e2e8",
+        background: isEnabled
+          ? isActive
+            ? "var(--brand-red-soft)"
+            : "white"
+          : "#f5f8fa",
+        color: isEnabled ? (isActive ? "var(--brand-red)" : "#8c3a3a") : "#8a98a5",
+        fontWeight: isActive ? "bold" : 600,
         cursor: isEnabled ? "pointer" : "not-allowed",
       }}
     >
