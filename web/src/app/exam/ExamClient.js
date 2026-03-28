@@ -32,6 +32,7 @@ const UI_TEXT = {
     categoryDiagnosis: "Category Diagnosis",
     whatToStudyNext: "What to Study Next",
     backToResults: "Back to Results",
+    backToAnalytics: "Back to Analytics",
     reviewQuestions: "Review Questions",
     startRemediation: "Start Remediation",
     exitToHome: "Exit to Home",
@@ -114,6 +115,7 @@ timeExpiredExplanation:
     categoryDiagnosis: "Diagnóstico por categoría",
     whatToStudyNext: "Qué estudiar después",
     backToResults: "Volver a resultados",
+    backToAnalytics: "Volver a análisis",
     reviewQuestions: "Revisar preguntas",
     startRemediation: "Iniciar remediación",
     exitToHome: "Salir al inicio",
@@ -196,6 +198,7 @@ timeExpiredExplanation:
     categoryDiagnosis: "Diagnostic par catégorie",
     whatToStudyNext: "Quoi étudier ensuite",
     backToResults: "Retour aux résultats",
+    backToAnalytics: "Retour à l’analyse",
     reviewQuestions: "Revoir les questions",
     startRemediation: "Commencer la remédiation",
     exitToHome: "Quitter vers l’accueil",
@@ -278,6 +281,7 @@ timeExpiredExplanation:
     categoryDiagnosis: "Dyagnostik pa kategori",
     whatToStudyNext: "Sa pou etidye apre",
     backToResults: "Tounen nan rezilta yo",
+    backToAnalytics: "Tounen nan analiz la",
     reviewQuestions: "Revize kesyon yo",
     startRemediation: "Kòmanse remedyasyon",
     exitToHome: "Soti pou ale lakay",
@@ -1719,7 +1723,7 @@ if (lang === "ht") {
 })}
 </div>
           <button onClick={() => setMode("analytics")} style={{ ...btnSecondary, minWidth: "180px" }}>
-            {T.backToResults}
+            {T.backToAnalytics}
           </button>
         </div>
       </div>

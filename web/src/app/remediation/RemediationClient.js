@@ -197,7 +197,7 @@ introStart: "Start",
     loading: "Loading…",
     missingSessionId: "Missing session_id.",
     sessionNotFound: "Remediation session not found.",
-    btnBackToResults: "Back to results",
+    btnBackToResults: "Back to analytics",
     btnBackToOverview: "Back to start",
     endTitle: "End remediation?",
     endBody: (n) =>
@@ -226,12 +226,12 @@ completeIfAllStrength:
 completeIfNeedsWork:
   "Do another short remediation set to reinforce the areas above before returning to full exam practice.",
 btnAnotherSet: "Do another set",
-btnBackToResultsDone: "Back to results",
+btnBackToResultsDone: "Back to analytics",
 btnFinish: "Finish",
 completeNavOverview:
   "Back to start lets you review this remediation set and your focus areas.",
 completeNavResults:
-  "Back to results returns you to your exam results, where you can start a new remediation set if needed.",
+  "Back to analytics returns you to your exam analytics, where you can review guidance and start another remediation set if needed.",
 categoryReviewLabel: "Focus category:",
 loopSummaryLabel: "Progress:",
 loopSummary: (done, max, outcome) =>
@@ -260,7 +260,7 @@ introStart: "Comenzar",
     loading: "Cargando…",
     missingSessionId: "Falta session_id.",
     sessionNotFound: "No se encontró la sesión de remediación.",
-    btnBackToResults: "Volver a resultados",
+    btnBackToResults: "Volver a análisis",
     btnBackToOverview: "Volver al inicio",
     endTitle: "¿Terminar la remediación?",
     endBody: (n) =>
@@ -289,12 +289,12 @@ completeIfAllStrength:
 completeIfNeedsWork:
   "Haz otro set corto de remediación para reforzar las áreas anteriores antes de volver al modo examen.",
 btnAnotherSet: "Hacer otro set",
-btnBackToResultsDone: "Volver a resultados",
+btnBackToResultsDone: "Volver a análisis",
 btnFinish: "Finalizar",
 completeNavOverview:
   "Volver al inicio te permite revisar este set de remediación y las áreas trabajadas.",
 completeNavResults:
-  "Volver a resultados te lleva a los resultados del examen, donde puedes iniciar un nuevo set de remediación si lo necesitas.",
+  "Volver a análisis te lleva a la analítica del examen, donde puedes revisar la guía e iniciar otro set de remediación si lo necesitas.",
 categoryReviewLabel: "Categoría de enfoque:",
 loopSummaryLabel: "Progreso:",
 loopSummary: (done, max, outcome) =>
@@ -323,7 +323,7 @@ introStart: "Commencer",
     loading: "Chargement…",
     missingSessionId: "session_id manquant.",
     sessionNotFound: "Session de remédiation introuvable.",
-    btnBackToResults: "Retour aux résultats",
+    btnBackToResults: "Retour à l’analyse",
     btnBackToOverview: "Retour au début",
     endTitle: "Terminer la remédiation ?",
     endBody: (n) =>
@@ -352,7 +352,7 @@ completeIfAllStrength:
 completeIfNeedsWork:
   "Faites une autre courte série de remédiation pour renforcer les points ci-dessus avant de revenir au mode examen.",
 btnAnotherSet: "Faire une autre série",
-btnBackToResultsDone: "Retour aux résultats",
+btnBackToResultsDone: "Retour à l’analyse",
 btnFinish: "Terminer",
 completeNavOverview:
   "Retour au début vous permet de revoir cette série de remédiation et les domaines travaillés.",
@@ -383,7 +383,7 @@ introStart: "Kòmanse",
     loading: "Ap chaje…",
     missingSessionId: "session_id pa la.",
     sessionNotFound: "Nou pa jwenn sesyon remedyasyon an.",
-    btnBackToResults: "Tounen nan rezilta yo",
+    btnBackToResults: "Tounen nan analiz la",
     btnBackToOverview: "Retounen nan kòmansman",
     endTitle: "Fèmen remedyasyon an?",
     endBody: (n) =>
@@ -412,7 +412,7 @@ completeIfAllStrength:
 completeIfNeedsWork:
   "Fè yon lòt ti set remedyasyon pou ranfòse sa ki anlè yo anvan ou retounen nan mòd egzamen.",
 btnAnotherSet: "Fè yon lòt set",
-btnBackToResultsDone: "Tounen nan rezilta yo",
+btnBackToResultsDone: "Tounen nan analiz la",
 btnFinish: "Fini",
 completeNavOverview:
   "Retounen nan kòmansman an pèmèt ou revize set remedyasyon sa a ak zòn ou te travay yo.",
