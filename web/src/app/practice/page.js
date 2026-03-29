@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { loadAllPracticeSessions, loadPracticeSession } from "../lib/practiceSessionStorage";
 
 function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   return (
@@ -127,6 +128,34 @@ function PracticeInner() {
   const [isNarrow, setIsNarrow] = useState(false);
   const [mode, setMode] = useState("chapter");
   const [count, setCount] = useState(10);
+  const [selectedChapter, setSelectedChapter] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState("Change in Condition");
+  const [activeSession, setActiveSession] = useState(null);
+  const [practiceHistory, setPracticeHistory] = useState([]);
+
+  function refreshActiveSession() {
+    try {
+      const all = loadAllPracticeSessions();
+      queueMicrotask(() => {
+        setPracticeHistory([...all].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0)));
+      });
+      const latestOverall =
+        [...all].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0))[0] || null;
+      queueMicrotask(() => {
+        if (latestOverall?.status !== "active" || !latestOverall?.session_id) {
+          setActiveSession(null);
+          return;
+        }
+        const full = loadPracticeSession(latestOverall.session_id);
+        setActiveSession(full || latestOverall);
+      });
+    } catch {
+      queueMicrotask(() => {
+        setActiveSession(null);
+        setPracticeHistory([]);
+      });
+    }
+  }
 
   useEffect(() => {
     let granted = false;
@@ -153,6 +182,26 @@ function PracticeInner() {
     return () => window.removeEventListener("resize", syncWidth);
   }, []);
 
+  useEffect(() => {
+    function syncActive() {
+      refreshActiveSession();
+    }
+
+    function onVisible() {
+      if (document.visibilityState === "visible") refreshActiveSession();
+    }
+
+    refreshActiveSession();
+    window.addEventListener("focus", syncActive);
+    window.addEventListener("storage", syncActive);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", syncActive);
+      window.removeEventListener("storage", syncActive);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [lang]);
+
   const theme = useMemo(
     () => ({
       frameBorder: "var(--frame-border)",
@@ -173,6 +222,64 @@ function PracticeInner() {
     return en;
   }
 
+  function categoryLabel(cat) {
+    return {
+      en: {
+        "Change in Condition": "Change in Condition",
+        "Communication & Emotional Support": "Communication & Emotional Support",
+        "Dignity & Resident Rights": "Dignity & Resident Rights",
+        "Environment & Safety": "Environment & Safety",
+        "Infection Control": "Infection Control",
+        "Mobility & Positioning": "Mobility & Positioning",
+        "Observation & Safety": "Observation & Safety",
+        "Personal Care & Comfort": "Personal Care & Comfort",
+        "Scope of Practice & Reporting": "Scope of Practice & Reporting",
+      },
+      es: {
+        "Change in Condition": "Cambio en la condicion",
+        "Communication & Emotional Support": "Comunicacion y apoyo emocional",
+        "Dignity & Resident Rights": "Dignidad y derechos del residente",
+        "Environment & Safety": "Entorno y seguridad",
+        "Infection Control": "Control de infecciones",
+        "Mobility & Positioning": "Movilidad y posicionamiento",
+        "Observation & Safety": "Observacion y seguridad",
+        "Personal Care & Comfort": "Cuidado personal y confort",
+        "Scope of Practice & Reporting": "Alcance de practica y reporte",
+      },
+      fr: {
+        "Change in Condition": "Changement de l'etat",
+        "Communication & Emotional Support": "Communication et soutien emotionnel",
+        "Dignity & Resident Rights": "Dignite et droits du resident",
+        "Environment & Safety": "Environnement et securite",
+        "Infection Control": "Controle des infections",
+        "Mobility & Positioning": "Mobilite et positionnement",
+        "Observation & Safety": "Observation et securite",
+        "Personal Care & Comfort": "Soins personnels et confort",
+        "Scope of Practice & Reporting": "Champ de pratique et signalement",
+      },
+      ht: {
+        "Change in Condition": "Chanjman nan kondisyon",
+        "Communication & Emotional Support": "Kominikasyon ak sipor emosyonel",
+        "Dignity & Resident Rights": "Diyite ak dwa rezidan an",
+        "Environment & Safety": "Anviwonman ak sekirite",
+        "Infection Control": "Kontwol enfeksyon",
+        "Mobility & Positioning": "Mobilite ak pozisyonman",
+        "Observation & Safety": "Obsevasyon ak sekirite",
+        "Personal Care & Comfort": "Swen pesonel ak konfo",
+        "Scope of Practice & Reporting": "Limit pratik ak rapo",
+      },
+    }[lang]?.[cat] || cat;
+  }
+
+  function chapterLabel(chapter) {
+    return t(
+      `Chapter ${chapter}`,
+      `Capitulo ${chapter}`,
+      `Chapitre ${chapter}`,
+      `Chapit ${chapter}`
+    );
+  }
+
   const TEXT = {
     title: t("CNA Practice Hub", "Centro de Practica CNA", "Hub de pratique CNA", "Hub Pratik CNA"),
     subtitle: t(
@@ -183,6 +290,8 @@ function PracticeInner() {
     ),
     backToWelcome: t("Back to Welcome", "Volver a la bienvenida", "Retour a l'accueil", "Retounen nan byenvini"),
     modesTitle: t("Choose a practice mode", "Elija un modo de practica", "Choisissez un mode de pratique", "Chwazi yon mòd pratik"),
+    chapterTitle: t("Choose one chapter", "Elija un capitulo", "Choisissez un chapitre", "Chwazi yon chapit"),
+    categoryTitle: t("Choose one category", "Elija una categoria", "Choisissez une categorie", "Chwazi yon kategori"),
     countTitle: t("Choose a session size", "Elija el tamano de la sesion", "Choisissez la taille de la session", "Chwazi kantite kestyon yo"),
     modeChapter: t("Practice by Chapter", "Practica por capitulo", "Pratique par chapitre", "Pratik pa Chapit"),
     modeCategory: t("Practice by Category", "Practica por categoria", "Pratique par categorie", "Pratik pa Kategori"),
@@ -247,26 +356,103 @@ function PracticeInner() {
       "Ouvrir le soutien d'etude par categories",
       "Louvri sipo etid pa kategori"
     ),
-    nextStepTitle: t("Next step", "Proximo paso", "Prochaine etape", "Pwochen etap"),
-    nextStepBody: t(
-      "The guided practice player is the next build step. For now, this hub defines the learning paths and session structure the practice side will use.",
-      "El lector de practica guiada sera el siguiente paso de desarrollo. Por ahora, este centro define las rutas de aprendizaje y la estructura de sesiones que usara la parte de practica.",
-      "Le lecteur de pratique guidee sera la prochaine etape de developpement. Pour l'instant, ce hub definit les parcours d'apprentissage et la structure des sessions utilisees par la partie pratique.",
-      "Jwè pratik gide a pral pwochen etap devlopman an. Pou kounye a, hub sa a defini chemen aprantisaj yo ak estrikti sesyon yo pati pratik la pral itilize."
+    resumeTitle: t("Resume current practice", "Reanudar practica actual", "Reprendre la pratique en cours", "Kontinye pratik aktyel la"),
+    resumeBody: t(
+      "Pick up where you left off in your last guided practice session.",
+      "Retome donde dejo su ultima sesion de practica guiada.",
+      "Reprenez la ou vous avez laisse votre derniere session de pratique guidee.",
+      "Kontinye dènye sesyon pratik gide ou a kote ou te rete a."
+    ),
+    resumeProgress: t("Progress", "Progreso", "Progression", "Pwogre"),
+    resumeButton: t("Continue Practice", "Continuar practica", "Continuer la pratique", "Kontinye Pratik"),
+    progressTitle: t("Practice Progress", "Progreso de practica", "Progression de pratique", "Pwogre Pratik"),
+    progressBody: t(
+      "Track how much guided practice you have completed on this device.",
+      "Vea cuanto trabajo de practica guiada ha completado en este dispositivo.",
+      "Suivez la quantite de pratique guidee que vous avez terminee sur cet appareil.",
+      "Swiv konbyen pratik gide ou fin konplete sou aparey sa a."
+    ),
+    progressSessions: t("Sessions completed", "Sesiones completadas", "Sessions terminees", "Sesyon fini"),
+    progressQuestions: t("Questions practiced", "Preguntas practicadas", "Questions pratiquees", "Kesyon pratike"),
+    progressScore: t("Overall practice score", "Puntuacion general de practica", "Score global de pratique", "Not jeneral pratik"),
+    recentSessions: t("Recent practice", "Practica reciente", "Pratique recente", "Pratik resan"),
+    noCompletedPractice: t(
+      "Completed practice sessions will appear here once you finish them.",
+      "Las sesiones de practica completadas apareceran aqui cuando las termine.",
+      "Les sessions de pratique terminees apparaitront ici une fois achevees.",
+      "Sesyon pratik ou fini yo ap paret isit la le ou fin konplete yo."
     ),
     currentSelection: t("Current setup", "Configuracion actual", "Configuration actuelle", "Konfigirasyon aktyel"),
-    selectionText: t(
-      `Mode selected: ${mode}. Session size: ${count} questions.`,
-      `Modo seleccionado: ${mode}. Tamano de la sesion: ${count} preguntas.`,
-      `Mode choisi : ${mode}. Taille de la session : ${count} questions.`,
-      `Mòd ou chwazi a: ${mode}. Kantite kestyon nan sesyon an: ${count}.`
-    ),
+    startPractice: t("Start Practice", "Comenzar practica", "Commencer la pratique", "Kòmanse pratik"),
   };
 
   const countOptions = [5, 10, 15];
+  const chapterOptions = [1, 2, 3, 4, 5];
+  const categoryOptions = [
+    "Change in Condition",
+    "Communication & Emotional Support",
+    "Dignity & Resident Rights",
+    "Environment & Safety",
+    "Infection Control",
+    "Mobility & Positioning",
+    "Observation & Safety",
+    "Personal Care & Comfort",
+    "Scope of Practice & Reporting",
+  ];
 
   const selectedModeLabel =
     mode === "chapter" ? TEXT.modeChapter : mode === "category" ? TEXT.modeCategory : TEXT.modeMixed;
+  const selectedTargetLabel =
+    mode === "chapter"
+      ? chapterLabel(selectedChapter)
+      : mode === "category"
+        ? categoryLabel(selectedCategory)
+        : null;
+
+  const activeSessionTargetLabel =
+    activeSession?.mode === "chapter"
+      ? chapterLabel(activeSession.selectedChapter)
+      : activeSession?.mode === "category"
+        ? categoryLabel(activeSession.selectedCategory)
+        : TEXT.modeMixed;
+
+  const activeSessionModeLabel =
+    activeSession?.mode === "chapter"
+      ? TEXT.modeChapter
+      : activeSession?.mode === "category"
+        ? TEXT.modeCategory
+        : TEXT.modeMixed;
+
+  const activeAnsweredCount = Object.values(activeSession?.answers || {}).filter((entry) => entry?.submitted).length;
+  const activeQuestionCount = Number(activeSession?.questionIds?.length || 0);
+
+  const activeSessionSummary =
+    activeSession?.mode === "mixed"
+      ? t(
+          `${activeQuestionCount} questions · Mixed Practice`,
+          `${activeQuestionCount} preguntas · Practica mixta`,
+          `${activeQuestionCount} questions · Pratique mixte`,
+          `${activeQuestionCount} kestyon · Pratik melanje`
+        )
+      : `${activeQuestionCount} ${t("questions", "preguntas", "questions", "kesyon")} · ${activeSessionModeLabel} · ${activeSessionTargetLabel}`;
+
+  function sessionTargetLabel(sessionLike) {
+    if (sessionLike?.mode === "chapter") return chapterLabel(sessionLike.selectedChapter);
+    if (sessionLike?.mode === "category") return categoryLabel(sessionLike.selectedCategory);
+    return TEXT.modeMixed;
+  }
+
+  function sessionModeLabel(sessionLike) {
+    if (sessionLike?.mode === "chapter") return TEXT.modeChapter;
+    if (sessionLike?.mode === "category") return TEXT.modeCategory;
+    return TEXT.modeMixed;
+  }
+
+  const completedSessions = practiceHistory.filter((item) => item?.status === "completed");
+  const totalCompletedSessions = completedSessions.length;
+  const totalPracticedQuestions = completedSessions.reduce((sum, item) => sum + Number(item?.submitted_total || item?.questionIds?.length || 0), 0);
+  const totalCorrectQuestions = completedSessions.reduce((sum, item) => sum + Number(item?.submitted_correct || 0), 0);
+  const recentCompletedSessions = completedSessions.slice(0, 4);
 
   const btnPrimary = {
     padding: "10px 12px",
@@ -288,6 +474,19 @@ function PracticeInner() {
     color: theme.secondaryText,
     cursor: "pointer",
   };
+
+  function startPractice() {
+    const base = `/practice-session?lang=${lang}&mode=${encodeURIComponent(mode)}&count=${encodeURIComponent(count)}`;
+    if (mode === "chapter") {
+      router.push(`${base}&chapter=${encodeURIComponent(selectedChapter)}`);
+      return;
+    }
+    if (mode === "category") {
+      router.push(`${base}&category=${encodeURIComponent(selectedCategory)}`);
+      return;
+    }
+    router.push(base);
+  }
 
   return (
     <Frame
@@ -357,7 +556,94 @@ function PracticeInner() {
           }
         />
 
+        <SectionCard
+          theme={theme}
+          tone="default"
+          title={TEXT.progressTitle}
+          body={
+            <div style={{ display: "grid", gap: 14 }}>
+              <div>{TEXT.progressBody}</div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressSessions}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalCompletedSessions}</div>
+                </div>
+                <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressQuestions}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalPracticedQuestions}</div>
+                </div>
+                <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressScore}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalCorrectQuestions} / {totalPracticedQuestions}</div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.recentSessions}</div>
+                {recentCompletedSessions.length ? (
+                  recentCompletedSessions.map((item) => (
+                    <div
+                      key={item.session_id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        flexWrap: "wrap",
+                        padding: "12px 14px",
+                        border: "1px solid var(--chrome-border)",
+                        borderRadius: 12,
+                        background: "white",
+                      }}
+                    >
+                      <div style={{ color: "var(--heading)", fontWeight: 700 }}>
+                        {sessionModeLabel(item)} · {sessionTargetLabel(item)}
+                      </div>
+                      <div style={{ color: "#5c6d7d" }}>
+                        {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("questions", "preguntas", "questions", "kesyon")} · {Number(item?.submitted_correct || 0)} / {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("correct", "correctas", "correctes", "korek")}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ color: "#5c6d7d" }}>{TEXT.noCompletedPractice}</div>
+                )}
+              </div>
+            </div>
+          }
+        />
+
         <SectionCard theme={theme} tone="accent" title={TEXT.modesTitle} body={TEXT.subtitle} />
+
+        {activeSession ? (
+          <SectionCard
+            theme={theme}
+            tone="muted"
+            title={TEXT.resumeTitle}
+            body={
+              <div style={{ display: "grid", gap: 6 }}>
+                <div>{TEXT.resumeBody}</div>
+                <div style={{ fontWeight: 700, color: "var(--heading)" }}>
+                  {activeSessionSummary}
+                </div>
+                <div style={{ color: "#5c6d7d", fontSize: 14 }}>
+                  {TEXT.resumeProgress}: {activeAnsweredCount} {t("of", "de", "sur", "sou")} {activeQuestionCount} {t("questions completed", "preguntas completadas", "questions completees", "kesyon fini")}
+                </div>
+              </div>
+            }
+            action={
+              <button
+                style={{ ...btnSecondary, width: isNarrow ? "100%" : "220px" }}
+                onClick={() => router.push(`/practice-session?lang=${lang}&session_id=${activeSession.session_id}`)}
+              >
+                {TEXT.resumeButton}
+              </button>
+            }
+          />
+        ) : null}
 
         <div
           style={{
@@ -389,6 +675,59 @@ function PracticeInner() {
           />
         </div>
 
+        {mode === "chapter" ? (
+          <SectionCard
+            theme={theme}
+            title={TEXT.chapterTitle}
+            body={
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {chapterOptions.map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setSelectedChapter(n)}
+                    style={{
+                      ...btnSecondary,
+                      minWidth: 110,
+                      fontWeight: 700,
+                      background: selectedChapter === n ? "white" : theme.secondaryBg,
+                      border: selectedChapter === n ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                    }}
+                  >
+                    {t(`Chapter ${n}`, `Capitulo ${n}`, `Chapitre ${n}`, `Chapit ${n}`)}
+                  </button>
+                ))}
+              </div>
+            }
+          />
+        ) : null}
+
+        {mode === "category" ? (
+          <SectionCard
+            theme={theme}
+            title={TEXT.categoryTitle}
+            body={
+              <div style={{ display: "grid", gap: 10 }}>
+                {categoryOptions.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    style={{
+                      ...btnSecondary,
+                      width: "100%",
+                      textAlign: "left",
+                      fontWeight: 700,
+                      background: selectedCategory === cat ? "white" : theme.secondaryBg,
+                      border: selectedCategory === cat ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                    }}
+                  >
+                    {categoryLabel(cat)}
+                  </button>
+                ))}
+              </div>
+            }
+          />
+        ) : null}
+
         <SectionCard
           theme={theme}
           title={TEXT.countTitle}
@@ -419,14 +758,24 @@ function PracticeInner() {
           tone="muted"
           title={TEXT.currentSelection}
           body={t(
-            `Mode selected: ${selectedModeLabel}. Session size: ${count} questions.`,
-            `Modo seleccionado: ${selectedModeLabel}. Tamano de la sesion: ${count} preguntas.`,
-            `Mode choisi : ${selectedModeLabel}. Taille de la session : ${count} questions.`,
-            `Mòd ou chwazi a: ${selectedModeLabel}. Kantite kestyon nan sesyon an: ${count}.`
+            `Mode selected: ${selectedModeLabel}${selectedTargetLabel ? `. Focus: ${selectedTargetLabel}` : ""}. Session size: ${count} questions.`,
+            `Modo seleccionado: ${selectedModeLabel}${selectedTargetLabel ? `. Enfoque: ${selectedTargetLabel}` : ""}. Tamano de la sesion: ${count} preguntas.`,
+            `Mode choisi : ${selectedModeLabel}${selectedTargetLabel ? `. Cible : ${selectedTargetLabel}` : ""}. Taille de la session : ${count} questions.`,
+            `Mòd ou chwazi a: ${selectedModeLabel}${selectedTargetLabel ? `. Fokis: ${selectedTargetLabel}` : ""}. Kantite kestyon nan sesyon an: ${count}.`
           )}
         />
 
-        <SectionCard theme={theme} title={TEXT.nextStepTitle} body={TEXT.nextStepBody} action={<button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", opacity: 0.7, cursor: "default" }}>{t("Practice Player Next", "Siguiente paso de practica", "Lecteur de pratique ensuite", "Pwochen etap pratik la")}</button>} />
+        <SectionCard
+          theme={theme}
+          title={TEXT.startPractice}
+          body={t(
+            "Start an untimed guided session with immediate feedback and optional explanations after each answer.",
+            "Comience una sesion guiada sin limite de tiempo, con retroalimentacion inmediata y explicaciones opcionales despues de cada respuesta.",
+            "Commencez une session guidee sans limite de temps, avec un retour immediat et des explications facultatives apres chaque reponse.",
+            "Kòmanse yon sesyon gide san limit tan, ak fidbak touswit ansanm ak eksplikasyon opsyonel apre chak repons."
+          )}
+          action={<button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }} onClick={startPractice}>{TEXT.startPractice}</button>}
+        />
       </div>
     </Frame>
   );
@@ -439,3 +788,6 @@ export default function PracticePage() {
     </Suspense>
   );
 }
+
+
+
