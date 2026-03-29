@@ -127,7 +127,7 @@ function AccessInner() {
       localStorage.setItem("cna_access_granted", "1");
     } catch {}
 
-    router.push(`/welcome?lang=${lang}`);
+    router.push(`/start?lang=${lang}`);
   }
 
   return (

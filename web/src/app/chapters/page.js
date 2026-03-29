@@ -54,6 +54,7 @@ function ChaptersInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
+  const source = sp.get("src") || "exam";
   const [isNarrow, setIsNarrow] = useState(false);
 
   // Access gate + keep pilot language consistent (pilot-safe)
@@ -129,6 +130,64 @@ function ChaptersInner() {
     if (lang === "ht") return ht;
     return en;
   }
+
+  const hubRoute = source === "practice" ? `/practice?lang=${lang}` : `/pilot?lang=${lang}`;
+  const hubLabel =
+    source === "practice"
+      ? t("Go to Practice Hub", "Ir al Centro de Practica", "Aller au hub de pratique", "Ale nan Hub Pratik la")
+      : t("Go to Exam Hub", "Ir al Centro de Exámenes", "Aller au hub d’examen", "Ale nan Hub Egzamen an");
+  const pageTitle =
+    source === "practice"
+      ? t("CHAPTER STUDY SUPPORT", "APOYO DE ESTUDIO POR CAPITULOS", "SOUTIEN D'ETUDE PAR CHAPITRES", "SIPO ETID PA CHAPIT")
+      : t("CHAPTERS & STUDY GUIDANCE", "CAPÍTULOS Y GUÍA DE ESTUDIO", "CHAPITRES & GUIDE D’ÉTUDE", "CHAPIT & GID ETID");
+  const introEyebrow =
+    source === "practice"
+      ? t("Study Support", "Apoyo de estudio", "Soutien d'etude", "Sipò pou etid")
+      : t("Quick Review", "Repaso rapido", "Revision rapide", "Ti revizyon");
+  const introTitle =
+    source === "practice"
+      ? t("Chapter Study Support", "Apoyo de estudio por capitulos", "Soutien d'etude par chapitres", "Sipo etid pa chapit")
+      : t("Chapter review", "Revision de capitulos", "Revision des chapitres", "Revizyon chapit yo");
+  const introBody =
+    source === "practice"
+      ? t(
+          "Use these brief chapter summaries to strengthen the main ideas before or between practice sessions.",
+          "Use estos resumenes breves de capitulos para reforzar las ideas principales antes o entre sesiones de practica.",
+          "Utilisez ces resumes brefs des chapitres pour renforcer les idees principales avant ou entre les sessions de pratique.",
+          "Sèvi ak rezime kout chapit sa yo pou ranfòse ide prensipal yo anvan oswa ant sesyon pratik yo."
+        )
+      : t(
+          "This page is for quick review only. Use these brief chapter summaries to refresh the main ideas before testing.",
+          "Esta pagina es solo para revision rapida. Use estos resumenes breves para repasar las ideas principales antes del examen.",
+          "Cette page sert uniquement de revision rapide. Utilisez ces resumes brefs pour revoir les idees principales avant le test.",
+          "Paj sa a se pou ti revizyon rapid selman. Svi ak rezime kout sa yo pou revize ide prensipal yo anvan ou teste."
+        );
+  const practiceCalloutTitle = t(
+    "How to use this in practice",
+    "Como usar esto en la practica",
+    "Comment utiliser ceci pendant la pratique",
+    "Kijan pou itilize sa pandan pratik la"
+  );
+  const practiceCalloutItems = [
+    t(
+      "Review the main ideas for the chapter you want to strengthen.",
+      "Revise las ideas principales del capitulo que desea fortalecer.",
+      "Revoyez les idees principales du chapitre que vous souhaitez renforcer.",
+      "Revize ide prensipal chapit ou vle ranfose a."
+    ),
+    t(
+      "Return to the Practice Hub and choose a chapter-based session.",
+      "Regrese al Centro de Practica y elija una sesion por capitulo.",
+      "Retournez au hub de pratique et choisissez une session par chapitre.",
+      "Retounen nan Hub Pratik la epi chwazi yon sesyon pa chapit."
+    ),
+    t(
+      "Use practice to apply the chapter concepts in questions similar to the CNA exam.",
+      "Use la practica para aplicar los conceptos del capitulo en preguntas similares a las del examen CNA.",
+      "Utilisez la pratique pour appliquer les notions du chapitre dans des questions semblables a celles de l'examen CNA.",
+      "Sèvi ak pratik la pou aplike lide chapit yo nan kestyon ki sanble ak kestyon egzamen CNA a."
+    ),
+  ];
 
   const detailsStyle = {
     border: `1px solid ${theme.chromeBorder}`,
@@ -558,12 +617,12 @@ function ChaptersInner() {
 
   return (
     <Frame
-      title={t("CHAPTERS & STUDY GUIDANCE", "CAPÍTULOS Y GUÍA DE ESTUDIO", "CHAPITRES & GUIDE D’ÉTUDE", "CHAPIT & GID ETID")}
+      title={pageTitle}
       theme={theme}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-          <button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", fontWeight: 700 }} onClick={() => router.push(`/pilot?lang=${lang}`)}>
-            {t("Go to Exam Hub", "Ir al Centro de Exámenes", "Aller au hub d’examen", "Ale nan Hub Egzamen an")}
+          <button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", fontWeight: 700 }} onClick={() => router.push(hubRoute)}>
+            {hubLabel}
           </button>
         </div>
       }
@@ -589,22 +648,36 @@ function ChaptersInner() {
               marginBottom: "8px",
             }}
           >
-            {t("Quick Review", "Repaso rapido", "Revision rapide", "Ti revizyon")}
+            {introEyebrow}
           </div>
 
           <div style={{ fontSize: isNarrow ? 22 : 24, fontWeight: 900, marginBottom: 8, color: "var(--heading)", lineHeight: 1.2 }}>
-            {t("Chapter review", "Revision de capitulos", "Revision des chapitres", "Revizyon chapit yo")}
+            {introTitle}
           </div>
 
           <div style={{ color: "#456173", lineHeight: 1.7 }}>
-            {t(
-              "This page is for quick review only. Use these brief chapter summaries to refresh the main ideas before testing.",
-              "Esta pagina es solo para revision rapida. Use estos resumenes breves para repasar las ideas principales antes del examen.",
-              "Cette page sert uniquement de revision rapide. Utilisez ces resumes brefs pour revoir les idees principales avant le test.",
-              "Paj sa a se pou ti revizyon rapid selman. Svi ak rezime kout sa yo pou revize ide prensipal yo anvan ou teste."
-            )}
+            {introBody}
           </div>
         </div>
+
+        {source === "practice" ? (
+          <div
+            style={{
+              border: `1px solid ${theme.chromeBorder}`,
+              borderRadius: "16px",
+              background: "var(--brand-teal-soft)",
+              padding: isNarrow ? "18px" : "20px",
+              marginBottom: "16px",
+            }}
+          >
+            <div style={{ fontWeight: 900, color: "var(--heading)", marginBottom: 8 }}>{practiceCalloutTitle}</div>
+            <div style={{ color: "#385164", lineHeight: 1.7 }}>
+              {practiceCalloutItems.map((item) => (
+                <div key={item}>{`\u2022 ${item}`}</div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {chapterNums.map((n) => {
           const ch = getChapter(n);
@@ -646,3 +719,4 @@ export default function ChaptersPage() {
     </Suspense>
   );
 }
+

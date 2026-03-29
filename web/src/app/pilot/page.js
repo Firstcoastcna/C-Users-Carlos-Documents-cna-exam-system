@@ -519,7 +519,7 @@ function PilotInner() {
             }
             action={
               <button
-                onClick={() => router.push(`/chapters?lang=${lang}`)}
+                onClick={() => router.push(`/chapters?lang=${lang}&src=exam`)}
                 style={{
                   padding: "9px 12px",
                   fontSize: "14px",
@@ -546,7 +546,7 @@ function PilotInner() {
             }
             action={
               <button
-                onClick={() => router.push(`/categories?lang=${lang}`)}
+                onClick={() => router.push(`/categories?lang=${lang}&src=exam`)}
                 style={{
                   padding: "9px 12px",
                   fontSize: "14px",

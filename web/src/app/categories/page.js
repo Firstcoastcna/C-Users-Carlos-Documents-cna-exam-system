@@ -52,6 +52,7 @@ function CategoriesInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
+  const source = sp.get("src") || "exam";
   const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => {
@@ -102,6 +103,69 @@ function CategoriesInner() {
     if (lang === "ht") return ht;
     return en;
   }
+
+  const hubRoute = source === "practice" ? `/practice?lang=${lang}` : `/pilot?lang=${lang}`;
+  const hubLabel =
+    source === "practice"
+      ? t("Go to Practice Hub", "Ir al Centro de Practica", "Aller au hub de pratique", "Ale nan Hub Pratik la")
+      : t("Go to Exam Hub", "Ir al Centro de Examenes", "Aller au hub d'examen", "Ale nan Hub Egzamen an");
+  const pageTitle =
+    source === "practice"
+      ? t("CATEGORY STUDY SUPPORT", "APOYO DE ESTUDIO POR CATEGORIAS", "SOUTIEN D'ETUDE PAR CATEGORIES", "SIPO ETID PA KATEGORI")
+      : t("CATEGORY REVIEW", "REVISION DE CATEGORIAS", "REVISION DES CATEGORIES", "REVIZYON KATEGORI YO");
+  const introEyebrow =
+    source === "practice"
+      ? t("Study Support", "Apoyo de estudio", "Soutien d'etude", "Sipò pou etid")
+      : t("Study Guide", "Guia de estudio", "Guide d'etude", "Gid etid");
+  const introTitle =
+    source === "practice"
+      ? t("Category Study Support", "Apoyo de estudio por categorias", "Soutien d'etude par categories", "Sipo etid pa kategori")
+      : t(
+          "Understanding the 9 question categories",
+          "Comprender las 9 categorias de decision",
+          "Comprendre les 9 categories de decision",
+          "Konprann 9 kategori desizyon yo"
+        );
+  const introBody =
+    source === "practice"
+      ? t(
+          "Use this guide to strengthen the logic behind CNA questions and build more confidence in how you make decisions during practice.",
+          "Use esta guia para fortalecer la logica detras de las preguntas del examen CNA y ganar mas confianza en su manera de tomar decisiones durante la practica.",
+          "Utilisez ce guide pour renforcer la logique derriere les questions de l'examen CNA et prendre davantage confiance dans votre facon de raisonner pendant la pratique.",
+          "Sèvi ak gid sa a pou ranfòse lojik ki dèyè kestyon egzamen CNA yo epi bati plis konfyans nan fason ou pran desizyon pandan pratik la."
+        )
+      : t(
+          "These categories explain the kind of thinking each question is testing. They help you move beyond memorizing answers and understand why one choice is safer, stronger, or more appropriate than another.",
+          "Estas categorias explican el tipo de razonamiento que evalua cada pregunta. Le ayudan a ir mas alla de memorizar respuestas y a comprender por que una opcion es mas segura, mas solida o mas apropiada que otra.",
+          "Ces categories expliquent le type de raisonnement que chaque question evalue. Elles vous aident a aller au-dela de la memorisation des reponses et a comprendre pourquoi un choix est plus sur, plus solide ou plus approprie qu'un autre.",
+          "Kategori sa yo esplike ki kalite refleksyon chak kestyon ap teste. Yo ede ou ale pi lwen pase memorize repons yo epi konprann poukisa yon chwa pi an sekirite, pi solid, oswa pi bon pase yon lot."
+        );
+  const practiceCalloutTitle = t(
+    "How to use this in practice",
+    "Como usar esto en la practica",
+    "Comment utiliser ceci pendant la pratique",
+    "Kijan pou itilize sa pandan pratik la"
+  );
+  const practiceCalloutItems = [
+    t(
+      "Review the category you want to strengthen before starting a focused session.",
+      "Revise la categoria que desea fortalecer antes de comenzar una sesion enfocada.",
+      "Revoyez la categorie que vous souhaitez renforcer avant de commencer une session ciblee.",
+      "Revize kategori ou vle ranfose a anvan ou komanse yon sesyon konsantre."
+    ),
+    t(
+      "Return to the Practice Hub and choose category-based practice.",
+      "Regrese al Centro de Practica y elija practica por categoria.",
+      "Retournez au hub de pratique et choisissez une pratique par categorie.",
+      "Retounen nan Hub Pratik la epi chwazi pratik pa kategori."
+    ),
+    t(
+      "Use your practice answers to improve CNA logic, judgment, and safer decision-making.",
+      "Use sus respuestas de practica para mejorar la logica CNA, el juicio y una toma de decisiones mas segura.",
+      "Utilisez vos reponses de pratique pour ameliorer la logique CNA, le jugement et une prise de decision plus sure.",
+      "Sèvi ak repons pratik ou yo pou amelyore lojik CNA, jijman, ak fason pou pran desizyon ki pi an sekirite."
+    ),
+  ];
 
   const btnBase = {
     padding: "10px 12px",
@@ -370,15 +434,15 @@ const categories = [
 
   return (
     <Frame
-      title={t("CATEGORY REVIEW", "REVISION DE CATEGORIAS", "REVISION DES CATEGORIES", "REVIZYON KATEGORI YO")}
+      title={pageTitle}
       theme={theme}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
           <button
             style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", fontWeight: 700 }}
-            onClick={() => router.push(`/pilot?lang=${lang}`)}
+            onClick={() => router.push(hubRoute)}
           >
-            {t("Go to Exam Hub", "Ir al Centro de Examenes", "Aller au hub d'examen", "Ale nan Hub Egzamen an")}
+            {hubLabel}
           </button>
         </div>
       }
@@ -404,7 +468,7 @@ const categories = [
               marginBottom: "8px",
             }}
           >
-            {t("Study Guide", "Guia de estudio", "Guide d'etude", "Gid etid")}
+            {introEyebrow}
           </div>
 
           <div
@@ -416,22 +480,31 @@ const categories = [
               lineHeight: 1.2,
             }}
           >
-            {t(
-              "Understanding the 9 question categories",
-              "Comprender las 9 categorias de decision",
-              "Comprendre les 9 categories de decision",
-              "Konprann 9 kategori desizyon yo"
-            )}
+            {introTitle}
           </div>
 
           <div style={{ ...bodyText, marginBottom: 12 }}>
-            {t(
-              "These categories explain the kind of thinking each question is testing. They help you move beyond memorizing answers and understand why one choice is safer, stronger, or more appropriate than another.",
-              "Estas categorias explican el tipo de razonamiento que evalua cada pregunta. Le ayudan a ir mas alla de memorizar respuestas y a comprender por que una opcion es mas segura, mas solida o mas apropiada que otra.",
-              "Ces categories expliquent le type de raisonnement que chaque question evalue. Elles vous aident a aller au-dela de la memorisation des reponses et a comprendre pourquoi un choix est plus sur, plus solide ou plus approprie qu'un autre.",
-              "Kategori sa yo esplike ki kalite refleksyon chak kestyon ap teste. Yo ede ou ale pi lwen pase memorize repons yo epi konprann poukisa yon chwa pi an sekirite, pi solid, oswa pi bon pase yon lot."
-            )}
+            {introBody}
           </div>
+
+          {source === "practice" ? (
+            <div
+              style={{
+                border: `1px solid ${theme.chromeBorder}`,
+                borderRadius: "16px",
+                background: "var(--brand-teal-soft)",
+                padding: isNarrow ? "18px" : "20px",
+                marginBottom: "16px",
+              }}
+            >
+              <div style={{ fontWeight: 900, color: "var(--heading)", marginBottom: 8 }}>{practiceCalloutTitle}</div>
+              <div style={{ color: "#385164", lineHeight: 1.7 }}>
+                {practiceCalloutItems.map((item) => (
+                  <div key={item}>{`\u2022 ${item}`}</div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div style={subhead}>{t("Why they matter", "Por que importan", "Pourquoi elles sont importantes", "Poukisa yo enpotan")}</div>
           <ul style={ul}>

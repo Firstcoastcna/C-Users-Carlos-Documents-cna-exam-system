@@ -156,10 +156,10 @@ function WelcomeInner() {
             fontWeight: 700,
           }}
           onClick={() => {
-            router.push("/?force_lang=1");
+            router.push(`/start?lang=${lang}`);
           }}
         >
-          {t("Change Language", "Cambiar idioma", "Changer de langue", "Chanje lang")}
+          {t("Back to Options", "Volver a las opciones", "Retour aux options", "Retounen nan opsyon yo")}
         </button>
       }
       footer={
@@ -206,10 +206,10 @@ function WelcomeInner() {
       <div style={{ maxWidth: "740px", margin: "0 auto", paddingTop: "4px" }}>
         <div style={{ fontSize: "28px", fontWeight: 800, marginBottom: "12px", color: "var(--heading)", lineHeight: 1.2 }}>
           {t(
-            "Welcome to Your CNA Exam Practice Platform",
-            "Bienvenido a su plataforma de practica del examen CNA",
-            "Bienvenue sur votre plateforme de pratique de l'examen CNA",
-            "Byenveni sou platfom pratik egzamen CNA ou a"
+            "Welcome to Your CNA Exam Platform",
+            "Bienvenido a su plataforma del examen CNA",
+            "Bienvenue sur votre plateforme de l'examen CNA",
+            "Byenveni sou platfom egzamen CNA ou a"
           )}
         </div>
 
@@ -235,7 +235,7 @@ function WelcomeInner() {
             <div>{t("You have access to 4 full practice exams.", "Tiene acceso a 4 examenes completos de practica.", "Vous avez acces a 4 examens blancs complets.", "Ou gen akses a 4 egzamen pratik konple.")}</div>
             <div>{t("Each exam includes 60 questions.", "Cada examen incluye 60 preguntas.", "Chaque examen comprend 60 questions.", "Chak egzamen gen 60 kestyon.")}</div>
             <div>{t("You have 90 minutes to complete each exam.", "Tiene 90 minutos para completar cada examen.", "Vous disposez de 90 minutes pour terminer chaque examen.", "Ou gen 90 minit pou fini chak egzamen.")}</div>
-            <div>{t("After you complete all 4 exams, the exam set can be refreshed so you can practice again.", "Despues de completar los 4 examenes, el conjunto puede renovarse para que practique otra vez.", "Apres avoir termine les 4 examens, la serie peut etre renouvelee pour que vous puissiez pratiquer a nouveau.", "Apre ou fini 4 egzamen yo, seri egzamen an ka rafrechi pou ou ka pratike ankò.")}</div>
+            <div>{t("After you complete all 4 exams, the exam set can be refreshed so you can practice again.", "Despues de completar los 4 examenes, el conjunto puede renovarse para que practique otra vez.", "Apres avoir termine les 4 examens, la serie peut etre renouvelee pour que vous puissiez pratiquer a nouveau.", "Apre ou fini 4 egzamen yo, seri egzamen an ka rafrechi pou ou ka pratike ankÃ².")}</div>
             <div>{t("Inside the Exam Hub, you can open both the Chapter Review and Category Review guides for quick study support before testing.", "Dentro del Centro de Examenes, puede abrir tanto la Revision de capitulos como la Revision de categorias para un apoyo rapido de estudio antes del examen.", "Dans le hub d'examen, vous pouvez ouvrir a la fois le guide de revision des chapitres et le guide de revision des categories pour un soutien rapide avant le test.", "Anndan Hub Egzamen an, ou ka louvri ni Revizyon Chapit yo ni Revizyon Kategori yo pou yon sip?? etid rapid anvan ou teste.")}</div>
             <div>{t("The chapter guide helps refresh the main ideas, while the category guide explains the 9 decision categories the platform uses to measure CNA logic, decision-making, and what to study next.", "La guia de capitulos ayuda a repasar las ideas principales, mientras que la guia de categorias explica las 9 categorias de decision que la plataforma utiliza para medir la logica CNA, la toma de decisiones y lo que debe estudiar despues.", "Le guide des chapitres aide a revoir les idees principales, tandis que le guide des categories explique les 9 categories de decision que la plateforme utilise pour mesurer la logique CNA, la prise de decision et ce qu'il faut etudier ensuite.", "Gid chapit la ede revize ide prensipal yo, pandan gid kategori a esplike 9 kategori desizyon platfom nan itilize pou mezire lojik CNA, fason ou pran desizyon, ak sa pou etidye apre.")}</div>
           </Section>
@@ -258,17 +258,17 @@ function WelcomeInner() {
             theme={theme}
             title={t("Remediation", "Remediacion", "Remediation", "Remedyasyon")}
           >
-            <div>{t("Remediation gives you a shorter set of targeted questions based on the areas where you need the most support.", "La remediacion le ofrece un conjunto mas corto de preguntas dirigidas segun las areas donde necesita mas apoyo.", "La remediation vous propose une serie plus courte de questions ciblees selon les domaines ou vous avez le plus besoin d'aide.", "Remedyasyon ba ou yon seri kestyon ki pi kout epi plis vize sou zòn kote ou bezwen plis sipò.")}</div>
-            <div>{t("It is designed to help you strengthen weak areas and improve your decision-making before taking another full exam.", "Esta disenada para ayudarle a fortalecer las areas debiles y mejorar su toma de decisiones antes de presentar otro examen completo.", "Elle est concue pour vous aider a renforcer vos points faibles et a ameliorer votre prise de decision avant de refaire un examen complet.", "Li fet pou ede ou ranfose zòn ki fèb yo epi amelyore fason ou pran desizyon anvan ou fè yon lòt egzamen konplè.")}</div>
-            <div>{t("Remediation is optional, but it is recommended when you want more focused practice.", "La remediacion es opcional, pero se recomienda cuando desea una practica mas enfocada.", "La remediation est facultative, mais elle est recommandee si vous souhaitez une pratique plus ciblee.", "Remedyasyon opsyonel, men li rekòmande lè ou bezwen yon pratik ki pi vize.")}</div>
+            <div>{t("Remediation gives you a shorter set of targeted questions based on the areas where you need the most support.", "La remediacion le ofrece un conjunto mas corto de preguntas dirigidas segun las areas donde necesita mas apoyo.", "La remediation vous propose une serie plus courte de questions ciblees selon les domaines ou vous avez le plus besoin d'aide.", "Remedyasyon ba ou yon seri kestyon ki pi kout epi plis vize sou zÃ²n kote ou bezwen plis sipÃ².")}</div>
+            <div>{t("It is designed to help you strengthen weak areas and improve your decision-making before taking another full exam.", "Esta disenada para ayudarle a fortalecer las areas debiles y mejorar su toma de decisiones antes de presentar otro examen completo.", "Elle est concue pour vous aider a renforcer vos points faibles et a ameliorer votre prise de decision avant de refaire un examen complet.", "Li fet pou ede ou ranfose zÃ²n ki fÃ¨b yo epi amelyore fason ou pran desizyon anvan ou fÃ¨ yon lÃ²t egzamen konplÃ¨.")}</div>
+            <div>{t("Remediation is optional, but it is recommended when you want more focused practice.", "La remediacion es opcional, pero se recomienda cuando desea una practica mas enfocada.", "La remediation est facultative, mais elle est recommandee si vous souhaitez une pratique plus ciblee.", "Remedyasyon opsyonel, men li rekÃ²mande lÃ¨ ou bezwen yon pratik ki pi vize.")}</div>
           </Section>
 
           <Section
             theme={theme}
             title={t("To continue", "Para continuar", "Pour continuer", "Pou kontinye")}
           >
-            <div>{t("Click Exam Instructions to review how to navigate your exam before you begin.", "Haga clic en Instrucciones del examen para revisar como navegar su examen antes de comenzar.", "Cliquez sur Instructions de l'examen pour voir comment naviguer dans votre examen avant de commencer.", "Klike sou Enstriksyon egzamen pou revize kijan pou navige egzamen an anvan ou kòmanse.")}</div>
-            <div>{t("Click Go to Exam Hub to go directly to the available practice exams.", "Haga clic en Ir al Centro de Examenes para ir directamente a los examenes de practica disponibles.", "Cliquez sur Aller au hub d'examen pour acceder directement aux examens de pratique disponibles.", "Klike sou Ale nan Hub Egzamen an pou ale dirèkteman nan egzamen pratik ki disponib yo.")}</div>
+            <div>{t("Click Exam Instructions to review how to navigate your exam before you begin.", "Haga clic en Instrucciones del examen para revisar como navegar su examen antes de comenzar.", "Cliquez sur Instructions de l'examen pour voir comment naviguer dans votre examen avant de commencer.", "Klike sou Enstriksyon egzamen pou revize kijan pou navige egzamen an anvan ou kÃ²manse.")}</div>
+            <div>{t("Click Go to Exam Hub to go directly to the available practice exams.", "Haga clic en Ir al Centro de Examenes para ir directamente a los examenes de practica disponibles.", "Cliquez sur Aller au hub d'examen pour acceder directement aux examens de pratique disponibles.", "Klike sou Ale nan Hub Egzamen an pou ale dirÃ¨kteman nan egzamen pratik ki disponib yo.")}</div>
           </Section>
         </div>
       </div>
