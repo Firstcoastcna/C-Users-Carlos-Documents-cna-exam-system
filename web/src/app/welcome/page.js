@@ -268,13 +268,6 @@ function WelcomeInner() {
             <div>{t("Remediation is optional, but it is recommended when you want more focused practice.", "La remediacion es opcional, pero se recomienda cuando desea una practica mas enfocada.", "La remediation est facultative, mais elle est recommandee si vous souhaitez une pratique plus ciblee.", "Remedyasyon opsyonel, men li rekÃ²mande lÃ¨ ou bezwen yon pratik ki pi vize.")}</div>
           </Section>
 
-          <Section
-            theme={theme}
-            title={t("To continue", "Para continuar", "Pour continuer", "Pou kontinye")}
-          >
-            <div>{t("Click Exam Instructions to review how to navigate your exam before you begin.", "Haga clic en Instrucciones del examen para revisar como navegar su examen antes de comenzar.", "Cliquez sur Instructions de l'examen pour voir comment naviguer dans votre examen avant de commencer.", "Klike sou Enstriksyon egzamen pou revize kijan pou navige egzamen an anvan ou kÃ²manse.")}</div>
-            <div>{t("Click Go to Exam Hub to go directly to the available practice exams.", "Haga clic en Ir al Centro de Examenes para ir directamente a los examenes de practica disponibles.", "Cliquez sur Aller au hub d'examen pour acceder directement aux examens de pratique disponibles.", "Klike sou Ale nan Hub Egzamen an pou ale dirÃ¨kteman nan egzamen pratik ki disponib yo.")}</div>
-          </Section>
         </div>
       </div>
     </Frame>
