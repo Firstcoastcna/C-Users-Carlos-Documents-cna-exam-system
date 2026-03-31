@@ -471,7 +471,7 @@ function PracticeInner() {
     ),
     resumeProgress: t("Progress", "Progreso", "Progression", "Pwogre"),
     resumeButton: t("Continue Practice", "Continuar practica", "Continuer la pratique", "Kontinye Pratik"),
-    progressTitle: t("Your Practice Progress", "Su progreso de practica", "Votre progression de pratique", "Pwogre pratik ou"),
+    progressTitle: t("Your Practice Progress", "El progreso de su practica", "Votre progression de pratique", "Pwogre pratik ou"),
     progressHint: t(
       "View completed sessions and recent scores",
       "Vea las sesiones completadas y los puntajes recientes",
@@ -596,12 +596,12 @@ function PracticeInner() {
   const activeSessionSummary =
     activeSession?.mode === "mixed"
       ? t(
-          `${activeQuestionCount} questions Ã‚Â· Mixed Practice`,
-          `${activeQuestionCount} preguntas Ã‚Â· Practica mixta`,
-          `${activeQuestionCount} questions Ã‚Â· Pratique mixte`,
-          `${activeQuestionCount} kestyon Ã‚Â· Pratik melanje`
+          `${activeQuestionCount} questions - Mixed Practice`,
+          `${activeQuestionCount} preguntas - Practica mixta`,
+          `${activeQuestionCount} questions - Pratique mixte`,
+          `${activeQuestionCount} kestyon - Pratik melanje`
         )
-      : `${activeQuestionCount} ${t("questions", "preguntas", "questions", "kesyon")} Ã‚Â· ${activeSessionModeLabel} Ã‚Â· ${activeSessionTargetLabel}`;
+      : `${activeQuestionCount} ${t("questions", "preguntas", "questions", "kesyon")} - ${activeSessionModeLabel} - ${activeSessionTargetLabel}`;
 
   function sessionTargetLabel(sessionLike) {
     if (sessionLike?.mode === "chapter") return chapterLabel(sessionLike.selectedChapter);
@@ -731,7 +731,7 @@ function PracticeInner() {
           </div>
         </details>
 
-        <details style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "white", overflow: "hidden" }}>
+        <details open={!isNarrow} style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "white", overflow: "hidden" }}>
           <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 16px", background: "var(--surface-soft)" }}>
             <div style={{ display: "grid", gap: 4 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -785,10 +785,10 @@ function PracticeInner() {
                         }}
                       >
                         <div style={{ color: "var(--heading)", fontWeight: 700 }}>
-                          {sessionModeLabel(item)} Ã‚Â· {sessionTargetLabel(item)}
+                          {sessionModeLabel(item)} - {sessionTargetLabel(item)}
                         </div>
                         <div style={{ color: "#5c6d7d" }}>
-                          {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("questions", "preguntas", "questions", "kesyon")} Ã‚Â· {Number(item?.submitted_correct || 0)} / {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("correct", "correctas", "correctes", "korek")}
+                          {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("questions", "preguntas", "questions", "kesyon")} - {Number(item?.submitted_correct || 0)} / {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("correct", "correctas", "correctes", "korek")}
                         </div>
                       </div>
                     ))
