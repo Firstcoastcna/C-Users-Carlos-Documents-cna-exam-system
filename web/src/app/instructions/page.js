@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-function Frame({ title, children, footer, theme }) {
+function Frame({ title, children, footer, theme, headerAction }) {
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
       <div
@@ -27,9 +27,14 @@ function Frame({ title, children, footer, theme }) {
             textTransform: "uppercase",
             letterSpacing: "0.04em",
             color: "var(--heading)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
           }}
         >
-          {title}
+          <span>{title}</span>
+          {headerAction ? <div>{headerAction}</div> : null}
         </div>
 
         <div style={{ flex: 1, padding: "24px", overflowY: "auto" }}>{children}</div>
@@ -124,6 +129,24 @@ function InstructionsInner() {
     <Frame
       title={t("INSTRUCTIONS", "INSTRUCCIONES", "INSTRUCTIONS", "ENSTRIKSYON")}
       theme={theme}
+      headerAction={
+        <button
+          style={{
+            ...btnSecondary,
+            width: "auto",
+            minWidth: "130px",
+            padding: "8px 12px",
+            fontSize: "13px",
+            opacity: 0.92,
+            background: "white",
+            color: "#536779",
+            border: "1px solid #cfdde6",
+          }}
+          onClick={() => router.push(`/welcome?lang=${lang}`)}
+        >
+          {t("Back to welcome", "Volver a la bienvenida", "Retour a l'accueil", "Retounen nan byenvini")}
+        </button>
+      }
       footer={
         <div
           style={{
@@ -135,13 +158,6 @@ function InstructionsInner() {
             alignItems: isNarrow ? "stretch" : "center",
           }}
         >
-          <button
-            style={{ ...btnSecondary, width: isNarrow ? "100%" : "220px" }}
-            onClick={() => router.push(`/welcome?lang=${lang}`)}
-          >
-            {t("Back to Welcome", "Volver a bienvenida", "Retour a l'accueil", "Retounen nan byenvini")}
-          </button>
-
           <button
             style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }}
             onClick={() => router.push(`/pilot?lang=${lang}`)}
@@ -164,7 +180,7 @@ function InstructionsInner() {
           {t("How this works", "Como funciona", "Comment cela fonctionne", "Kijan sa mache")}
         </div>
 
-        <ul style={{ lineHeight: "1.8", color: "#334e61", paddingLeft: "20px" }}>
+        <ul style={{ lineHeight: "1.8", color: "#334e61", paddingLeft: "20px", fontSize: "14px" }}>
           <li>
             {t(
               "This is a timed 60-question exam. The timer continues until you finish or time expires.",

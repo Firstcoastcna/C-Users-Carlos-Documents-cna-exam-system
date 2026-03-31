@@ -64,7 +64,7 @@ function Section({ title, children, theme }) {
       }}
     >
       <div style={{ fontWeight: 800, marginBottom: "10px", color: "var(--heading)", fontSize: 16 }}>{title}</div>
-      <div style={{ color: "#334e61", lineHeight: "1.75" }}>{children}</div>
+      <div style={{ color: "#334e61", lineHeight: "1.75", fontSize: 14 }}>{children}</div>
     </div>
   );
 }
@@ -159,7 +159,12 @@ function WelcomeInner() {
             router.push(`/start?lang=${lang}`);
           }}
         >
-          {t("Back to Options", "Volver a las opciones", "Retour aux options", "Retounen nan opsyon yo")}
+          {t(
+            "Back to main menu",
+            "Volver al menu principal",
+            "Retour au menu principal",
+            "Retounen nan meni prensipal la"
+          )}
         </button>
       }
       footer={
@@ -213,7 +218,7 @@ function WelcomeInner() {
           )}
         </div>
 
-        <div style={{ color: "#456173", lineHeight: "1.7", marginBottom: "20px", fontSize: 16 }}>
+        <div style={{ color: "#456173", lineHeight: "1.7", marginBottom: "20px", fontSize: 14 }}>
           {t(
             "This platform is designed to help you prepare for the CNA exam by practicing in a format that feels close to the real testing experience.",
             "Esta plataforma esta disenada para ayudarle a prepararse para el examen CNA mediante practica en un formato parecido a la experiencia real del examen.",

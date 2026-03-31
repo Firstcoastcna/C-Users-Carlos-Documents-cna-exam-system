@@ -68,7 +68,7 @@ function PathCard({ title, body, onClick, buttonLabel, theme }) {
       }}
     >
       <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)", lineHeight: 1.2 }}>{title}</div>
-      <div style={{ color: "#456173", lineHeight: 1.7 }}>{body}</div>
+      <div style={{ color: "#456173", lineHeight: 1.7, fontSize: 14 }}>{body}</div>
       <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end" }}>
         <button
           onClick={onClick}
@@ -152,11 +152,11 @@ function StartInner() {
 
   return (
     <Frame
-      title={t("CHOOSE YOUR OPTION", "ELIJA SU OPCION", "CHOISISSEZ VOTRE OPTION", "CHWAZI OPSYON OU")}
+      title={t("MAIN MENU", "MENU PRINCIPAL", "MENU PRINCIPAL", "MENI PRENSIPAL")}
       theme={theme}
       headerAction={
         <button style={btnSecondary} onClick={() => router.push("/?force_lang=1")}>
-          {t("Change Language", "Cambiar idioma", "Changer de langue", "Chanje lang")}
+          {t("Change language", "Cambiar idioma", "Changer de langue", "Chanje lang")}
         </button>
       }
       footer={<div />}
@@ -171,13 +171,42 @@ function StartInner() {
           )}
         </div>
 
-        <div style={{ color: "#456173", lineHeight: "1.7", marginBottom: "20px", fontSize: 16 }}>
+        <div style={{ color: "#456173", lineHeight: "1.7", marginBottom: "20px", fontSize: 14 }}>
           {t(
             "You can enter the guided Practice side to build understanding and confidence, or the Exam side to experience the full timed CNA test format.",
             "Puede entrar en la parte de Practica guiada para fortalecer la comprension y la confianza, o en la parte de Examen para vivir el formato completo y cronometrado del examen CNA.",
             "Vous pouvez entrer dans la partie Pratique guidee pour renforcer la comprehension et la confiance, ou dans la partie Examen pour vivre le format complet et chronometre du test CNA.",
             "Ou ka antre nan pati Pratik gide a pou bati konpreyansyon ak konfyans, oswa nan pati Egzamen an pou viv fom egzamen CNA a ak tout tan li."
           )}
+        </div>
+
+        <div
+          style={{
+            marginBottom: "20px",
+            textAlign: "center",
+            color: "#4f6171",
+            fontSize: "13px",
+            lineHeight: 1.6,
+          }}
+        >
+          <span
+            style={{
+              display: "inline-block",
+              padding: "9px 12px",
+              borderRadius: "999px",
+              background: "var(--surface-soft)",
+              border: `1px solid ${theme.chromeBorder}`,
+              fontWeight: 700,
+              maxWidth: "100%",
+            }}
+          >
+            {t(
+              "Use the small button in the top-right corner if you need to go back or change your language.",
+              "Use el boton pequeno en la esquina superior derecha si necesita volver atras o cambiar el idioma.",
+              "Utilisez le petit bouton dans le coin superieur droit si vous devez revenir en arriere ou changer de langue.",
+              "Svi ak ti bouton ki nan kwen anwo adwat la si ou bezwen tounen oswa chanje lang ou."
+            )}
+          </span>
         </div>
 
         <div
@@ -192,11 +221,11 @@ function StartInner() {
             title={t("Practice", "Practica", "Pratique", "Pratik")}
             body={t(
               "Use guided practice to work by Chapter, by Category, or in Mixed Practice with shorter untimed sessions, immediate feedback, and explanations.",
-              "Use la practica guiada para trabajar por capitulo, por categoria o en Practica mixta con sesiones mas cortas, sin limite de tiempo, con retroalimentacion inmediata y explicaciones.",
-              "Utilisez la pratique guidee pour travailler par chapitre, par categorie ou en pratique mixte avec des sessions plus courtes, sans limite de temps, avec retour immediat et explications.",
+              "Use la practica guiada para trabajar por Capitulo, por Categoria o en Practica Mixta con sesiones mas cortas, sin limite de tiempo, con retroalimentacion inmediata y explicaciones.",
+              "Utilisez la pratique guidee pour travailler par Chapitre, par Categorie ou en Pratique Mixte avec des sessions plus courtes, sans limite de temps, avec retour immediat et explications.",
               "Svi ak pratik gide pou travay pa Chapit, pa Kategori, oswa nan Pratik Melanje ak sesyon ki pi kout, san limit tan, ak fidbak touswit ansanm ak eksplikasyon."
             )}
-            buttonLabel={t("Go to Practice", "Ir a Practica", "Aller a la pratique", "Ale nan Pratik")}
+            buttonLabel={t("Go to Practice", "Ir a la Practica", "Aller a la pratique", "Ale nan Pratik")}
             onClick={() => router.push(`/practice-welcome?lang=${lang}`)}
           />
 
@@ -204,10 +233,10 @@ function StartInner() {
             theme={theme}
             title={t("Exam", "Examen", "Examen", "Egzamen")}
             body={t(
-              "Use the exam side for the full timed CNA experience, including results, analytics, review questions, and remediation after each completed exam.",
-              "Use la parte de examen para vivir la experiencia completa y cronometrada del CNA, con resultados, analitica, revision de preguntas y remediacion despues de cada examen completado.",
-              "Utilisez la partie examen pour vivre l'experience complete et chronometree du CNA, avec resultats, analyse, revision des questions et remediation apres chaque examen termine.",
-              "Svi ak pati egzamen an pou viv eksperyans CNA a ak tout tan li, ansanm ak rezilta, analiz, revizyon kestyon, ak remedyasyon apre chak egzamen ou fini."
+              "Use the exam side for the full timed CNA exam experience, including results, analytics, review questions, and remediation after each completed exam.",
+              "Use la parte de examen para vivir la experiencia completa y cronometrada del examen de CNA, con resultados, analisis, revision de preguntas y remediacion despues de completar cada examen.",
+              "Utilisez la partie examen pour vivre l'experience complete et chronometree de l'examen CNA, avec resultats, analyse, revision des questions et remediation apres avoir termine chaque examen.",
+              "Svi ak pati egzamen an pou viv eksperyans egzamen CNA a ak tout tan li, ansanm ak rezilta, analiz, revizyon kestyon, ak remedyasyon apre ou fin konplete chak egzamen."
             )}
             buttonLabel={t("Go to Exam", "Ir al Examen", "Aller a l'examen", "Ale nan Egzamen")}
             onClick={() => router.push(`/welcome?lang=${lang}`)}

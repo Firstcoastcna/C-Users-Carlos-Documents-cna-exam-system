@@ -183,7 +183,7 @@ function AccessInner() {
             {t("Enter your access code", "Ingrese su codigo de acceso", "Entrez votre code dacces", "Antre kod akse ou")}
           </div>
 
-          <div style={{ color: "#456173", lineHeight: "1.75", marginBottom: "18px", fontSize: "15px" }}>
+          <div style={{ color: "#456173", lineHeight: "1.75", marginBottom: "18px", fontSize: "14px" }}>
             {t(
               "Use your access code to enter the CNA exam practice platform and continue to the guided onboarding steps.",
               "Use su codigo de acceso para entrar a la plataforma de practica del examen CNA y continuar con los pasos guiados.",

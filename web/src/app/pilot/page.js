@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { loadAllRemediationSessions } from "../lib/remediationSessionStorage";
 
 function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   return (
@@ -36,7 +37,7 @@ function Frame({ title, subtitle, children, footer, theme, headerAction }) {
             </div>
             {headerAction ? <div>{headerAction}</div> : null}
           </div>
-          <div style={{ color: "var(--brand-teal-dark)", lineHeight: 1.6, maxWidth: 760 }}>{subtitle}</div>
+          <div style={{ color: "var(--brand-teal-dark)", lineHeight: 1.6, maxWidth: 760, fontSize: 14 }}>{subtitle}</div>
         </div>
 
         <div style={{ padding: "20px" }}>{children}</div>
@@ -89,13 +90,13 @@ function SectionCard({ title, body, action, theme, tone = "default" }) {
       }}
     >
       <div style={{ fontWeight: 800, fontSize: 16, color: palette.title, marginBottom: 6 }}>{title}</div>
-      <div style={{ color: palette.body, lineHeight: 1.6 }}>{body}</div>
+      <div style={{ color: palette.body, lineHeight: 1.6, fontSize: 14 }}>{body}</div>
       {action ? <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>{action}</div> : null}
     </div>
   );
 }
 
-function TestCard({ label, statusLabel, onClick, theme, statusTone, description }) {
+function TestCard({ label, statusLabel, onClick, theme, statusTone, description, meta }) {
   const tones = {
     not_started: {
       background: "#ffffff",
@@ -152,8 +153,54 @@ function TestCard({ label, statusLabel, onClick, theme, statusTone, description 
         {statusLabel}
       </div>
       <div style={{ fontSize: 19, fontWeight: 800, color: "var(--heading)", lineHeight: 1.25 }}>{label}</div>
-      <div style={{ color: "#66788a", lineHeight: 1.5 }}>{description}</div>
+      <div style={{ color: "#66788a", lineHeight: 1.5, fontSize: 14 }}>{description}</div>
+      {meta ? <div style={{ marginTop: "auto", fontSize: 12, fontWeight: 700, color: "#607282", letterSpacing: "0.02em", textTransform: "uppercase" }}>{meta}</div> : null}
     </button>
+  );
+}
+
+function StatTile({ label, value }) {
+  return (
+    <div
+      style={{
+        border: "1px solid var(--chrome-border)",
+        borderRadius: 12,
+        background: "white",
+        padding: "12px 14px",
+        display: "grid",
+        gap: 6,
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--muted)" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)", lineHeight: 1.2 }}>{value}</div>
+    </div>
+  );
+}
+
+function CollapsibleSection({ title, hint, openHint, children, defaultOpen = false }) {
+  return (
+    <details
+      open={defaultOpen}
+      style={{
+        border: "1px solid var(--chrome-border)",
+        borderRadius: 14,
+        background: "white",
+        overflow: "hidden",
+      }}
+    >
+      <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 16px", background: "var(--surface-soft)" }}>
+        <div style={{ display: "grid", gap: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <div style={{ fontWeight: 800, color: "var(--heading)" }}>{title}</div>
+            {openHint ? <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>{openHint}</div> : null}
+          </div>
+          {hint ? <div style={{ fontSize: 13, color: "var(--muted)" }}>{hint}</div> : null}
+        </div>
+      </summary>
+      <div style={{ padding: 14 }}>{children}</div>
+    </details>
   );
 }
 
@@ -167,6 +214,13 @@ function PilotInner() {
     2: "not_started",
     3: "not_started",
     4: "not_started",
+  });
+  const [examProgress, setExamProgress] = useState({
+    completedCount: 0,
+    averageScore: null,
+    bestScore: null,
+    remediationCount: 0,
+    recentResults: [],
   });
 
   const theme = useMemo(
@@ -189,13 +243,15 @@ function PilotInner() {
         subtitle:
           "Choose one of the four full practice exams below. You can return to an unfinished test on the same device, review completed tests, and reset the full set after all four are done.",
         language: "Language",
-        returnToStart: "Back to Welcome",
-        studyTitle: "Quick Study Refresher",
+        returnToStart: "Back to welcome",
+        studyTitle: "Chapter Review",
+        refreshTitle: "Refresh Your Knowledge",
+        refreshText: "Use these quick review tools before testing to refresh core ideas and decision-making patterns.",
         studyText:
           "Before you begin, you can open a short study-chapters guide with the main ideas from each chapter.",
         studyHint:
           "These chapters are brief refreshers only. They are not a full chapter-by-chapter review.",
-        studyButton: "Open Study Chapters",
+        studyButton: "Open Chapter Review",
         categoryTitle: "Decision Categories",
         categoryText:
           "Open a review page that explains the 9 decision categories used to measure how you think through CNA-style questions.",
@@ -205,6 +261,20 @@ function PilotInner() {
         testsTitle: "Available Practice Exams",
         testsIntro:
           "Each card below opens one full 60-question practice exam. Unfinished tests can be resumed on this device, and completed tests reopen in review mode.",
+        testMeta: "60 Questions",
+        progressTitle: "Your Exam Progress",
+        progressText: "Track how many exams you have completed, how you are scoring, and how often you have used remediation support.",
+        progressHint: "Open completed exams, scores, and remediation totals",
+        openHint: "Tap to open",
+        completedExams: "Exams completed",
+        averageScore: "Average score",
+        bestScore: "Best score",
+        remediationSessions: "Remediation sessions",
+        recentResults: "Recent exam results",
+        noRecentResults: "No completed exam results yet.",
+        notAvailable: "Not yet",
+        recentResultLine: (testId, score) => `Test ${testId} · ${score}%`,
+        recentResultCompleted: (testId) => `Test ${testId} · Completed`,
         statusNotStarted: "Ready",
         statusInProgress: "In Progress",
         statusCompleted: "Completed",
@@ -226,12 +296,14 @@ function PilotInner() {
         subtitle:
           "Elija uno de los cuatro examenes completos de practica. Puede volver a un examen sin terminar en este dispositivo, revisar examenes completados y reiniciar el conjunto cuando termine los cuatro.",
         returnToStart: "Volver a la bienvenida",
-        studyTitle: "Repaso rapido de estudio",
+        studyTitle: "Repaso por capitulos",
+        refreshTitle: "Refresque sus conocimientos",
+        refreshText: "Use estas herramientas de repaso rapido antes del examen para refrescar las ideas principales y los patrones de toma de decisiones.",
         studyText:
           "Antes de comenzar, puede abrir una guia corta de capitulos de estudio con las ideas principales de cada capitulo.",
         studyHint:
           "Estos capitulos son recordatorios breves. No son una revision completa capitulo por capitulo.",
-        studyButton: "Abrir capitulos de estudio",
+        studyButton: "Abrir repaso por capitulos",
         categoryTitle: "Categorias de decision",
         categoryText:
           "Abra una pagina de repaso que explica las 9 categorias de decision que se utilizan para evaluar como usted razona en preguntas similares a las del examen CNA.",
@@ -241,6 +313,20 @@ function PilotInner() {
         testsTitle: "Examenes de practica disponibles",
         testsIntro:
           "Cada tarjeta de abajo abre un examen completo de practica de 60 preguntas. Los examenes sin terminar se pueden reanudar en este dispositivo, y los examenes completados se vuelven a abrir en modo de revision.",
+        testMeta: "60 Preguntas",
+        progressTitle: "Su progreso en examenes",
+        progressText: "Siga cuantos examenes ha completado, como han sido sus puntajes y cuantas veces ha usado el apoyo de remediacion.",
+        progressHint: "Abra examenes completados, puntajes y total de remediaciones",
+        openHint: "Toque para abrir",
+        completedExams: "Examenes completados",
+        averageScore: "Puntaje promedio",
+        bestScore: "Mejor puntaje",
+        remediationSessions: "Sesiones de remediacion",
+        recentResults: "Resultados recientes",
+        noRecentResults: "Todavia no hay resultados de examenes completados.",
+        notAvailable: "Aun no",
+        recentResultLine: (testId, score) => `Examen ${testId} · ${score}%`,
+        recentResultCompleted: (testId) => `Examen ${testId} · Completado`,
         statusNotStarted: "Listo",
         statusInProgress: "En curso",
         statusCompleted: "Completado",
@@ -262,12 +348,14 @@ function PilotInner() {
         subtitle:
           "Choisissez l'un des quatre examens blancs complets. Vous pouvez reprendre un test non termine sur cet appareil, revoir les tests termines et reinitialiser l'ensemble une fois les quatre termines.",
         returnToStart: "Retour a l'accueil",
-        studyTitle: "Rappel d'etude rapide",
+        studyTitle: "Revision des chapitres",
+        refreshTitle: "Rafraichissez vos connaissances",
+        refreshText: "Utilisez ces outils de revision rapide avant le test pour rafraichir les idees essentielles et les habitudes de raisonnement.",
         studyText:
           "Avant de commencer, vous pouvez ouvrir un court guide des chapitres d'etude avec les idees principales de chaque chapitre.",
         studyHint:
           "Ces chapitres sont de brefs rappels seulement. Ils ne remplacent pas une revision complete chapitre par chapitre.",
-        studyButton: "Ouvrir les chapitres d'etude",
+        studyButton: "Ouvrir la revision des chapitres",
         categoryTitle: "Categories de decision",
         categoryText:
           "Ouvrez une page de revision qui explique les 9 categories de decision utilisees pour evaluer votre raisonnement dans des questions semblables a celles de l'examen CNA.",
@@ -277,6 +365,20 @@ function PilotInner() {
         testsTitle: "Examens de pratique disponibles",
         testsIntro:
           "Chaque carte ci-dessous ouvre un examen de pratique complet de 60 questions. Les tests non termines peuvent etre repris sur cet appareil, et les tests termines se rouvrent en mode revision.",
+        testMeta: "60 Questions",
+        progressTitle: "Votre progression aux examens",
+        progressText: "Suivez le nombre d'examens termines, vos scores et la frequence d'utilisation du soutien de remediation.",
+        progressHint: "Ouvrir les examens termines, les scores et le total des remediations",
+        openHint: "Touchez pour ouvrir",
+        completedExams: "Examens termines",
+        averageScore: "Score moyen",
+        bestScore: "Meilleur score",
+        remediationSessions: "Sessions de remediation",
+        recentResults: "Resultats recents",
+        noRecentResults: "Aucun resultat d'examen termine pour le moment.",
+        notAvailable: "Pas encore",
+        recentResultLine: (testId, score) => `Test ${testId} · ${score}%`,
+        recentResultCompleted: (testId) => `Test ${testId} · Termine`,
         statusNotStarted: "Pret",
         statusInProgress: "En cours",
         statusCompleted: "Termine",
@@ -298,12 +400,14 @@ function PilotInner() {
         subtitle:
           "Chwazi youn nan kat egzamen pratik konple yo. Ou ka retounen nan yon tes ou poko fini sou menm aparey la, revize tes ou fin fe yo, epi rafrechi tout ansanm apre ou fin fe kat la.",
         returnToStart: "Retounen nan byenvini",
-        studyTitle: "Ti revizyon etid rapid",
+        studyTitle: "Revizyon chapit yo",
+        refreshTitle: "Rafrechi konesans ou",
+        refreshText: "Svi ak zouti revizyon rapid sa yo anvan tes la pou rafrechi ide prensipal yo ak fason pou pran bon desizyon.",
         studyText:
           "Anvan ou komanse, ou ka louvri yon gid kout sou chapit etid yo ak ide prensipal chak chapit.",
         studyHint:
           "Chapit sa yo se ti rapel kout selman. Yo pa yon revizyon konple chapit pa chapit.",
-        studyButton: "Louvri chapit etid yo",
+        studyButton: "Louvri revizyon chapit yo",
         categoryTitle: "Kategori desizyon",
         categoryText:
           "Louvri yon paj revizyon ki esplike 9 kategori desizyon yo itilize pou evalye fason ou reflechi sou kestyon ki sanble ak kestyon egzamen CNA a.",
@@ -313,6 +417,20 @@ function PilotInner() {
         testsTitle: "Egzamen pratik ki disponib",
         testsIntro:
           "Chak kat ki anba a louvri yon egzamen pratik konple ak 60 kestyon. Ou ka reprann tes ou poko fini yo sou aparey sa a, epi tes ou deja fini yo ap relouvri nan mod revizyon.",
+        testMeta: "60 Kesyon",
+        progressTitle: "Pwogre egzamen ou",
+        progressText: "Swiv konbyen egzamen ou fini, kijan nòt ou yo ap mache, ak konbyen fwa ou itilize sipò remedyasyon.",
+        progressHint: "Louvri egzamen fini yo, nòt yo, ak total remedyasyon yo",
+        openHint: "Peze pou louvri",
+        completedExams: "Egzamen fini",
+        averageScore: "Mwayen nòt",
+        bestScore: "Pi bon nòt",
+        remediationSessions: "Sesyon remedyasyon",
+        recentResults: "Dènye rezilta egzamen yo",
+        noRecentResults: "Poko gen rezilta pou egzamen ki fini yo.",
+        notAvailable: "Poko",
+        recentResultLine: (testId, score) => `Tes ${testId} · ${score}%`,
+        recentResultCompleted: (testId) => `Tes ${testId} · Fini`,
         statusNotStarted: "Pare",
         statusInProgress: "An pwogre",
         statusCompleted: "Fini",
@@ -364,10 +482,29 @@ function PilotInner() {
         }
       } catch {}
     }
-
-    refreshStatuses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp]);
+
+  useEffect(() => {
+    function syncProgress() {
+      refreshStatuses();
+      refreshExamProgress();
+    }
+
+    function onVisible() {
+      if (document.visibilityState === "visible") syncProgress();
+    }
+
+    syncProgress();
+    window.addEventListener("focus", syncProgress);
+    window.addEventListener("storage", syncProgress);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", syncProgress);
+      window.removeEventListener("storage", syncProgress);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   function refreshStatuses() {
     const next = { ...testStatus };
@@ -412,9 +549,88 @@ function PilotInner() {
     setTestStatus(next);
   }
 
+  function refreshExamProgress() {
+    try {
+      const completed = [];
+      const scoredResults = [];
+      for (let n = 1; n <= 4; n += 1) {
+        const key = makeStateKey(n, lang);
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const saved = JSON.parse(raw);
+        if (
+          !saved ||
+          !saved.attempt_id ||
+          (saved.mode !== "finished" &&
+            saved.mode !== "time_expired" &&
+            saved.mode !== "analytics" &&
+            saved.mode !== "rationales")
+        ) {
+          continue;
+        }
+
+        const completedEntry = {
+          testId: n,
+          attemptId: saved.attempt_id,
+          score: null,
+        };
+        completed.push(completedEntry);
+
+        const payloadRaw = localStorage.getItem(`cna:results:${saved.attempt_id}`);
+        if (!payloadRaw) continue;
+
+        const payload = JSON.parse(payloadRaw);
+        const accuracy = Number(payload?.analytics_meta?.overall_accuracy);
+        if (!Number.isFinite(accuracy)) continue;
+
+        const score = Math.round(accuracy * 100);
+        completedEntry.score = score;
+        scoredResults.push({ testId: n, attemptId: saved.attempt_id, score });
+      }
+
+      const remediationSessions = (loadAllRemediationSessions() || []).filter((session) => session?.status === "completed");
+      const completedCount = completed.length;
+      const averageScore = scoredResults.length ? Math.round(scoredResults.reduce((sum, row) => sum + row.score, 0) / scoredResults.length) : null;
+      const bestScore = scoredResults.length ? Math.max(...scoredResults.map((row) => row.score)) : null;
+
+      setExamProgress({
+        completedCount,
+        averageScore,
+        bestScore,
+        remediationCount: remediationSessions.length,
+        recentResults: completed.sort((a, b) => b.testId - a.testId),
+      });
+    } catch {
+      setExamProgress({
+        completedCount: 0,
+        averageScore: null,
+        bestScore: null,
+        remediationCount: 0,
+        recentResults: [],
+      });
+    }
+  }
+
   const allCompleted = useMemo(() => [1, 2, 3, 4].every((n) => testStatus[n] === "completed"), [testStatus]);
 
   function startOrResume(testId) {
+    try {
+      const key = makeStateKey(testId, lang);
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (
+          saved &&
+          (saved.mode === "finished" ||
+            saved.mode === "time_expired" ||
+            saved.mode === "analytics" ||
+            saved.mode === "rationales")
+        ) {
+          localStorage.setItem(key, JSON.stringify({ ...saved, mode: "finished" }));
+        }
+      }
+    } catch {}
+
     try {
       localStorage.setItem("cna_pilot_test_id", String(testId));
     } catch {}
@@ -469,13 +685,14 @@ function PilotInner() {
         <button
           onClick={() => router.push(`/welcome?lang=${lang}`)}
           style={{
-            padding: "9px 12px",
-            fontSize: "14px",
+            padding: "8px 11px",
+            fontSize: "13px",
             borderRadius: "10px",
-            border: `1px solid ${theme.buttonBorder}`,
-            background: theme.secondaryBg,
+            border: `1px solid ${theme.chromeBorder}`,
+            background: "white",
             color: theme.secondaryText,
             cursor: "pointer",
+            fontWeight: 700,
             minWidth: "unset",
           }}
         >
@@ -492,83 +709,17 @@ function PilotInner() {
           gap: 14,
         }}
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isNarrow
-              ? "minmax(0, 1fr)"
-              : "minmax(0, 1.15fr) minmax(260px, 0.8fr) minmax(260px, 0.8fr)",
-            gap: 14,
-          }}
-        >
-          <SectionCard
-            theme={theme}
-            tone="accent"
-            title={TEXT.testsTitle}
-            body={TEXT.testsIntro}
-          />
-
-          <SectionCard
-            theme={theme}
-            title={TEXT.studyTitle}
-            body={
-              <>
-                <div>{TEXT.studyText}</div>
-                <div style={{ marginTop: 8, fontSize: 13 }}>{TEXT.studyHint}</div>
-              </>
-            }
-            action={
-              <button
-                onClick={() => router.push(`/chapters?lang=${lang}&src=exam`)}
-                style={{
-                  padding: "9px 12px",
-                  fontSize: "14px",
-                  borderRadius: "10px",
-                  border: `1px solid ${theme.buttonBorder}`,
-                  background: theme.secondaryBg,
-                  color: theme.secondaryText,
-                  cursor: "pointer",
-                }}
-              >
-                {TEXT.studyButton}
-              </button>
-            }
-          />
-
-          <SectionCard
-            theme={theme}
-            title={TEXT.categoryTitle}
-            body={
-              <>
-                <div>{TEXT.categoryText}</div>
-                <div style={{ marginTop: 8, fontSize: 13 }}>{TEXT.categoryHint}</div>
-              </>
-            }
-            action={
-              <button
-                onClick={() => router.push(`/categories?lang=${lang}&src=exam`)}
-                style={{
-                  padding: "9px 12px",
-                  fontSize: "14px",
-                  borderRadius: "10px",
-                  border: `1px solid ${theme.buttonBorder}`,
-                  background: theme.secondaryBg,
-                  color: theme.secondaryText,
-                  cursor: "pointer",
-                }}
-              >
-                {TEXT.categoryButton}
-              </button>
-            }
-          />
-        </div>
+        <SectionCard
+          theme={theme}
+          tone="accent"
+          title={TEXT.testsTitle}
+          body={TEXT.testsIntro}
+        />
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isNarrow
-              ? "minmax(0, 1fr)"
-              : "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns: isNarrow ? "minmax(0, 1fr)" : "repeat(2, minmax(0, 1fr))",
             gap: 12,
           }}
         >
@@ -579,11 +730,278 @@ function PilotInner() {
               statusLabel={getStatusLabel(testStatus[n])}
               description={getStatusDescription(testStatus[n])}
               statusTone={testStatus[n]}
+              meta={TEXT.testMeta}
               onClick={() => startOrResume(n)}
               theme={theme}
             />
           ))}
         </div>
+
+        {isNarrow ? (
+          <CollapsibleSection title={TEXT.progressTitle} hint={TEXT.progressHint} openHint={TEXT.openHint}>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div>{TEXT.progressText}</div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr",
+                  gap: 10,
+                }}
+              >
+                <StatTile label={TEXT.completedExams} value={`${examProgress.completedCount}/4`} />
+                <StatTile label={TEXT.averageScore} value={examProgress.averageScore === null ? TEXT.notAvailable : `${examProgress.averageScore}%`} />
+                <StatTile label={TEXT.bestScore} value={examProgress.bestScore === null ? TEXT.notAvailable : `${examProgress.bestScore}%`} />
+                <StatTile label={TEXT.remediationSessions} value={String(examProgress.remediationCount)} />
+              </div>
+              <details style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "white", padding: "12px 14px" }}>
+                <summary style={{ cursor: "pointer", fontWeight: 800, color: "var(--heading)" }}>
+                  {TEXT.recentResults}
+                </summary>
+                <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                  {examProgress.recentResults.length ? (
+                    examProgress.recentResults.map((item) => (
+                      <div
+                        key={`${item.testId}-${item.attemptId}`}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          flexWrap: "wrap",
+                          padding: "12px 14px",
+                          border: "1px solid var(--chrome-border)",
+                          borderRadius: 12,
+                          background: "white",
+                        }}
+                      >
+                        <div style={{ color: "var(--heading)", fontWeight: 700 }}>
+                          {item.score === null ? TEXT.recentResultCompleted(item.testId) : TEXT.recentResultLine(item.testId, item.score)}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: "#5c6d7d" }}>{TEXT.noRecentResults}</div>
+                  )}
+                </div>
+              </details>
+            </div>
+          </CollapsibleSection>
+        ) : (
+          <SectionCard
+            theme={theme}
+            tone="muted"
+            title={TEXT.progressTitle}
+            body={
+              <div style={{ display: "grid", gap: 12 }}>
+                <div>{TEXT.progressText}</div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  <StatTile label={TEXT.completedExams} value={`${examProgress.completedCount}/4`} />
+                  <StatTile label={TEXT.averageScore} value={examProgress.averageScore === null ? TEXT.notAvailable : `${examProgress.averageScore}%`} />
+                  <StatTile label={TEXT.bestScore} value={examProgress.bestScore === null ? TEXT.notAvailable : `${examProgress.bestScore}%`} />
+                  <StatTile label={TEXT.remediationSessions} value={String(examProgress.remediationCount)} />
+                </div>
+                <details style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "white", padding: "12px 14px" }}>
+                  <summary style={{ cursor: "pointer", fontWeight: 800, color: "var(--heading)" }}>
+                    {TEXT.recentResults}
+                  </summary>
+                  <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                    {examProgress.recentResults.length ? (
+                      examProgress.recentResults.map((item) => (
+                        <div
+                          key={`${item.testId}-${item.attemptId}`}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            flexWrap: "wrap",
+                            padding: "12px 14px",
+                            border: "1px solid var(--chrome-border)",
+                            borderRadius: 12,
+                            background: "white",
+                          }}
+                        >
+                          <div style={{ color: "var(--heading)", fontWeight: 700 }}>
+                            {item.score === null ? TEXT.recentResultCompleted(item.testId) : TEXT.recentResultLine(item.testId, item.score)}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ color: "#5c6d7d" }}>{TEXT.noRecentResults}</div>
+                    )}
+                  </div>
+                </details>
+              </div>
+            }
+          />
+        )}
+
+        {isNarrow ? (
+          <CollapsibleSection title={TEXT.refreshTitle} hint={TEXT.refreshText} openHint={TEXT.openHint}>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 1fr)",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid var(--chrome-border)",
+                    borderRadius: 12,
+                    background: "white",
+                    padding: "14px",
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.studyTitle}</div>
+                  <div style={{ color: "#4d6174", lineHeight: 1.6 }}>{TEXT.studyText}</div>
+                  <div style={{ fontSize: 13, color: "#607282" }}>{TEXT.studyHint}</div>
+                  <div style={{ display: "flex", justifyContent: "stretch", marginTop: 4 }}>
+                    <button
+                      onClick={() => router.push(`/chapters?lang=${lang}&src=exam`)}
+                      style={{
+                        padding: "9px 12px",
+                        fontSize: "14px",
+                        borderRadius: "10px",
+                        border: `1px solid ${theme.buttonBorder}`,
+                        background: theme.secondaryBg,
+                        color: theme.secondaryText,
+                        cursor: "pointer",
+                        width: "100%",
+                      }}
+                    >
+                      {TEXT.studyButton}
+                    </button>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    border: "1px solid var(--chrome-border)",
+                    borderRadius: 12,
+                    background: "white",
+                    padding: "14px",
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.categoryTitle}</div>
+                  <div style={{ color: "#4d6174", lineHeight: 1.6 }}>{TEXT.categoryText}</div>
+                  <div style={{ fontSize: 13, color: "#607282" }}>{TEXT.categoryHint}</div>
+                  <div style={{ display: "flex", justifyContent: "stretch", marginTop: 4 }}>
+                    <button
+                      onClick={() => router.push(`/categories?lang=${lang}&src=exam`)}
+                      style={{
+                        padding: "9px 12px",
+                        fontSize: "14px",
+                        borderRadius: "10px",
+                        border: `1px solid ${theme.buttonBorder}`,
+                        background: theme.secondaryBg,
+                        color: theme.secondaryText,
+                        cursor: "pointer",
+                        width: "100%",
+                      }}
+                    >
+                      {TEXT.categoryButton}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CollapsibleSection>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gap: 12,
+            }}
+          >
+            <SectionCard
+              theme={theme}
+              tone="muted"
+              title={TEXT.refreshTitle}
+              body={
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div>{TEXT.refreshText}</div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        border: "1px solid var(--chrome-border)",
+                        borderRadius: 12,
+                        background: "white",
+                        padding: "14px",
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.studyTitle}</div>
+                      <div style={{ color: "#4d6174", lineHeight: 1.6 }}>{TEXT.studyText}</div>
+                      <div style={{ fontSize: 13, color: "#607282" }}>{TEXT.studyHint}</div>
+                      <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 4 }}>
+                        <button
+                          onClick={() => router.push(`/chapters?lang=${lang}&src=exam`)}
+                          style={{
+                            padding: "9px 12px",
+                            fontSize: "14px",
+                            borderRadius: "10px",
+                            border: `1px solid ${theme.buttonBorder}`,
+                            background: theme.secondaryBg,
+                            color: theme.secondaryText,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {TEXT.studyButton}
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        border: "1px solid var(--chrome-border)",
+                        borderRadius: 12,
+                        background: "white",
+                        padding: "14px",
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.categoryTitle}</div>
+                      <div style={{ color: "#4d6174", lineHeight: 1.6 }}>{TEXT.categoryText}</div>
+                      <div style={{ fontSize: 13, color: "#607282" }}>{TEXT.categoryHint}</div>
+                      <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 4 }}>
+                        <button
+                          onClick={() => router.push(`/categories?lang=${lang}&src=exam`)}
+                          style={{
+                            padding: "9px 12px",
+                            fontSize: "14px",
+                            borderRadius: "10px",
+                            border: `1px solid ${theme.buttonBorder}`,
+                            background: theme.secondaryBg,
+                            color: theme.secondaryText,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {TEXT.categoryButton}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+            />
+          </div>
+        )}
 
         <SectionCard
           theme={theme}

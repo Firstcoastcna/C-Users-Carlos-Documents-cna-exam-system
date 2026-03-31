@@ -64,7 +64,7 @@ function Section({ title, children, theme }) {
       }}
     >
       <div style={{ fontWeight: 800, marginBottom: "10px", color: "var(--heading)", fontSize: 16 }}>{title}</div>
-      <div style={{ color: "#334e61", lineHeight: "1.75" }}>{children}</div>
+      <div style={{ color: "#334e61", lineHeight: "1.75", fontSize: 14 }}>{children}</div>
     </div>
   );
 }
@@ -142,7 +142,7 @@ function PracticeWelcomeInner() {
 
   return (
     <Frame
-      title={t("PRACTICE WELCOME", "BIENVENIDO A PRACTICA", "BIENVENUE EN PRATIQUE", "BYENVENI NAN PRATIK")}
+      title={t("PRACTICE WELCOME", "BIENVENIDO A LA PRACTICA", "BIENVENUE A LA PRATIQUE", "BYENVENI NAN PRATIK")}
       theme={theme}
       headerAction={
         <button
@@ -157,7 +157,12 @@ function PracticeWelcomeInner() {
           }}
           onClick={() => router.push(`/start?lang=${lang}`)}
         >
-          {t("Back to Options", "Volver a las opciones", "Retour aux options", "Retounen nan opsyon yo")}
+          {t(
+            "Back to main menu",
+            "Volver al menu principal",
+            "Retour au menu principal",
+            "Retounen nan meni prensipal la"
+          )}
         </button>
       }
       footer={
@@ -202,7 +207,7 @@ function PracticeWelcomeInner() {
           )}
         </div>
 
-        <div style={{ color: "#456173", lineHeight: "1.7", marginBottom: "20px", fontSize: 16 }}>
+        <div style={{ color: "#456173", lineHeight: "1.7", marginBottom: "20px", fontSize: 14 }}>
           {t(
             "The Practice side is designed to help you build understanding, confidence, and decision-making without the pressure of a full timed exam.",
             "La parte de Practica esta disenada para ayudarle a desarrollar comprension, confianza y toma de decisiones sin la presion de un examen completo con tiempo.",

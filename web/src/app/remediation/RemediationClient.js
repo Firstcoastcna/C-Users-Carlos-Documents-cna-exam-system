@@ -964,7 +964,32 @@ if (view === "intro") {
   return (
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
       <div style={shellFrame}>
-      <div style={shellHeader}>{T.remediationTitle}</div>
+      <div
+        style={{
+          ...shellHeader,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <span>{T.remediationTitle}</span>
+        <button
+          onClick={() => router.push(`/exam?lang=${lang}`)}
+          style={{
+            ...btnSecondary,
+            minWidth: "130px",
+            padding: "8px 12px",
+            fontSize: "13px",
+            opacity: 0.92,
+            background: "white",
+            color: "#536779",
+            border: "1px solid #cfdde6",
+          }}
+        >
+          {T.btnBackToResults}
+        </button>
+      </div>
       <div style={shellBody}>
       <div
         style={{
@@ -1001,15 +1026,6 @@ if (view === "intro") {
         <QaOverlay data={qaOverlayData} />
 
 <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-  <button
-    onClick={() => {
-      router.push(`/exam?lang=${lang}`);
-    }}
-    style={{ ...btnSecondary, ...actionButtonStyle }}
-  >
-    {T.btnBackToResults}
-  </button>
-
   {/* Review LAST completed attempt only */}
   {loopState.lastCompleted?.session_id && (
     <button
@@ -1551,10 +1567,23 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
         padding: isNarrow ? "10px 12px" : "12px 14px",
         marginBottom: "10px",
         fontSize: isNarrow ? "15px" : "16px",
-        border: "1px solid var(--chrome-border)",
+        border:
+          submitted && key === q.correct_answer
+            ? "2px solid #3d9b5f"
+            : "1px solid var(--chrome-border)",
         borderRadius: "12px",
-        background: isSelected ? "var(--surface-tint)" : "white",
-        boxShadow: isSelected ? "0 6px 14px rgba(37, 131, 166, 0.10)" : "none",
+        background:
+          submitted && key === q.correct_answer
+            ? "linear-gradient(180deg, #f2fff5 0%, #dcf6e4 100%)"
+            : isSelected
+              ? "var(--surface-tint)"
+              : "white",
+        boxShadow:
+          submitted && key === q.correct_answer
+            ? "0 0 0 3px rgba(61, 155, 95, 0.12)"
+            : isSelected
+              ? "0 6px 14px rgba(37, 131, 166, 0.10)"
+              : "none",
       }}
     >
       <label style={{ display: "block", cursor: submitted ? "default" : "pointer" }}>
@@ -1598,12 +1627,17 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
       marginTop: 16,
       padding: "14px 16px",
       borderRadius: 14,
-      border: "1px solid var(--chrome-border)",
-      background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
+      border: saved.is_correct ? "2px solid #3d9b5f" : "2px solid rgba(204, 0, 0, 0.18)",
+      background: saved.is_correct
+        ? "linear-gradient(180deg, #f5fff7 0%, #e2f8e9 100%)"
+        : "linear-gradient(180deg, #fff8f8 0%, #fff1f1 100%)",
+      boxShadow: saved.is_correct
+        ? "0 8px 18px rgba(61, 155, 95, 0.10)"
+        : "0 8px 18px rgba(204, 0, 0, 0.06)",
       textAlign: "left",
     }}
   >
-    <div style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8, color: saved.is_correct ? "#21693f" : "var(--brand-red)" }}>
+    <div style={{ fontWeight: "bold", fontSize: 17, marginBottom: 8, color: saved.is_correct ? "#1f6f3d" : "var(--brand-red)" }}>
       {saved.is_correct ? T.fbCorrect : T.fbIncorrect(q.correct_answer)}
     </div>
 

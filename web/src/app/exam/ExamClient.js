@@ -1167,7 +1167,24 @@ deliveredQuestionIds.forEach((qid) => {
             }}
           >
             <span>{T.resultsPage}</span>
-                      </div>
+            <button
+              onClick={() => {
+                router.push("/pilot");
+              }}
+              style={{
+                ...btnSecondary,
+                minWidth: "130px",
+                padding: "8px 12px",
+                fontSize: "13px",
+                opacity: 0.92,
+                background: "white",
+                color: "#536779",
+                border: "1px solid #cfdde6",
+              }}
+            >
+              {T.exitToHome}
+            </button>
+          </div>
 
           <div
   style={{
@@ -1283,15 +1300,6 @@ deliveredQuestionIds.forEach((qid) => {
     ...shellFooter,
   }}
 >
-<button
-  onClick={() => {
-    router.push("/pilot");
-  }}
-  style={{ ...btnSecondary, ...actionButtonStyle }}
->
-  {T.exitToHome}
-</button>
-
 <button
   onClick={() => {
     const key = attemptId ? `cna:results:${attemptId}` : null;
@@ -1418,6 +1426,7 @@ if (mode === "rationales") {
       yourAnswer: "Your Answer",
       unanswered: "Unanswered",
       correctAnswer: "Correct Answer",
+      openHint: isNarrow ? "Tap to open" : "Click to open",
     },
     es: {
       noMissedQuestions: "No hay preguntas falladas.",
@@ -1425,6 +1434,7 @@ if (mode === "rationales") {
       yourAnswer: "Tu respuesta",
       unanswered: "Sin responder",
       correctAnswer: "Respuesta correcta",
+      openHint: isNarrow ? "Toque para abrir" : "Haga clic para abrir",
     },
     fr: {
       noMissedQuestions: "Aucune question manquée.",
@@ -1432,6 +1442,7 @@ if (mode === "rationales") {
       yourAnswer: "Votre réponse",
       unanswered: "Sans réponse",
       correctAnswer: "Bonne réponse",
+      openHint: isNarrow ? "Touchez pour ouvrir" : "Cliquez pour ouvrir",
     },
     ht: {
       noMissedQuestions: "Pa gen kestyon ou rate.",
@@ -1439,6 +1450,7 @@ if (mode === "rationales") {
       yourAnswer: "Repons ou",
       unanswered: "San repons",
       correctAnswer: "Bon repons",
+      openHint: isNarrow ? "Peze pou louvri" : "Klike pou louvri",
     },
   };
 
@@ -1467,6 +1479,15 @@ if (mode === "rationales") {
   const activeRationaleChapter = availableReviewChapters.includes(Number(rationaleChapter))
     ? Number(rationaleChapter)
     : (availableReviewChapters[0] || 1);
+
+  function handleRationaleToggle(qid, e) {
+    if (!e?.target?.open) return;
+    try {
+      document.querySelectorAll('details[data-rationale]').forEach((d) => {
+        if (d.getAttribute("data-rationale") !== String(qid)) d.open = false;
+      });
+    } catch {}
+  }
 
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto" }}>
@@ -1561,7 +1582,21 @@ if (mode === "rationales") {
 
   })()}
 </span>
-
+          <button
+            onClick={() => setMode("analytics")}
+            style={{
+              ...btnSecondary,
+              minWidth: "130px",
+              padding: "8px 12px",
+              fontSize: "13px",
+              opacity: 0.92,
+              background: "white",
+              color: "#536779",
+              border: "1px solid #cfdde6",
+            }}
+          >
+            {T.backToAnalytics}
+          </button>
 
         </div>
 
@@ -1605,8 +1640,9 @@ if (lang === "ht") {
 }
 
       return (
-        <div
+        <details
           key={qid}
+          data-rationale={String(qid)}
           style={{
             border: "1px solid #d4dee8",
             borderRadius: "10px",
@@ -1614,19 +1650,42 @@ if (lang === "ht") {
             marginBottom: "12px",
             background: "#fbfdff",
           }}
+          onToggle={(e) => handleRationaleToggle(qid, e)}
         >
-          <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
-            {RT.question} {num}
-          </div>
+          <summary
+            style={{
+              cursor: "pointer",
+              listStyle: "none",
+              outline: "none",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: "8px",
+                marginBottom: "6px",
+              }}
+            >
+              <div style={{ fontWeight: "bold", color: "var(--heading)" }}>
+                {RT.question} {num}
+              </div>
+              <div style={{ color: "#607282", fontSize: "12px", fontWeight: 700, whiteSpace: "nowrap" }}>
+                {RT.openHint}
+              </div>
+            </div>
+            <div style={{ display: "grid", gap: "4px", color: "#516677", fontSize: "13px", lineHeight: "1.5" }}>
+              <div>
+                <strong>{RT.yourAnswer}:</strong> {userAns ? userAns : RT.unanswered}
+              </div>
+              <div>
+                <strong>{RT.correctAnswer}:</strong> {correct}
+              </div>
+            </div>
+          </summary>
 
-          <div style={{ marginBottom: "10px" }}>
-            <div style={{ fontSize: "13px", marginBottom: "4px" }}>
-              <strong>{RT.yourAnswer}:</strong> {userAns ? userAns : RT.unanswered}
-            </div>
-            <div style={{ fontSize: "13px" }}>
-              <strong>{RT.correctAnswer}:</strong> {correct}
-            </div>
-          </div>
+          <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid #e2ebf4" }}>
 
           {blocks.map((b) => (
             <div key={b.label} style={{ marginBottom: "12px" }}>
@@ -1676,6 +1735,7 @@ if (lang === "ht") {
   )}
 </div>
 </div>
+        </details>
       );
     });
   })()}
@@ -1692,7 +1752,7 @@ if (lang === "ht") {
             background: theme.chromeBg,
           }}
         >
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
   {availableReviewChapters.map((ch) => {
   const isActive = ch === activeRationaleChapter;
   const count = missedCounts[ch] || 0;
@@ -1735,9 +1795,6 @@ if (lang === "ht") {
   );
 })}
 </div>
-          <button onClick={() => setMode("analytics")} style={{ ...btnSecondary, minWidth: "180px" }}>
-            {T.backToAnalytics}
-          </button>
         </div>
       </div>
     </div>
@@ -1799,6 +1856,67 @@ let resultsPayload = null;
   };
 
   const CHN = CHAPTER_NAMES_BY_LANG[lang] || CHAPTER_NAMES_BY_LANG.en;
+
+  const CATEGORY_NAMES_BY_LANG = {
+    en: {
+      "Scope of Practice & Reporting": "Scope of Practice & Reporting",
+      "Change in Condition": "Change in Condition",
+      "Observation & Safety": "Observation & Safety",
+      "Environment & Safety": "Environment & Safety",
+      "Infection Control": "Infection Control",
+      "Personal Care & Comfort": "Personal Care & Comfort",
+      "Mobility & Positioning": "Mobility & Positioning",
+      "Communication & Emotional Support": "Communication & Emotional Support",
+      "Dignity & Resident Rights": "Dignity & Resident Rights",
+    },
+    es: {
+      "Scope of Practice & Reporting": "Alcance de la práctica y qué reportar",
+      "Change in Condition": "Cambio en la condición",
+      "Observation & Safety": "Observación y seguridad",
+      "Environment & Safety": "Entorno y seguridad",
+      "Infection Control": "Control de infecciones",
+      "Personal Care & Comfort": "Cuidado personal y comodidad",
+      "Mobility & Positioning": "Movilidad y posicionamiento",
+      "Communication & Emotional Support": "Comunicación y apoyo emocional",
+      "Dignity & Resident Rights": "Dignidad y derechos del residente",
+    },
+    fr: {
+      "Scope of Practice & Reporting": "Champ de pratique et signalement",
+      "Change in Condition": "Changement d’état",
+      "Observation & Safety": "Observation et sécurité",
+      "Environment & Safety": "Environnement et sécurité",
+      "Infection Control": "Contrôle des infections",
+      "Personal Care & Comfort": "Soins personnels et confort",
+      "Mobility & Positioning": "Mobilité et positionnement",
+      "Communication & Emotional Support": "Communication et soutien émotionnel",
+      "Dignity & Resident Rights": "Dignité et droits du résident",
+    },
+    ht: {
+      "Scope of Practice & Reporting": "Wòl mwen ak sa pou rapòte",
+      "Change in Condition": "Chanjman nan kondisyon",
+      "Observation & Safety": "Obsèvasyon ak sekirite",
+      "Environment & Safety": "Anviwònman ak sekirite",
+      "Infection Control": "Kontwòl enfeksyon",
+      "Personal Care & Comfort": "Swen pèsonèl ak konfò",
+      "Mobility & Positioning": "Mobilite ak pozisyonman",
+      "Communication & Emotional Support": "Kominikasyon ak sipò emosyonèl",
+      "Dignity & Resident Rights": "Diyite ak dwa rezidan an",
+    },
+  };
+
+  const CATEGORY_GUIDE = {
+    "Scope of Practice & Reporting": { primary: [1], secondary: [4, 5], lens: "Is this within my role, or do I observe and report?" },
+    "Change in Condition": { primary: [4], secondary: [3, 5], lens: "What is different from this resident’s baseline?" },
+    "Observation & Safety": { primary: [4], secondary: [3, 2], lens: "What should I notice right now to prevent harm?" },
+    "Environment & Safety": { primary: [2], secondary: [3], lens: "Is the physical environment safe and compliant?" },
+    "Infection Control": { primary: [2], secondary: [3, 4], lens: "What prevents contamination or spread?" },
+    "Personal Care & Comfort": { primary: [3], secondary: [4], lens: "Am I supporting comfort and independence?" },
+    "Mobility & Positioning": { primary: [3], secondary: [4], lens: "Is movement safe and biomechanically correct?" },
+    "Communication & Emotional Support": { primary: [5], secondary: [1, 3], lens: "How should I respond verbally and emotionally?" },
+    "Dignity & Resident Rights": { primary: [1], secondary: [3, 5], lens: "Am I preserving autonomy and respect?" },
+  };
+
+  const CATN = CATEGORY_NAMES_BY_LANG[lang] || CATEGORY_NAMES_BY_LANG.en;
 
   const LENS_BY_LANG = {
     en: {
@@ -1896,16 +2014,40 @@ let resultsPayload = null;
   function localizeLensTitle(rawLens) {
     const normalized = String(rawLens || "").trim();
     const canonical = LENS_CANONICAL_BY_VARIANT[normalized] || normalized;
-    return (LENS[canonical] || canonical).trim();
+    if (LENS[canonical]) return LENS[canonical].trim();
+
+    const lower = normalized.toLowerCase();
+    const inferredCanonical =
+      lower.includes("within my role") || lower.includes("observe and report") || lower.includes("rol") || lower.includes("rap") ? "Is this within my role, or do I observe and report?" :
+      lower.includes("baseline") || lower.includes("habituel") || lower.includes("condici") || lower.includes("kondisyon") ? "What is different from this resident?s baseline?" :
+      ((lower.includes("prevent harm") || lower.includes("prevenir da") || lower.includes("pr?venir un danger") || lower.includes("anpeche danje")) && !lower.includes("environment") && !lower.includes("entorno") && !lower.includes("environnement") && !lower.includes("anviw")) ? "What should I notice to prevent harm right now?" :
+      lower.includes("physical environment") || lower.includes("physical space") || lower.includes("entorno f") || lower.includes("environnement physique") || lower.includes("anviw") ? "Is the physical space safe and supportive?" :
+      lower.includes("contamination") || lower.includes("spread") || lower.includes("germ") || lower.includes("infecci") || lower.includes("mikw") ? "What prevents contamination or spread of germs?" :
+      lower.includes("comfort") || lower.includes("independence") || lower.includes("comodidad") || lower.includes("confort") || lower.includes("konf") ? "Am I supporting comfort, dignity, and independence?" :
+      lower.includes("moved safely") || lower.includes("movement") || lower.includes("moviendo") || lower.includes("d?plac") || lower.includes("deplase") || lower.includes("biome") ? "Is the resident being moved safely and correctly?" :
+      lower.includes("verbally") || lower.includes("emotion") || lower.includes("emoc") || lower.includes("?motion") || lower.includes("emosyon") ? "How should I respond verbally and emotionally?" :
+      lower.includes("privacy") || lower.includes("respect") || lower.includes("autonomy") || lower.includes("privacidad") || lower.includes("confidentialit") || lower.includes("resp") ? "Am I preserving choice, privacy, and respect?" :
+      canonical;
+
+    return (LENS[inferredCanonical] || inferredCanonical).trim();
+  }
+
+
+  function extractGuidanceLens(guidanceText) {
+    const text = String(guidanceText || "").trim();
+    if (!text) return "";
+
+    const splitters = ["???", "?", " - "];
+    for (const splitter of splitters) {
+      const parts = text.split(splitter);
+      if (parts.length > 1) return parts.slice(1).join(splitter).trim();
+    }
+    return text;
   }
 
 
   function localizeGuidanceLine(guidance_text, chapter_id, priority) {
-    // guidance_text shape: "Review Chapter X (primary) — <lens>"
-    const parts = String(guidance_text || "").split("—");
-    const lens = parts.length > 1 ? parts.slice(1).join("—").trim() : String(guidance_text || "").trim();
-
-  const lensLocalized = localizeLensTitle(lens);
+    const lensLocalized = localizeLensTitle(extractGuidanceLens(guidance_text));
 
     const p = String(priority || "").toLowerCase();
     const pLabel = p === "primary" ? A.primary : p === "secondary" ? A.secondary : priority || "";
@@ -1935,6 +2077,23 @@ let resultsPayload = null;
           }}
         >
           <span>{T.analytics}</span>
+          <button
+            onClick={() => {
+              router.push("/pilot");
+            }}
+            style={{
+              ...btnSecondary,
+              minWidth: "130px",
+              padding: "8px 12px",
+              fontSize: "13px",
+              opacity: 0.92,
+              background: "white",
+              color: "#536779",
+              border: "1px solid #cfdde6",
+            }}
+          >
+            {T.exitToHome}
+          </button>
         </div>
 
         {/* Body */}
@@ -2144,29 +2303,9 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
 
             <div style={{ fontSize: "14px", color: "#222", lineHeight: "1.6" }}>
         {(() => {
-          // Group by lens (the part after "—"), preserve order of first appearance
-          const order = [];
-          const groups = {};
-
-          (resultsPayload.chapter_guidance || []).forEach((g) => {
-            const parts = String(g.guidance_text || "").split("—");
-            const lensRaw =
-              parts.length > 1 ? parts.slice(1).join("—").trim() : String(g.guidance_text || "").trim();
-
-            const lensTitle = localizeLensTitle(lensRaw);
-            if (!groups[lensTitle]) {
-              groups[lensTitle] = { primary: [], secondary: [] };
-              order.push(lensTitle);
-            }
-
-            const p = String(g.priority || "").toLowerCase();
-            const bucket = p === "primary" ? "primary" : "secondary";
-
-            // Avoid duplicates per bucket
-            if (!groups[lensTitle][bucket].some((x) => x.chapter_id === g.chapter_id)) {
-              groups[lensTitle][bucket].push({ chapter_id: g.chapter_id });
-            }
-          });
+          const topCategories = Array.isArray(resultsPayload?.category_priority)
+            ? resultsPayload.category_priority.slice(0, 2)
+            : [];
 
           const line = (label, items) => {
             if (!items.length) return null;
@@ -2176,12 +2315,61 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                 {items.map((it) => (
                   <div key={`${label}-${it.chapter_id}`} style={{ color: "#333", marginBottom: "2px" }}>
                     {A.chapter} {it.chapter_id}
-                    {CHN?.[it.chapter_id] ? ` — ${CHN[it.chapter_id]}` : ""}
+                    {CHN?.[it.chapter_id] ? ` - ${CHN[it.chapter_id]}` : ""}
                   </div>
                 ))}
               </div>
             );
           };
+
+          if (topCategories.length > 0) {
+            return topCategories.map((category) => {
+              const guide = CATEGORY_GUIDE[category.category_id];
+              if (!guide) return null;
+
+              return (
+                <div
+                  key={category.category_id}
+                  style={{
+                    border: "1px solid #e2ebf4",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    background: "white",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <div style={{ fontSize: "15px", fontWeight: "700", marginBottom: "2px" }}>
+                    {CATN?.[category.category_id] || category.category_id}
+                  </div>
+                  <div style={{ color: "#516677", marginBottom: "6px" }}>
+                    {localizeLensTitle(guide.lens)}
+                  </div>
+
+                  {line(A.primary, guide.primary.map((chapter_id) => ({ chapter_id })))}
+                  {line(A.secondary, guide.secondary.map((chapter_id) => ({ chapter_id })))}
+                </div>
+              );
+            });
+          }
+
+          // Fallback for older payloads
+          const order = [];
+          const groups = {};
+
+          (resultsPayload.chapter_guidance || []).forEach((g) => {
+            const lensTitle = localizeLensTitle(extractGuidanceLens(g.guidance_text));
+            if (!groups[lensTitle]) {
+              groups[lensTitle] = { primary: [], secondary: [] };
+              order.push(lensTitle);
+            }
+
+            const p = String(g.priority || "").toLowerCase();
+            const bucket = p === "primary" ? "primary" : "secondary";
+
+            if (!groups[lensTitle][bucket].some((x) => x.chapter_id === g.chapter_id)) {
+              groups[lensTitle][bucket].push({ chapter_id: g.chapter_id });
+            }
+          });
 
           return order.map((lensTitle) => (
             <div
@@ -2260,43 +2448,6 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               {T.startRemediation}
             </button>
 
-            {isNarrow ? (
-              <button
-                onClick={() => {
-                  router.push("/pilot");
-                }}
-                style={{
-                  ...btnSecondary,
-                  width: "100%",
-                  opacity: 0.92,
-                  background: "white",
-                  color: "#536779",
-                  border: "1px solid #cfdde6",
-                }}
-              >
-                {T.exitToHome}
-              </button>
-            ) : (
-              <div style={{ width: "100%", display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  onClick={() => {
-                    router.push("/pilot");
-                  }}
-                  style={{
-                    ...btnSecondary,
-                    minWidth: "130px",
-                    padding: "8px 12px",
-                    fontSize: "13px",
-                    opacity: 0.92,
-                    background: "white",
-                    color: "#536779",
-                    border: "1px solid #cfdde6",
-                  }}
-                >
-                  {T.exitToHome}
-                </button>
-              </div>
-            )}
           </div>
 
           </div>

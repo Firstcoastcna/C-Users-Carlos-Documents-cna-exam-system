@@ -37,7 +37,7 @@ function Frame({ title, subtitle, children, footer, theme, headerAction }) {
             </div>
             {headerAction ? <div>{headerAction}</div> : null}
           </div>
-          <div style={{ color: "var(--brand-teal-dark)", lineHeight: 1.6, maxWidth: 760 }}>{subtitle}</div>
+          <div style={{ color: "var(--brand-teal-dark)", lineHeight: 1.6, maxWidth: 760, fontSize: 14 }}>{subtitle}</div>
         </div>
 
         <div style={{ padding: "20px" }}>{children}</div>
@@ -90,34 +90,9 @@ function SectionCard({ title, body, action, theme, tone = "default" }) {
       }}
     >
       <div style={{ fontWeight: 800, fontSize: 16, color: palette.title, marginBottom: 6 }}>{title}</div>
-      <div style={{ color: palette.body, lineHeight: 1.6 }}>{body}</div>
+      <div style={{ color: palette.body, lineHeight: 1.6, fontSize: 14 }}>{body}</div>
       {action ? <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>{action}</div> : null}
     </div>
-  );
-}
-
-function ModeCard({ label, description, active, onClick, theme }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: "100%",
-        textAlign: "left",
-        padding: "16px",
-        borderRadius: "16px",
-        border: active ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
-        background: active ? "var(--surface-tint)" : "white",
-        cursor: "pointer",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-        minHeight: 124,
-        boxShadow: active ? "0 8px 18px rgba(37, 131, 166, 0.10)" : "none",
-      }}
-    >
-      <div style={{ fontSize: 19, fontWeight: 800, color: "var(--heading)", lineHeight: 1.25 }}>{label}</div>
-      <div style={{ color: "#66788a", lineHeight: 1.5 }}>{description}</div>
-    </button>
   );
 }
 
@@ -129,7 +104,8 @@ function PracticeInner() {
   const [mode, setMode] = useState("chapter");
   const [count, setCount] = useState(10);
   const [selectedChapter, setSelectedChapter] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState("Change in Condition");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [openCategoryGroup, setOpenCategoryGroup] = useState("care-judgment");
   const [activeSession, setActiveSession] = useState(null);
   const [practiceHistory, setPracticeHistory] = useState([]);
 
@@ -280,6 +256,98 @@ function PracticeInner() {
     );
   }
 
+  function chapterLongLabel(chapter) {
+    return {
+      en: {
+        1: "Chapter 1 - Role, Rights, Communication, and Professionalism",
+        2: "Chapter 2 - Promotion of Safety",
+        3: "Chapter 3 - Function and Independence",
+        4: "Chapter 4 - Basic Care, Comfort, Dignity, and Infection Control",
+        5: "Chapter 5 - Changes in Condition and Specialized Care",
+      },
+      es: {
+        1: "Capitulo 1 - Rol, derechos, comunicacion y profesionalismo",
+        2: "Capitulo 2 - Promocion de la seguridad",
+        3: "Capitulo 3 - Funcion e independencia",
+        4: "Capitulo 4 - Cuidado basico, confort, dignidad y control de infecciones",
+        5: "Capitulo 5 - Cambios en la condicion y cuidado especializado",
+      },
+      fr: {
+        1: "Chapitre 1 - Role, droits, communication et professionnalisme",
+        2: "Chapitre 2 - Promotion de la securite",
+        3: "Chapitre 3 - Fonction et independance",
+        4: "Chapitre 4 - Soins de base, confort, dignite et controle des infections",
+        5: "Chapitre 5 - Changements de l'etat et soins specialises",
+      },
+      ht: {
+        1: "Chapit 1 - Wol, dwa, kominikasyon ak pwofesyonalis",
+        2: "Chapit 2 - Pwomosyon sekirite",
+        3: "Chapit 3 - Fonksyon ak endepandans",
+        4: "Chapit 4 - Swen debaz, konfo, diyite ak kontwol enfeksyon",
+        5: "Chapit 5 - Chanjman nan kondisyon ak swen espesyalize",
+      },
+    }[lang]?.[chapter] || chapterLabel(chapter);
+  }
+
+  function categoryGroupTitleFor(cat) {
+    const found = categoryGroups.find((group) => group.items.includes(cat));
+    return found?.title || "";
+  }
+
+  function categoryGroupBodyFor(groupId) {
+    const found = categoryGroups.find((group) => group.id === groupId);
+    return found?.body || "";
+  }
+
+  function categorySupportLabel(cat) {
+    return {
+      en: {
+        "Change in Condition": "Notice when something is new, worse, or concerning.",
+        "Communication & Emotional Support": "Choose calm, respectful, and supportive communication.",
+        "Dignity & Resident Rights": "Protect privacy, choice, dignity, and resident rights.",
+        "Environment & Safety": "Watch for hazards in the room and surroundings.",
+        "Infection Control": "Prevent contamination and reduce the spread of germs.",
+        "Mobility & Positioning": "Keep the resident safe during movement, transfer, and positioning.",
+        "Observation & Safety": "Recognize risks and warning signs before harm increases.",
+        "Personal Care & Comfort": "Support comfort and proper daily care.",
+        "Scope of Practice & Reporting": "Know what to do, what not to do, and what to report.",
+      },
+      es: {
+        "Change in Condition": "Detecte cuando algo es nuevo, peor o preocupante.",
+        "Communication & Emotional Support": "Elija una comunicacion calmada, respetuosa y de apoyo.",
+        "Dignity & Resident Rights": "Proteja la privacidad, la eleccion, la dignidad y los derechos del residente.",
+        "Environment & Safety": "Observe peligros en la habitacion y en el entorno.",
+        "Infection Control": "Prevenga la contaminacion y reduzca la propagacion de germenes.",
+        "Mobility & Positioning": "Mantenga al residente seguro durante el movimiento, el traslado y el posicionamiento.",
+        "Observation & Safety": "Reconozca riesgos y senales de alerta antes de que aumente el dano.",
+        "Personal Care & Comfort": "Apoye la comodidad y el cuidado diario adecuado.",
+        "Scope of Practice & Reporting": "Sepa que hacer, que no hacer y que debe reportar.",
+      },
+      fr: {
+        "Change in Condition": "Reperez quand quelque chose est nouveau, plus grave ou inquietant.",
+        "Communication & Emotional Support": "Choisissez une communication calme, respectueuse et rassurante.",
+        "Dignity & Resident Rights": "Protegez la vie privee, le choix, la dignite et les droits du resident.",
+        "Environment & Safety": "Reperez les dangers dans la chambre et l'environnement.",
+        "Infection Control": "Prevenez la contamination et reduisez la propagation des germes.",
+        "Mobility & Positioning": "Gardez le resident en securite pendant le deplacement, le transfert et le positionnement.",
+        "Observation & Safety": "Reconnaissez les risques et les signes d'alerte avant que la situation ne s'aggrave.",
+        "Personal Care & Comfort": "Soutenez le confort et les soins quotidiens appropries.",
+        "Scope of Practice & Reporting": "Sachez quoi faire, quoi ne pas faire et ce qui doit etre signale.",
+      },
+      ht: {
+        "Change in Condition": "Remake le yon bagay vin nouvo, pi mal, oswa bay enkyetid.",
+        "Communication & Emotional Support": "Chwazi yon kominikasyon kalm, respekte, ak soutni.",
+        "Dignity & Resident Rights": "Pwoteje vi prive, chwa, diyite, ak dwa rezidan an.",
+        "Environment & Safety": "Veye danje ki nan chanm nan ak nan anviwonman an.",
+        "Infection Control": "Anpeche kontaminasyon epi diminye pwopagasyon mikwob yo.",
+        "Mobility & Positioning": "Kenbe rezidan an an sekirite pandan mouvman, transfere, ak pozisyonman.",
+        "Observation & Safety": "Rekonet risk ak siy avetisman anvan sitiyasyon an vin pi mal.",
+        "Personal Care & Comfort": "Soutni konfo ak bon swen chak jou.",
+        "Scope of Practice & Reporting": "Konnen sa pou fe, sa pou pa fe, ak sa pou rapote.",
+      },
+    }[lang]?.[cat] || "";
+  }
+
   const TEXT = {
     title: t("CNA Practice Hub", "Centro de Practica CNA", "Hub de pratique CNA", "Hub Pratik CNA"),
     subtitle: t(
@@ -288,11 +356,43 @@ function PracticeInner() {
       "Choisissez la facon dont vous souhaitez pratiquer. La pratique n'est pas chronometree, utilise des sessions guidees plus courtes et vise a renforcer la comprehension et la confiance.",
       "Chwazi kijan ou vle pratike. Pratik la pa gen limit tan, li itilize sesyon gide ki pi kout, epi li fet pou bati konpreyansyon ak konfyans."
     ),
-    backToWelcome: t("Back to Welcome", "Volver a la bienvenida", "Retour a l'accueil", "Retounen nan byenvini"),
-    modesTitle: t("Choose a practice mode", "Elija un modo de practica", "Choisissez un mode de pratique", "Chwazi yon mòd pratik"),
+    openHint: isNarrow
+      ? t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")
+      : t("Click to open", "Haga clic para abrir", "Cliquez pour ouvrir", "Klike pou louvri"),
+    backToWelcome: t("Back to welcome", "Volver a la bienvenida", "Retour a l'accueil", "Retounen nan byenvini"),
+    modesTitle: t("Choose a practice mode", "Elija un modo de practica", "Choisissez un mode de pratique", "Chwazi yon mÃƒÂ²d pratik"),
     chapterTitle: t("Choose one chapter", "Elija un capitulo", "Choisissez un chapitre", "Chwazi yon chapit"),
-    categoryTitle: t("Choose one category", "Elija una categoria", "Choisissez une categorie", "Chwazi yon kategori"),
+    categoryTitle: t(
+      "Choose one category from a thinking group",
+      "Elija una categoria de un grupo de razonamiento",
+      "Choisissez une categorie dans un groupe de raisonnement",
+      "Chwazi yon kategori nan yon gwoup refleksyon"
+    ),
+    categoryGroup1: t(
+      "Notice and Understand",
+      "Observar y comprender",
+      "Observer et comprendre",
+      "ObsÃƒÂ¨ve epi konprann"
+    ),
+    categoryGroup2: t(
+      "Protect and Support",
+      "Proteger y apoyar",
+      "Proteger et soutenir",
+      "Pwoteje epi soutni"
+    ),
+    categoryGroup3: t(
+      "Respect, Move, and Report",
+      "Respetar, movilizar y reportar",
+      "Respecter, mobiliser et signaler",
+      "Respekte, deplase, epi rapÃƒÂ²te"
+    ),
     countTitle: t("Choose a session size", "Elija el tamano de la sesion", "Choisissez la taille de la session", "Chwazi kantite kestyon yo"),
+    countHelp: t(
+      "This is the number of questions in each practice session.",
+      "Esta es la cantidad de preguntas en cada sesion de practica.",
+      "Il s'agit du nombre de questions dans chaque session de pratique.",
+      "Sa se kantite kestyon ki nan chak sesyon pratik."
+    ),
     modeChapter: t("Practice by Chapter", "Practica por capitulo", "Pratique par chapitre", "Pratik pa Chapit"),
     modeCategory: t("Practice by Category", "Practica por categoria", "Pratique par categorie", "Pratik pa Kategori"),
     modeMixed: t("Mixed Practice", "Practica mixta", "Pratique mixte", "Pratik Melanje"),
@@ -300,25 +400,31 @@ function PracticeInner() {
       "Focus on one chapter at a time for topic-based review.",
       "Concentrese en un capitulo a la vez para un repaso por tema.",
       "Concentrez-vous sur un seul chapitre a la fois pour une revision par theme.",
-      "Konsantre sou yon chapit a la fwa pou yon revizyon pa sijè."
+      "Konsantre sou yon chapit a la fwa pou yon revizyon pa sijÃƒÂ¨."
     ),
     categoryDesc: t(
       "Focus on one decision category at a time to strengthen CNA logic and judgment.",
       "Concentrese en una sola categoria de decision para fortalecer la logica y el juicio CNA.",
       "Concentrez-vous sur une seule categorie de decision afin de renforcer la logique et le jugement CNA.",
-      "Konsantre sou yon sèl kategori desizyon pou ranfose lojik ak jijman CNA."
+      "Konsantre sou yon sÃƒÂ¨l kategori desizyon pou ranfose lojik ak jijman CNA."
     ),
     mixedDesc: t(
-      "Practice a broader mix of questions without full-exam pressure.",
-      "Practique una mezcla mas amplia de preguntas sin la presion de un examen completo.",
-      "Pratiquez un melange plus large de questions sans la pression d'un examen complet.",
-      "Pratike yon melanj kestyon ki pi laj san presyon yon egzamen konple."
+      "Practice a broader mix of questions from different chapters and categories without full-exam pressure.",
+      "Practique una mezcla mas amplia de preguntas de diferentes capitulos y categorias sin la presion de un examen completo.",
+      "Pratiquez un melange plus large de questions provenant de differents chapitres et categories, sans la pression d'un examen complet.",
+      "Pratike yon melanj kestyon ki soti nan diferan chapit ak kategori, san presyon yon egzamen konple."
     ),
     studySupportTitle: t(
-      "Study support",
-      "Apoyo de estudio",
-      "Soutien d'etude",
-      "Sipò pou etid"
+      "Chapter and Category Study Guides",
+      "Guias de estudio por capitulos y categorias",
+      "Guides d'etude par chapitres et categories",
+      "Gid etid pou chapit ak kategori"
+    ),
+    studySupportHint: t(
+      "Open chapter and category review tools",
+      "Abra las herramientas de repaso por capitulos y categorias",
+      "Ouvrez les outils de revision par chapitres et categories",
+      "Louvri zouti revizyon pou chapit ak kategori"
     ),
     chapterReviewTitle: t(
       "Chapter Study Support",
@@ -361,11 +467,17 @@ function PracticeInner() {
       "Pick up where you left off in your last guided practice session.",
       "Retome donde dejo su ultima sesion de practica guiada.",
       "Reprenez la ou vous avez laisse votre derniere session de pratique guidee.",
-      "Kontinye dènye sesyon pratik gide ou a kote ou te rete a."
+      "Kontinye dÃƒÂ¨nye sesyon pratik gide ou a kote ou te rete a."
     ),
     resumeProgress: t("Progress", "Progreso", "Progression", "Pwogre"),
     resumeButton: t("Continue Practice", "Continuar practica", "Continuer la pratique", "Kontinye Pratik"),
-    progressTitle: t("Practice Progress", "Progreso de practica", "Progression de pratique", "Pwogre Pratik"),
+    progressTitle: t("Your Practice Progress", "Su progreso de practica", "Votre progression de pratique", "Pwogre pratik ou"),
+    progressHint: t(
+      "View completed sessions and recent scores",
+      "Vea las sesiones completadas y los puntajes recientes",
+      "Voir les sessions terminees et les scores recents",
+      "WÃ¨ sesyon ou fini yo ak nÃ²t resan yo"
+    ),
     progressBody: t(
       "Track how much guided practice you have completed on this device.",
       "Vea cuanto trabajo de practica guiada ha completado en este dispositivo.",
@@ -383,7 +495,10 @@ function PracticeInner() {
       "Sesyon pratik ou fini yo ap paret isit la le ou fin konplete yo."
     ),
     currentSelection: t("Current setup", "Configuracion actual", "Configuration actuelle", "Konfigirasyon aktyel"),
-    startPractice: t("Start Practice", "Comenzar practica", "Commencer la pratique", "Kòmanse pratik"),
+    currentMode: t("Mode", "Modo", "Mode", "Mod"),
+    currentFocus: t("Focus", "Enfoque", "Cible", "Fokis"),
+    currentSessionSize: t("Session size", "Tamano de la sesion", "Taille de la session", "Gwose sesyon an"),
+    startPractice: t("Start Practice", "Comenzar practica", "Commencer la pratique", "KÃƒÂ²manse pratik"),
   };
 
   const countOptions = [5, 10, 15];
@@ -400,13 +515,65 @@ function PracticeInner() {
     "Scope of Practice & Reporting",
   ];
 
+  const categoryGroups = [
+    {
+      id: "care-judgment",
+      title: TEXT.categoryGroup1,
+      body: t(
+        "These categories help you notice clues, understand what is changing, and recognize what the resident may need.",
+        "Estas categorias le ayudan a notar pistas, entender que esta cambiando y reconocer lo que el residente puede necesitar.",
+        "Ces categories vous aident a remarquer les indices, a comprendre ce qui change et a reconnaitre ce dont le resident peut avoir besoin.",
+        "Kategori sa yo ede ou remake siy yo, konprann sa k ap chanje, epi rekonet sa rezidan an ka bezwen."
+      ),
+      items: [
+        "Change in Condition",
+        "Observation & Safety",
+        "Communication & Emotional Support",
+      ],
+    },
+    {
+      id: "safety-prevention",
+      title: TEXT.categoryGroup2,
+      body: t(
+        "These categories focus on preventing harm, keeping care safe, and supporting the resident through good everyday care.",
+        "Estas categorias se enfocan en prevenir danos, mantener el cuidado seguro y apoyar al residente mediante un buen cuidado diario.",
+        "Ces categories mettent l'accent sur la prevention des risques, la securite des soins et le soutien du resident dans les soins quotidiens.",
+        "Kategori sa yo konsantre sou prevni danje, kenbe swen an an sekirite, epi soutni rezidan an atravÃƒÂ¨ bon swen chak jou."
+      ),
+      items: [
+        "Environment & Safety",
+        "Infection Control",
+        "Personal Care & Comfort",
+      ],
+    },
+    {
+      id: "comfort-reporting",
+      title: TEXT.categoryGroup3,
+      body: t(
+        "These categories focus on resident rights, safe movement, and knowing when your role is to report rather than act alone.",
+        "Estas categorias se enfocan en los derechos del residente, el movimiento seguro y saber cuando su funcion es reportar en lugar de actuar por su cuenta.",
+        "Ces categories portent sur les droits du resident, les deplacements securitaires et le fait de savoir quand votre role est de signaler plutot que d'agir seul.",
+        "Kategori sa yo konsantre sou dwa rezidan an, mouvman ki an sekirite, ak konnen ki le wol ou se rapote olye ou aji poukont ou."
+      ),
+      items: [
+        "Dignity & Resident Rights",
+        "Mobility & Positioning",
+        "Scope of Practice & Reporting",
+      ],
+    },
+  ];
+
   const selectedModeLabel =
     mode === "chapter" ? TEXT.modeChapter : mode === "category" ? TEXT.modeCategory : TEXT.modeMixed;
+  const selectedCategoryIsInOpenGroup =
+    !!selectedCategory && categoryGroups.find((group) => group.id === openCategoryGroup)?.items.includes(selectedCategory);
   const selectedTargetLabel =
     mode === "chapter"
       ? chapterLabel(selectedChapter)
       : mode === "category"
-        ? categoryLabel(selectedCategory)
+        ? selectedCategory
+          ? categoryLabel(selectedCategory)
+          : categoryGroups.find((group) => group.id === openCategoryGroup)?.title || null
         : null;
 
   const activeSessionTargetLabel =
@@ -429,12 +596,12 @@ function PracticeInner() {
   const activeSessionSummary =
     activeSession?.mode === "mixed"
       ? t(
-          `${activeQuestionCount} questions · Mixed Practice`,
-          `${activeQuestionCount} preguntas · Practica mixta`,
-          `${activeQuestionCount} questions · Pratique mixte`,
-          `${activeQuestionCount} kestyon · Pratik melanje`
+          `${activeQuestionCount} questions Ã‚Â· Mixed Practice`,
+          `${activeQuestionCount} preguntas Ã‚Â· Practica mixta`,
+          `${activeQuestionCount} questions Ã‚Â· Pratique mixte`,
+          `${activeQuestionCount} kestyon Ã‚Â· Pratik melanje`
         )
-      : `${activeQuestionCount} ${t("questions", "preguntas", "questions", "kesyon")} · ${activeSessionModeLabel} · ${activeSessionTargetLabel}`;
+      : `${activeQuestionCount} ${t("questions", "preguntas", "questions", "kesyon")} Ã‚Â· ${activeSessionModeLabel} Ã‚Â· ${activeSessionTargetLabel}`;
 
   function sessionTargetLabel(sessionLike) {
     if (sessionLike?.mode === "chapter") return chapterLabel(sessionLike.selectedChapter);
@@ -482,6 +649,7 @@ function PracticeInner() {
       return;
     }
     if (mode === "category") {
+      if (!selectedCategory) return;
       router.push(`${base}&category=${encodeURIComponent(selectedCategory)}`);
       return;
     }
@@ -497,13 +665,14 @@ function PracticeInner() {
         <button
           onClick={() => router.push(`/practice-welcome?lang=${lang}`)}
           style={{
-            padding: "9px 12px",
-            fontSize: "14px",
+            padding: "8px 11px",
+            fontSize: "13px",
             borderRadius: "10px",
-            border: `1px solid ${theme.buttonBorder}`,
-            background: theme.secondaryBg,
+            border: `1px solid ${theme.chromeBorder}`,
+            background: "white",
             color: theme.secondaryText,
             cursor: "pointer",
+            fontWeight: 700,
           }}
         >
           {TEXT.backToWelcome}
@@ -512,11 +681,17 @@ function PracticeInner() {
       footer={<div />}
     >
       <div style={{ display: "grid", gap: 14 }}>
-        <SectionCard
-          theme={theme}
-          tone="accent"
-          title={TEXT.studySupportTitle}
-          body={
+        <details style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "white", overflow: "hidden" }}>
+          <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 16px", background: "var(--surface-soft)" }}>
+            <div style={{ display: "grid", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.studySupportTitle}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>{TEXT.openHint}</div>
+              </div>
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>{TEXT.studySupportHint}</div>
+            </div>
+          </summary>
+          <div style={{ padding: 14 }}>
             <div
               style={{
                 display: "grid",
@@ -553,70 +728,78 @@ function PracticeInner() {
                 }
               />
             </div>
-          }
-        />
+          </div>
+        </details>
 
-        <SectionCard
-          theme={theme}
-          tone="default"
-          title={TEXT.progressTitle}
-          body={
-            <div style={{ display: "grid", gap: 14 }}>
-              <div>{TEXT.progressBody}</div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
-                  gap: 10,
-                }}
-              >
-                <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressSessions}</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalCompletedSessions}</div>
-                </div>
-                <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressQuestions}</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalPracticedQuestions}</div>
-                </div>
-                <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressScore}</div>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalCorrectQuestions} / {totalPracticedQuestions}</div>
-                </div>
+        <details style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "white", overflow: "hidden" }}>
+          <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 16px", background: "var(--surface-soft)" }}>
+            <div style={{ display: "grid", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.progressTitle}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>{TEXT.openHint}</div>
               </div>
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.recentSessions}</div>
-                {recentCompletedSessions.length ? (
-                  recentCompletedSessions.map((item) => (
-                    <div
-                      key={item.session_id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        flexWrap: "wrap",
-                        padding: "12px 14px",
-                        border: "1px solid var(--chrome-border)",
-                        borderRadius: 12,
-                        background: "white",
-                      }}
-                    >
-                      <div style={{ color: "var(--heading)", fontWeight: 700 }}>
-                        {sessionModeLabel(item)} · {sessionTargetLabel(item)}
-                      </div>
-                      <div style={{ color: "#5c6d7d" }}>
-                        {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("questions", "preguntas", "questions", "kesyon")} · {Number(item?.submitted_correct || 0)} / {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("correct", "correctas", "correctes", "korek")}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ color: "#5c6d7d" }}>{TEXT.noCompletedPractice}</div>
-                )}
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>{TEXT.progressHint}</div>
+            </div>
+          </summary>
+          <div style={{ padding: 14, display: "grid", gap: 14 }}>
+            <div>{TEXT.progressBody}</div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                gap: 10,
+              }}
+            >
+              <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressSessions}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalCompletedSessions}</div>
+              </div>
+              <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressQuestions}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalPracticedQuestions}</div>
+              </div>
+              <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 12, background: "var(--surface-soft)", padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.progressScore}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: "var(--heading)" }}>{totalCorrectQuestions} / {totalPracticedQuestions}</div>
               </div>
             </div>
-          }
-        />
-
-        <SectionCard theme={theme} tone="accent" title={TEXT.modesTitle} body={TEXT.subtitle} />
+            <div style={{ display: "grid", gap: 8 }}>
+              <details>
+                <summary style={{ cursor: "pointer", fontWeight: 800, color: "var(--heading)" }}>
+                  {TEXT.recentSessions}
+                </summary>
+                <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                  {recentCompletedSessions.length ? (
+                    recentCompletedSessions.map((item) => (
+                      <div
+                        key={item.session_id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          flexWrap: "wrap",
+                          padding: "12px 14px",
+                          border: "1px solid var(--chrome-border)",
+                          borderRadius: 12,
+                          background: "white",
+                        }}
+                      >
+                        <div style={{ color: "var(--heading)", fontWeight: 700 }}>
+                          {sessionModeLabel(item)} Ã‚Â· {sessionTargetLabel(item)}
+                        </div>
+                        <div style={{ color: "#5c6d7d" }}>
+                          {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("questions", "preguntas", "questions", "kesyon")} Ã‚Â· {Number(item?.submitted_correct || 0)} / {Number(item?.submitted_total || item?.questionIds?.length || 0)} {t("correct", "correctas", "correctes", "korek")}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: "#5c6d7d" }}>{TEXT.noCompletedPractice}</div>
+                  )}
+                </div>
+              </details>
+            </div>
+          </div>
+        </details>
 
         {activeSession ? (
           <SectionCard
@@ -645,57 +828,131 @@ function PracticeInner() {
           />
         ) : null}
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isNarrow ? "minmax(0, 1fr)" : "repeat(3, minmax(0, 1fr))",
-            gap: 12,
-          }}
-        >
-          <ModeCard
-            label={TEXT.modeChapter}
-            description={TEXT.chapterDesc}
-            active={mode === "chapter"}
-            onClick={() => setMode("chapter")}
-            theme={theme}
-          />
-          <ModeCard
-            label={TEXT.modeCategory}
-            description={TEXT.categoryDesc}
-            active={mode === "category"}
-            onClick={() => setMode("category")}
-            theme={theme}
-          />
-          <ModeCard
-            label={TEXT.modeMixed}
-            description={TEXT.mixedDesc}
-            active={mode === "mixed"}
-            onClick={() => setMode("mixed")}
-            theme={theme}
-          />
-        </div>
+        <SectionCard
+          theme={theme}
+          tone="accent"
+          title={TEXT.modesTitle}
+          body={
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ color: "#4d6174", lineHeight: 1.7 }}>{TEXT.subtitle}</div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <button
+                  onClick={() => setMode("chapter")}
+                  style={{
+                    ...btnSecondary,
+                    minWidth: 0,
+                    width: "100%",
+                    padding: isNarrow ? "11px 8px" : "12px 10px",
+                    fontWeight: 800,
+                    fontSize: isNarrow ? 13 : 14,
+                    background: mode === "chapter" ? "white" : theme.secondaryBg,
+                    border: mode === "chapter" ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                    boxShadow: mode === "chapter" ? "0 8px 18px rgba(37, 131, 166, 0.12)" : "none",
+                  }}
+                >
+                  {TEXT.modeChapter}
+                </button>
+                <button
+                  onClick={() => setMode("category")}
+                  style={{
+                    ...btnSecondary,
+                    minWidth: 0,
+                    width: "100%",
+                    padding: isNarrow ? "11px 8px" : "12px 10px",
+                    fontWeight: 800,
+                    fontSize: isNarrow ? 13 : 14,
+                    background: mode === "category" ? "white" : theme.secondaryBg,
+                    border: mode === "category" ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                    boxShadow: mode === "category" ? "0 8px 18px rgba(37, 131, 166, 0.12)" : "none",
+                  }}
+                >
+                  {TEXT.modeCategory}
+                </button>
+                <button
+                  onClick={() => setMode("mixed")}
+                  style={{
+                    ...btnSecondary,
+                    minWidth: 0,
+                    width: "100%",
+                    padding: isNarrow ? "11px 8px" : "12px 10px",
+                    fontWeight: 800,
+                    fontSize: isNarrow ? 13 : 14,
+                    background: mode === "mixed" ? "white" : theme.secondaryBg,
+                    border: mode === "mixed" ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                    boxShadow: mode === "mixed" ? "0 8px 18px rgba(37, 131, 166, 0.12)" : "none",
+                  }}
+                >
+                  {TEXT.modeMixed}
+                </button>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--chrome-border)",
+                  borderRadius: 16,
+                  background: "linear-gradient(180deg, #ffffff 0%, #f4fbfd 100%)",
+                  padding: isNarrow ? "14px 14px" : "16px 16px",
+                  display: "grid",
+                  gap: 8,
+                  boxShadow: "0 10px 24px rgba(16, 24, 40, 0.05)",
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)" }}>
+                  {TEXT.currentMode}
+                </div>
+                <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: isNarrow ? 18 : 19, lineHeight: 1.35 }}>
+                  {selectedModeLabel}
+                </div>
+                <div style={{ color: "#4d6174", lineHeight: 1.65 }}>
+                  {mode === "chapter" ? TEXT.chapterDesc : mode === "category" ? TEXT.categoryDesc : TEXT.mixedDesc}
+                </div>
+              </div>
+            </div>
+          }
+        />
 
         {mode === "chapter" ? (
           <SectionCard
             theme={theme}
             title={TEXT.chapterTitle}
             body={
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {chapterOptions.map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setSelectedChapter(n)}
-                    style={{
-                      ...btnSecondary,
-                      minWidth: 110,
-                      fontWeight: 700,
-                      background: selectedChapter === n ? "white" : theme.secondaryBg,
-                      border: selectedChapter === n ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
-                    }}
-                  >
-                    {t(`Chapter ${n}`, `Capitulo ${n}`, `Chapitre ${n}`, `Chapit ${n}`)}
-                  </button>
-                ))}
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {chapterOptions.map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setSelectedChapter(n)}
+                      style={{
+                        ...btnSecondary,
+                        minWidth: 110,
+                        fontWeight: 700,
+                        background: selectedChapter === n ? "white" : theme.secondaryBg,
+                        border: selectedChapter === n ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                      }}
+                    >
+                      {t(`Chapter ${n}`, `Capitulo ${n}`, `Chapitre ${n}`, `Chapit ${n}`)}
+                    </button>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    border: "1px solid var(--chrome-border)",
+                    borderRadius: 12,
+                    background: "var(--surface-soft)",
+                    padding: "12px 14px",
+                    color: "var(--heading)",
+                    fontWeight: 700,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {chapterLongLabel(selectedChapter)}
+                </div>
               </div>
             }
           />
@@ -707,22 +964,85 @@ function PracticeInner() {
             title={TEXT.categoryTitle}
             body={
               <div style={{ display: "grid", gap: 10 }}>
-                {categoryOptions.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
+                {categoryGroups.map((group) => (
+                  <div
+                    key={group.id}
                     style={{
-                      ...btnSecondary,
-                      width: "100%",
-                      textAlign: "left",
-                      fontWeight: 700,
-                      background: selectedCategory === cat ? "white" : theme.secondaryBg,
-                      border: selectedCategory === cat ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                      border: "1px solid var(--chrome-border)",
+                      borderRadius: 14,
+                      background: "white",
+                      overflow: "hidden",
                     }}
                   >
-                    {categoryLabel(cat)}
-                  </button>
+                    <button
+                      onClick={() => {
+                        setOpenCategoryGroup(group.id);
+                        setSelectedCategory(null);
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "12px 14px",
+                        border: "0",
+                        background: "var(--surface-soft)",
+                        color: "var(--heading)",
+                        fontWeight: 800,
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span>{group.title}</span>
+                      <span style={{ color: "#607282", fontSize: 13 }}>
+                        {openCategoryGroup === group.id ? t("Hide", "Ocultar", "Masquer", "Kache") : t("Show", "Mostrar", "Afficher", "Montre")}
+                      </span>
+                    </button>
+
+                    {openCategoryGroup === group.id ? (
+                      <div style={{ display: "grid", gap: 10, padding: 12 }}>
+                        {group.items.map((cat) => (
+                          <button
+                            key={cat}
+                            onClick={() => setSelectedCategory(cat)}
+                            style={{
+                              ...btnSecondary,
+                              width: "100%",
+                              textAlign: "left",
+                              fontWeight: 700,
+                              background: selectedCategory === cat ? "white" : theme.secondaryBg,
+                              border: selectedCategory === cat ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                            }}
+                          >
+                            {categoryLabel(cat)}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 ))}
+                <div
+                  style={{
+                    border: "1px solid var(--chrome-border)",
+                    borderRadius: 12,
+                    background: "var(--surface-soft)",
+                    padding: "12px 14px",
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)" }}>
+                    {selectedCategory && selectedCategoryIsInOpenGroup ? categoryGroupTitleFor(selectedCategory) : categoryGroups.find((group) => group.id === openCategoryGroup)?.title}
+                  </div>
+                  <div style={{ color: "var(--heading)", fontWeight: 800, lineHeight: 1.4 }}>
+                    {selectedCategory && selectedCategoryIsInOpenGroup
+                      ? categoryLabel(selectedCategory)
+                      : t("How this group helps", "Como ayuda este grupo", "Comment ce groupe aide", "Kijan gwoup sa a ede")}
+                  </div>
+                  <div style={{ color: "#4d6174", lineHeight: 1.6 }}>
+                    {selectedCategory && selectedCategoryIsInOpenGroup ? categorySupportLabel(selectedCategory) : categoryGroupBodyFor(openCategoryGroup)}
+                  </div>
+                </div>
               </div>
             }
           />
@@ -732,49 +1052,69 @@ function PracticeInner() {
           theme={theme}
           title={TEXT.countTitle}
           body={
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {countOptions.map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setCount(n)}
-                  style={{
-                    ...btnSecondary,
-                    minWidth: 78,
-                    fontWeight: 700,
-                    background: count === n ? "white" : theme.secondaryBg,
-                    border: count === n ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
-                    boxShadow: count === n ? "0 6px 14px rgba(37, 131, 166, 0.10)" : "none",
-                  }}
-                >
-                  {n}
-                </button>
-              ))}
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ color: "#5c6d7d", lineHeight: 1.6 }}>{TEXT.countHelp}</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {countOptions.map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setCount(n)}
+                    style={{
+                      ...btnSecondary,
+                      minWidth: 78,
+                      fontWeight: 700,
+                      background: count === n ? "white" : theme.secondaryBg,
+                      border: count === n ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                      boxShadow: count === n ? "0 6px 14px rgba(37, 131, 166, 0.10)" : "none",
+                    }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
           }
         />
 
         <SectionCard
           theme={theme}
-          tone="muted"
+          tone="accent"
           title={TEXT.currentSelection}
-          body={t(
-            `Mode selected: ${selectedModeLabel}${selectedTargetLabel ? `. Focus: ${selectedTargetLabel}` : ""}. Session size: ${count} questions.`,
-            `Modo seleccionado: ${selectedModeLabel}${selectedTargetLabel ? `. Enfoque: ${selectedTargetLabel}` : ""}. Tamano de la sesion: ${count} preguntas.`,
-            `Mode choisi : ${selectedModeLabel}${selectedTargetLabel ? `. Cible : ${selectedTargetLabel}` : ""}. Taille de la session : ${count} questions.`,
-            `Mòd ou chwazi a: ${selectedModeLabel}${selectedTargetLabel ? `. Fokis: ${selectedTargetLabel}` : ""}. Kantite kestyon nan sesyon an: ${count}.`
-          )}
-        />
-
-        <SectionCard
-          theme={theme}
-          title={TEXT.startPractice}
-          body={t(
-            "Start an untimed guided session with immediate feedback and optional explanations after each answer.",
-            "Comience una sesion guiada sin limite de tiempo, con retroalimentacion inmediata y explicaciones opcionales despues de cada respuesta.",
-            "Commencez une session guidee sans limite de temps, avec un retour immediat et des explications facultatives apres chaque reponse.",
-            "Kòmanse yon sesyon gide san limit tan, ak fidbak touswit ansanm ak eksplikasyon opsyonel apre chak repons."
-          )}
-          action={<button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }} onClick={startPractice}>{TEXT.startPractice}</button>}
+          body={
+            <div style={{ display: "grid", gap: 10 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <div style={{ border: "1px solid var(--frame-border)", borderRadius: 12, background: "white", padding: "12px 14px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.currentMode}</div>
+                  <div style={{ fontWeight: 800, color: "var(--heading)", lineHeight: 1.4 }}>{selectedModeLabel}</div>
+                </div>
+                <div style={{ border: "1px solid var(--frame-border)", borderRadius: 12, background: "white", padding: "12px 14px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.currentFocus}</div>
+                  <div style={{ fontWeight: 800, color: "var(--heading)", lineHeight: 1.4 }}>{selectedTargetLabel || TEXT.modeMixed}</div>
+                </div>
+                <div style={{ border: "1px solid var(--frame-border)", borderRadius: 12, background: "white", padding: "12px 14px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>{TEXT.currentSessionSize}</div>
+                  <div style={{ fontWeight: 800, color: "var(--heading)", lineHeight: 1.4 }}>
+                    {count} {t("questions", "preguntas", "questions", "kesyon")}
+                  </div>
+                </div>
+              </div>
+              <div style={{ color: "#4d6174", lineHeight: 1.7 }}>
+                {t(
+                  "Start an untimed guided session with immediate feedback and optional explanations after each answer.",
+                  "Comience una sesion guiada sin limite de tiempo, con retroalimentacion inmediata y explicaciones opcionales despues de cada respuesta.",
+                  "Commencez une session guidee sans limite de temps, avec un retour immediat et des explications facultatives apres chaque reponse.",
+                  "KÃƒÂ²manse yon sesyon gide san limit tan, ak fidbak touswit ansanm ak eksplikasyon opsyonel apre chak repons."
+                )}
+              </div>
+            </div>
+          }
+          action={<button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", opacity: mode === "category" && !selectedCategory ? 0.6 : 1, cursor: mode === "category" && !selectedCategory ? "not-allowed" : "pointer" }} onClick={startPractice} disabled={mode === "category" && !selectedCategory}>{TEXT.startPractice}</button>}
         />
       </div>
     </Frame>

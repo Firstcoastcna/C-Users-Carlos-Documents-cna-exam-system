@@ -143,7 +143,7 @@ function CategoriesInner() {
   const practiceCalloutTitle = t(
     "How to use this in practice",
     "Como usar esto en la practica",
-    "Comment utiliser ceci pendant la pratique",
+    "Comment utiliser cela pendant la pratique",
     "Kijan pou itilize sa pandan pratik la"
   );
   const practiceCalloutItems = [
@@ -165,6 +165,64 @@ function CategoriesInner() {
       "Utilisez vos reponses de pratique pour ameliorer la logique CNA, le jugement et une prise de decision plus sure.",
       "Sèvi ak repons pratik ou yo pou amelyore lojik CNA, jijman, ak fason pou pran desizyon ki pi an sekirite."
     ),
+  ];
+
+  const frameworkTitle = t(
+    "A simpler way to understand the 9 categories",
+    "Una manera mas sencilla de entender las 9 categorias",
+    "Une facon plus simple de comprendre les 9 categories",
+    "Yon fason ki pi senp pou konprann 9 kategori yo"
+  );
+
+  const frameworkBody =
+    source === "practice"
+      ? t(
+          "During practice, it may help to think of the 9 categories as 3 bigger reasoning groups. This gives you a quicker way to recognize what kind of CNA thinking the question is asking from you.",
+          "Durante la practica, puede ser util pensar en las 9 categorias como 3 grupos mas amplios de razonamiento. Esto le ayuda a reconocer mas rapido el tipo de logica CNA que exige la pregunta.",
+          "Pendant la pratique, il peut etre utile de voir les 9 categories comme 3 grands groupes de raisonnement. Cela vous aide a reconnaitre plus rapidement le type de logique CNA que la question demande.",
+          "Pandan pratik, sa ka ede ou gade 9 kategori yo tankou 3 pi gwo gwoup refleksyon. Sa ede ou rekonet pi vit ki kalite lojik CNA kestyon an mande."
+        )
+      : t(
+          "The 9 categories can also be understood as 3 larger thinking groups. This can make it easier to see what kind of logic the platform is measuring when you review questions, analytics, and remediation.",
+          "Las 9 categorias tambien pueden entenderse como 3 grupos mas amplios de razonamiento. Esto puede ayudarle a ver con mas claridad que tipo de logica evalua la plataforma en la revision, el analisis y la remediacion.",
+          "Les 9 categories peuvent aussi etre comprises comme 3 grands groupes de raisonnement. Cela peut vous aider a voir plus clairement le type de logique que la plateforme evalue dans la revision, l'analyse et la remediation.",
+          "9 kategori yo ka konprann tou tankou 3 pi gwo gwoup refleksyon. Sa ka ede ou we pi byen ki kalite lojik platfom nan ap mezire nan revizyon kestyon, analiz, ak remedyasyon."
+        );
+
+  const frameworkGroups = [
+    {
+      id: "notice-understand",
+      title: t("Notice and Understand", "Observar y comprender", "Observer et comprendre", "Obsève epi konprann"),
+      body: t(
+        "These categories help you notice clues, understand what is changing, and recognize what the resident may need.",
+        "Estas categorias le ayudan a notar pistas, entender que esta cambiando y reconocer lo que el residente puede necesitar.",
+        "Ces categories vous aident a remarquer les indices, a comprendre ce qui change et a reconnaitre ce dont le resident peut avoir besoin.",
+        "Kategori sa yo ede ou remake siy yo, konprann sa k ap chanje, epi rekonet sa rezidan an ka bezwen."
+      ),
+      items: [1, 4, 3],
+    },
+    {
+      id: "protect-support",
+      title: t("Protect and Support", "Proteger y apoyar", "Proteger et soutenir", "Pwoteje epi soutni"),
+      body: t(
+        "These categories focus on preventing harm, keeping care safe, and supporting the resident through good everyday care.",
+        "Estas categorias se enfocan en prevenir danos, mantener el cuidado seguro y apoyar al residente mediante un buen cuidado diario.",
+        "Ces categories mettent l'accent sur la prevention des risques, la securite des soins et le soutien du resident dans les soins quotidiens.",
+        "Kategori sa yo konsantre sou prevni danje, kenbe swen an an sekirite, epi soutni rezidan an atravè bon swen chak jou."
+      ),
+      items: [7, 9, 5],
+    },
+    {
+      id: "respect-move-report",
+      title: t("Respect, Move, and Report", "Respetar, movilizar y reportar", "Respecter, mobiliser et signaler", "Respekte, deplase, epi rapòte"),
+      body: t(
+        "These categories focus on resident rights, safe movement, and knowing when your role is to report rather than act alone.",
+        "Estas categorias se enfocan en los derechos del residente, el movimiento seguro y saber cuando su funcion es reportar en lugar de actuar por su cuenta.",
+        "Ces categories portent sur les droits du resident, les deplacements securitaires et le fait de savoir quand votre role est de signaler plutot que d'agir seul.",
+        "Kategori sa yo konsantre sou dwa rezidan an, mouvman ki an sekirite, ak konnen ki le wòl ou se rapòte olye ou aji poukont ou."
+      ),
+      items: [8, 6, 2],
+    },
   ];
 
   const btnBase = {
@@ -211,6 +269,7 @@ function CategoriesInner() {
   const bodyText = {
     color: "#385164",
     lineHeight: 1.7,
+    fontSize: 14,
   };
 
   const ul = {
@@ -219,6 +278,23 @@ function CategoriesInner() {
     paddingLeft: 18,
     lineHeight: 1.7,
     color: "#334e61",
+    fontSize: 14,
+  };
+
+  const helperDetailsStyle = {
+    border: `1px solid ${theme.chromeBorder}`,
+    borderRadius: "14px",
+    background: "white",
+    padding: isNarrow ? "14px 16px" : "16px 18px",
+    marginTop: 14,
+  };
+
+  const helperSummaryStyle = {
+    cursor: "pointer",
+    fontWeight: 800,
+    fontSize: 14,
+    color: "var(--heading)",
+    outline: "none",
   };
 
   function handleToggle(categoryId, e) {
@@ -226,6 +302,15 @@ function CategoriesInner() {
     try {
       document.querySelectorAll('details[data-category]').forEach((d) => {
         if (d.getAttribute("data-category") !== String(categoryId)) d.open = false;
+      });
+    } catch {}
+  }
+
+  function handleGroupToggle(groupId, e) {
+    if (!e?.target?.open) return;
+    try {
+      document.querySelectorAll('details[data-group]').forEach((d) => {
+        if (d.getAttribute("data-group") !== String(groupId)) d.open = false;
       });
     } catch {}
   }
@@ -432,6 +517,8 @@ const categories = [
   },
 ];
 
+  const categoryById = Object.fromEntries(categories.map((category) => [category.id, category]));
+
   return (
     <Frame
       title={pageTitle}
@@ -498,7 +585,7 @@ const categories = [
               }}
             >
               <div style={{ fontWeight: 900, color: "var(--heading)", marginBottom: 8 }}>{practiceCalloutTitle}</div>
-              <div style={{ color: "#385164", lineHeight: 1.7 }}>
+              <div style={{ color: "#385164", lineHeight: 1.7, fontSize: 14 }}>
                 {practiceCalloutItems.map((item) => (
                   <div key={item}>{`\u2022 ${item}`}</div>
                 ))}
@@ -506,22 +593,93 @@ const categories = [
             </div>
           ) : null}
 
-          <div style={subhead}>{t("Why they matter", "Por que importan", "Pourquoi elles sont importantes", "Poukisa yo enpotan")}</div>
-          <ul style={ul}>
-            <li>{t("They help you notice important clues.", "Le ayudan a notar pistas importantes.", "Elles vous aident a remarquer des indices importants.", "Yo ede ou remake siy enpotan yo.")}</li>
-            <li>{t("They help you use safe logic.", "Le ayudan a usar una logica segura.", "Elles vous aident a utiliser une logique sure.", "Yo ede ou itilize yon lojik ki an sekirite.")}</li>
-            <li>{t("They help you stay within the nurse aide role.", "Le ayudan a mantenerse dentro del rol del auxiliar.", "Elles vous aident a rester dans le role de l'aide-soignant.", "Yo ede ou rete nan wol CNA a.")}</li>
-            <li>{t("They help you choose answers with more confidence.", "Le ayudan a elegir respuestas con mas confianza.", "Elles vous aident a choisir des reponses avec plus d'assurance.", "Yo ede ou chwazi repons yo ak plis konfyans.")}</li>
-          </ul>
+          <div
+            style={{
+              border: `1px solid ${theme.chromeBorder}`,
+              borderRadius: "16px",
+              background: "white",
+              padding: isNarrow ? "18px" : "20px",
+              marginBottom: "16px",
+            }}
+          >
+            <div style={{ fontWeight: 900, color: "var(--heading)", marginBottom: 8 }}>{frameworkTitle}</div>
+            <div style={{ ...bodyText, marginBottom: 12 }}>{frameworkBody}</div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                gap: 10,
+              }}
+            >
+              {frameworkGroups.map((group) => (
+                <div
+                  key={group.id}
+                  style={{
+                    border: "1px solid var(--chrome-border)",
+                    borderRadius: 14,
+                    background: "var(--surface-soft)",
+                    padding: 14,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, color: "var(--heading)", marginBottom: 6 }}>{group.title}</div>
+                  <div style={{ ...bodyText, fontSize: 14, marginBottom: 8 }}>{group.body}</div>
+                  <div style={{ color: "#385164", fontSize: 14, lineHeight: 1.7 }}>
+                    {group.items.map((id) => categoryById[id]?.title).filter(Boolean).join(" • ")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          <div style={subhead}>{t("How to use them", "Como usarlas", "Comment les utiliser", "Kijan pou itilize yo")}</div>
-          <ul style={ul}>
-            <li>{t("Look for the main clue in the question.", "Busque la pista principal en la pregunta.", "Cherchez l'indice principal dans la question.", "Chache siy prensipal la nan kestyon an.")}</li>
-            <li>{t("Decide which category best fits the problem.", "Decida que categoria se ajusta mejor al problema.", "Decidez quelle categorie correspond le mieux au probleme.", "Deside ki kategori ki pi byen mache ak pwoblem nan.")}</li>
-            <li>{t("Think about the safest next step.", "Piense en el siguiente paso mas seguro.", "Pensez a l'etape suivante la plus sure.", "Reflechi sou pwochen etap ki pi an sekirite a.")}</li>
-            <li>{t("Ask whether you should do it, report it, or watch closely.", "Preguntese si debe hacerlo, reportarlo o vigilarlo de cerca.", "Demandez-vous si vous devez le faire, le signaler ou l'observer de pres.", "Mande tet ou si ou dwe fe li, rapote li, oswa siveye li byen pre.")}</li>
-            <li>{t("Choose the answer that best protects the resident.", "Elija la respuesta que mejor protege al residente.", "Choisissez la reponse qui protege le mieux le resident.", "Chwazi repons ki pi byen pwoteje rezidan an.")}</li>
-          </ul>
+          {isNarrow ? (
+            <details style={helperDetailsStyle}>
+              <summary style={helperSummaryStyle}>
+                {t("Why they matter", "Por que importan", "Pourquoi elles sont importantes", "Poukisa yo enpotan")}
+              </summary>
+              <ul style={ul}>
+                <li>{t("They help you notice important clues.", "Le ayudan a notar pistas importantes.", "Elles vous aident a remarquer des indices importants.", "Yo ede ou remake siy enpotan yo.")}</li>
+                <li>{t("They help you use safe logic.", "Le ayudan a usar una logica segura.", "Elles vous aident a utiliser une logique sure.", "Yo ede ou itilize yon lojik ki an sekirite.")}</li>
+                <li>{t("They help you stay within the nurse aide role.", "Le ayudan a mantenerse dentro del rol del auxiliar.", "Elles vous aident a rester dans le role de l'aide-soignant.", "Yo ede ou rete nan wol CNA a.")}</li>
+                <li>{t("They help you choose answers with more confidence.", "Le ayudan a elegir respuestas con mas confianza.", "Elles vous aident a choisir des reponses avec plus d'assurance.", "Yo ede ou chwazi repons yo ak plis konfyans.")}</li>
+              </ul>
+            </details>
+          ) : (
+            <>
+              <div style={subhead}>{t("Why they matter", "Por que importan", "Pourquoi elles sont importantes", "Poukisa yo enpotan")}</div>
+              <ul style={ul}>
+                <li>{t("They help you notice important clues.", "Le ayudan a notar pistas importantes.", "Elles vous aident a remarquer des indices importants.", "Yo ede ou remake siy enpotan yo.")}</li>
+                <li>{t("They help you use safe logic.", "Le ayudan a usar una logica segura.", "Elles vous aident a utiliser une logique sure.", "Yo ede ou itilize yon lojik ki an sekirite.")}</li>
+                <li>{t("They help you stay within the nurse aide role.", "Le ayudan a mantenerse dentro del rol del auxiliar.", "Elles vous aident a rester dans le role de l'aide-soignant.", "Yo ede ou rete nan wol CNA a.")}</li>
+                <li>{t("They help you choose answers with more confidence.", "Le ayudan a elegir respuestas con mas confianza.", "Elles vous aident a choisir des reponses avec plus d'assurance.", "Yo ede ou chwazi repons yo ak plis konfyans.")}</li>
+              </ul>
+            </>
+          )}
+
+          {isNarrow ? (
+            <details style={helperDetailsStyle}>
+              <summary style={helperSummaryStyle}>
+                {t("How to use them", "Como usarlas", "Comment les utiliser", "Kijan pou itilize yo")}
+              </summary>
+              <ul style={ul}>
+                <li>{t("Look for the main clue in the question.", "Busque la pista principal en la pregunta.", "Cherchez l'indice principal dans la question.", "Chache siy prensipal la nan kestyon an.")}</li>
+                <li>{t("Decide which category best fits the problem.", "Decida que categoria se ajusta mejor al problema.", "Decidez quelle categorie correspond le mieux au probleme.", "Deside ki kategori ki pi byen mache ak pwoblem nan.")}</li>
+                <li>{t("Think about the safest next step.", "Piense en el siguiente paso mas seguro.", "Pensez a l'etape suivante la plus sure.", "Reflechi sou pwochen etap ki pi an sekirite a.")}</li>
+                <li>{t("Ask whether you should do it, report it, or watch closely.", "Preguntese si debe hacerlo, reportarlo o vigilarlo de cerca.", "Demandez-vous si vous devez le faire, le signaler ou l'observer de pres.", "Mande tet ou si ou dwe fe li, rapote li, oswa siveye li byen pre.")}</li>
+                <li>{t("Choose the answer that best protects the resident.", "Elija la respuesta que mejor protege al residente.", "Choisissez la reponse qui protege le mieux le resident.", "Chwazi repons ki pi byen pwoteje rezidan an.")}</li>
+              </ul>
+            </details>
+          ) : (
+            <>
+              <div style={subhead}>{t("How to use them", "Como usarlas", "Comment les utiliser", "Kijan pou itilize yo")}</div>
+              <ul style={ul}>
+                <li>{t("Look for the main clue in the question.", "Busque la pista principal en la pregunta.", "Cherchez l'indice principal dans la question.", "Chache siy prensipal la nan kestyon an.")}</li>
+                <li>{t("Decide which category best fits the problem.", "Decida que categoria se ajusta mejor al problema.", "Decidez quelle categorie correspond le mieux au probleme.", "Deside ki kategori ki pi byen mache ak pwoblem nan.")}</li>
+                <li>{t("Think about the safest next step.", "Piense en el siguiente paso mas seguro.", "Pensez a l'etape suivante la plus sure.", "Reflechi sou pwochen etap ki pi an sekirite a.")}</li>
+                <li>{t("Ask whether you should do it, report it, or watch closely.", "Preguntese si debe hacerlo, reportarlo o vigilarlo de cerca.", "Demandez-vous si vous devez le faire, le signaler ou l'observer de pres.", "Mande tet ou si ou dwe fe li, rapote li, oswa siveye li byen pre.")}</li>
+                <li>{t("Choose the answer that best protects the resident.", "Elija la respuesta que mejor protege al residente.", "Choisissez la reponse qui protege le mieux le resident.", "Chwazi repons ki pi byen pwoteje rezidan an.")}</li>
+              </ul>
+            </>
+          )}
 
           <div style={{ ...bodyText, marginTop: 14 }}>
             {t(
@@ -533,28 +691,80 @@ const categories = [
           </div>
         </div>
 
-        {categories.map((category, index) => (
-          <div key={category.id}>
+        {frameworkGroups.map((group, groupIndex) => {
+          const groupCategories = group.items.map((categoryId, index) => {
+            const category = categoryById[categoryId];
+            if (!category) return null;
+            return (
+              <div key={category.id}>
+                <details
+                  style={detailsStyle}
+                  data-category={String(category.id)}
+                  onToggle={(e) => handleToggle(category.id, e)}
+                >
+                  <summary style={summaryStyle}>{`${category.id}. ${category.title}`}</summary>
+
+                  <div style={{ ...bodyText, marginTop: 10 }}>{category.description}</div>
+
+                  <div style={subhead}>{t("Ask yourself", "Preguntese", "Posez-vous la question", "Mande tet ou")}</div>
+                  <div style={bodyText}>{category.ask}</div>
+
+                  <div style={subhead}>{t("Why this category helps", "Por que esta categoria ayuda", "Pourquoi cette categorie aide", "Poukisa kategori sa a ede")}</div>
+                  <div style={bodyText}>{category.why}</div>
+                </details>
+
+                {(groupIndex !== frameworkGroups.length - 1 || index !== group.items.length - 1) && <div style={{ height: 10 }} />}
+              </div>
+            );
+          });
+
+          return (
             <details
-              style={detailsStyle}
-              data-category={String(category.id)}
-              open={index === 0}
-              onToggle={(e) => handleToggle(category.id, e)}
+              key={group.id}
+              data-group={group.id}
+              open={groupIndex === 0}
+              onToggle={(e) => handleGroupToggle(group.id, e)}
+              style={{
+                border: `1px solid ${theme.chromeBorder}`,
+                borderRadius: "16px",
+                background: "white",
+                overflow: "hidden",
+                marginBottom: groupIndex === frameworkGroups.length - 1 ? 0 : 14,
+              }}
             >
-              <summary style={summaryStyle}>{`${category.id}. ${category.title}`}</summary>
-
-              <div style={{ ...bodyText, marginTop: 10 }}>{category.description}</div>
-
-              <div style={subhead}>{t("Ask yourself", "Preguntese", "Posez-vous la question", "Mande tet ou")}</div>
-              <div style={bodyText}>{category.ask}</div>
-
-              <div style={subhead}>{t("Why this category helps", "Por que esta categoria ayuda", "Pourquoi cette categorie aide", "Poukisa kategori sa a ede")}</div>
-              <div style={bodyText}>{category.why}</div>
+              <summary style={{ cursor: "pointer", listStyle: "none", padding: 0 }}>
+                <div
+                  style={{
+                    padding: isNarrow ? "16px" : "18px",
+                    background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--brand-teal-dark)" }}>
+                      {t("Thinking Group", "Grupo de razonamiento", "Groupe de raisonnement", "Gwoup refleksyon")}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#607282" }}>
+                      {isNarrow
+                        ? t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")
+                        : t("Click to open", "Haga clic para abrir", "Cliquez pour ouvrir", "Klike pou louvri")}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: isNarrow ? 18 : 20, fontWeight: 900, color: "var(--heading)", marginBottom: 6 }}>{group.title}</div>
+                  <div style={bodyText}>{group.body}</div>
+                </div>
+              </summary>
+              <div style={{ padding: isNarrow ? "0 16px 16px" : "0 18px 18px" }}>{groupCategories}</div>
             </details>
-
-            {index !== categories.length - 1 && <div style={{ height: 10 }} />}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Frame>
   );

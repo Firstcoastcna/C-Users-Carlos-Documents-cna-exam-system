@@ -206,9 +206,15 @@ function ChaptersInner() {
     lineHeight: 1.4,
   };
 
+  const bodyText = {
+    color: "#456173",
+    lineHeight: 1.7,
+    fontSize: 14,
+  };
+
   const h3 = { marginTop: 14, marginBottom: 6, fontSize: 14, fontWeight: 800, color: "var(--heading)" };
 
-  const ul = { marginTop: 6, marginBottom: 0, paddingLeft: 18, lineHeight: 1.7, color: "#334e61" };
+  const ul = { marginTop: 6, marginBottom: 0, paddingLeft: 18, lineHeight: 1.7, color: "#334e61", fontSize: 14 };
 
   function handleToggle(ch, e) {
     // Only collapse others when this one is opening
@@ -655,7 +661,7 @@ function ChaptersInner() {
             {introTitle}
           </div>
 
-          <div style={{ color: "#456173", lineHeight: 1.7 }}>
+          <div style={bodyText}>
             {introBody}
           </div>
         </div>
@@ -671,7 +677,7 @@ function ChaptersInner() {
             }}
           >
             <div style={{ fontWeight: 900, color: "var(--heading)", marginBottom: 8 }}>{practiceCalloutTitle}</div>
-            <div style={{ color: "#385164", lineHeight: 1.7 }}>
+            <div style={{ ...bodyText, color: "#385164" }}>
               {practiceCalloutItems.map((item) => (
                 <div key={item}>{`\u2022 ${item}`}</div>
               ))}
@@ -687,7 +693,7 @@ function ChaptersInner() {
               <details style={detailsStyle} data-ch={String(n)} open={isOpen} onToggle={(e) => handleToggle(n, e)}>
                 <summary style={summaryStyle}>{ch.title}</summary>
 
-                <div style={{ marginTop: 10, color: "#333", lineHeight: 1.6 }}>{ch.intro}</div>
+                <div style={{ ...bodyText, marginTop: 10, color: "#333", lineHeight: 1.6 }}>{ch.intro}</div>
 
                 <div style={h3}>{ch.focusTitle}</div>
                 <ul style={ul}>
