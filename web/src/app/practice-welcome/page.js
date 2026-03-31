@@ -182,7 +182,7 @@ function PracticeWelcomeInner() {
           >
             {t(
               "Practice Instructions",
-              "Instrucciones de practica",
+              "Instrucciones de la practica",
               "Instructions de pratique",
               "Enstriksyon pou pratik"
             )}

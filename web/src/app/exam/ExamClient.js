@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { scoreExam } from "../lib/scoring";
 import { finalizeAttemptAnalytics } from "../lib/finalizeAttemptAnalytics";
 import { assembleExamQuestionIds } from "../lib/examAssembly";
+import {
+  collectOtherExamQuestionIds,
+  loadExamQuestionHistory,
+  recordExamQuestionUsage,
+} from "../lib/examQuestionHistory";
 
 export default function ExamClient({ form, bankById, lang }) {
   const router = useRouter();
@@ -683,13 +688,37 @@ if (typeof saved.pausedRemainingSec === "number") {
   setRemainingSec(START_SEC);
 }
 
-  } else {
+ } else {
   const newAttemptId = generateAttemptId();
   setAttemptId(newAttemptId);
 
-  const picked = assembleExamQuestionIds({
-    questionBankSnapshot: Object.values(bankById),
+  const questionBankSnapshot = Object.values(bankById);
+  const questionUsageCounts = loadExamQuestionHistory(form.exam_form_id);
+  const otherExamQuestionIds = collectOtherExamQuestionIds({
+    formId: form.exam_form_id,
+    currentTestId: testId,
+    lang,
+    maxTests: 4,
   });
+
+  let picked = null;
+  try {
+    picked = assembleExamQuestionIds({
+      questionBankSnapshot,
+      excludedQuestionIds: Array.from(
+        new Set([...otherExamQuestionIds, ...Object.keys(questionUsageCounts)])
+      ),
+      questionUsageCounts,
+    });
+  } catch {
+    picked = assembleExamQuestionIds({
+      questionBankSnapshot,
+      excludedQuestionIds: otherExamQuestionIds,
+      questionUsageCounts,
+    });
+  }
+
+  recordExamQuestionUsage(form.exam_form_id, picked);
   setDeliveredQuestionIds(picked);
 
   const computedEndAt = now + START_SEC * 1000;

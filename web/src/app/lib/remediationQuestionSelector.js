@@ -208,23 +208,44 @@ function makeDifficultyPlan(count) {
   return [1, 1, 2, 2, 2, 2, 3, 3];
 }
 
-function interleaveSelections(selectedByCategory, selectedCategories) {
+function pickFromTopBand(scored, rng = Math.random) {
+  if (!Array.isArray(scored) || scored.length === 0) return null;
+
+  const topScore = Number(scored[0]?.score || 0);
+  const band = scored
+    .filter((entry) => Number(entry?.score || 0) >= topScore - 45)
+    .slice(0, 6);
+
+  const pool = band.length > 0 ? band : scored.slice(0, 1);
+  const index = Math.floor(rng() * pool.length);
+  return pool[index]?.question || null;
+}
+
+function interleaveSelections(selectedByCategory, selectedCategories, rng = Math.random) {
   const buckets = Object.fromEntries(
     selectedCategories.map((categoryId) => [categoryId, [...(selectedByCategory[categoryId] || [])]])
   );
+
+  const orderedCategories = [...selectedCategories];
+  if (orderedCategories.length > 1) {
+    const offset = Math.floor(rng() * orderedCategories.length);
+    if (offset > 0) {
+      orderedCategories.push(...orderedCategories.splice(0, offset));
+    }
+  }
 
   const ordered = [];
   let categoryIndex = 0;
 
   while (true) {
-    const categoryId = selectedCategories[categoryIndex % selectedCategories.length];
+    const categoryId = orderedCategories[categoryIndex % orderedCategories.length];
     const bucket = buckets[categoryId];
     if (bucket && bucket.length) {
       ordered.push(bucket.shift());
     }
 
     categoryIndex += 1;
-    const remaining = selectedCategories.some((id) => (buckets[id] || []).length > 0);
+    const remaining = orderedCategories.some((id) => (buckets[id] || []).length > 0);
     if (!remaining) break;
   }
 
@@ -240,6 +261,7 @@ export function selectRemediationQuestions({
   previousSessions = [],
   lastSessionQuestionIds = [],
   preferredPatternsByCategory = {},
+  rng = Math.random,
 }) {
   if (!Array.isArray(selectedCategories)) {
     throw new Error("selectRemediationQuestions: selectedCategories must be an array");
@@ -297,7 +319,7 @@ export function selectRemediationQuestions({
           return String(a.question.question_id).localeCompare(String(b.question.question_id));
         });
 
-      const next = scored[0]?.question || null;
+      const next = pickFromTopBand(scored, rng);
       if (!next) {
         throw new Error(
           `selectRemediationQuestions: insufficient questions for category ${categoryId}`
@@ -308,16 +330,17 @@ export function selectRemediationQuestions({
       picked.push(next);
     }
 
-    picked.sort((a, b) => {
-      const diffDelta = getDifficulty(a) - getDifficulty(b);
-      if (diffDelta !== 0) return diffDelta;
-      return String(a.question_id).localeCompare(String(b.question_id));
-    });
+    if (picked.length > 1) {
+      for (let i = picked.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(rng() * (i + 1));
+        [picked[i], picked[j]] = [picked[j], picked[i]];
+      }
+    }
 
     selectedByCategory[categoryId] = picked;
   });
 
-  const orderedQuestions = interleaveSelections(selectedByCategory, selectedCategories);
+  const orderedQuestions = interleaveSelections(selectedByCategory, selectedCategories, rng);
   return {
     selectedQuestionIds: orderedQuestions.map((question) => question.question_id),
   };

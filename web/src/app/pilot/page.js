@@ -243,7 +243,7 @@ function PilotInner() {
         subtitle:
           "Choose one of the four full practice exams below. You can return to an unfinished test on the same device, review completed tests, and reset the full set after all four are done.",
         language: "Language",
-        returnToStart: "Back to welcome",
+        returnToStart: "Back to main menu",
         studyTitle: "Chapter Review",
         refreshTitle: "Refresh Your Knowledge",
         refreshText: "Use these quick review tools before testing to refresh core ideas and decision-making patterns.",
@@ -295,7 +295,7 @@ function PilotInner() {
         title: "Examenes de Practica CNA",
         subtitle:
           "Elija uno de los cuatro examenes completos de practica. Puede volver a un examen sin terminar en este dispositivo, revisar examenes completados y reiniciar el conjunto cuando termine los cuatro.",
-        returnToStart: "Volver a la bienvenida",
+        returnToStart: "Volver al menu principal",
         studyTitle: "Repaso por capitulos",
         refreshTitle: "Refresque sus conocimientos",
         refreshText: "Use estas herramientas de repaso rapido antes del examen para refrescar las ideas principales y los patrones de toma de decisiones.",
@@ -347,7 +347,7 @@ function PilotInner() {
         title: "Tests de Pratique de l'Examen CNA",
         subtitle:
           "Choisissez l'un des quatre examens blancs complets. Vous pouvez reprendre un test non termine sur cet appareil, revoir les tests termines et reinitialiser l'ensemble une fois les quatre termines.",
-        returnToStart: "Retour a l'accueil",
+        returnToStart: "Retour au menu principal",
         studyTitle: "Revision des chapitres",
         refreshTitle: "Rafraichissez vos connaissances",
         refreshText: "Utilisez ces outils de revision rapide avant le test pour rafraichir les idees essentielles et les habitudes de raisonnement.",
@@ -399,7 +399,7 @@ function PilotInner() {
         title: "Tes Pratik Egzamen CNA",
         subtitle:
           "Chwazi youn nan kat egzamen pratik konple yo. Ou ka retounen nan yon tes ou poko fini sou menm aparey la, revize tes ou fin fe yo, epi rafrechi tout ansanm apre ou fin fe kat la.",
-        returnToStart: "Retounen nan byenvini",
+        returnToStart: "Retounen nan meni prensipal la",
         studyTitle: "Revizyon chapit yo",
         refreshTitle: "Rafrechi konesans ou",
         refreshText: "Svi ak zouti revizyon rapid sa yo anvan tes la pou rafrechi ide prensipal yo ak fason pou pran bon desizyon.",
@@ -681,23 +681,41 @@ function PilotInner() {
       title={TEXT.title}
       subtitle={TEXT.subtitle}
       theme={theme}
-          headerAction={
-        <button
-          onClick={() => router.push(`/welcome?lang=${lang}`)}
-          style={{
-            padding: "8px 11px",
-            fontSize: "13px",
-            borderRadius: "10px",
-            border: `1px solid ${theme.chromeBorder}`,
-            background: "white",
-            color: theme.secondaryText,
-            cursor: "pointer",
-            fontWeight: 700,
-            minWidth: "unset",
-          }}
-        >
-          {TEXT.returnToStart}
-        </button>
+      headerAction={
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => router.push(`/instructions?lang=${lang}`)}
+            style={{
+              padding: "8px 11px",
+              fontSize: "13px",
+              borderRadius: "10px",
+              border: `1px solid ${theme.chromeBorder}`,
+              background: "white",
+              color: theme.secondaryText,
+              cursor: "pointer",
+              fontWeight: 700,
+              minWidth: "unset",
+            }}
+          >
+            {lang === "es" ? "Instrucciones del examen" : lang === "fr" ? "Instructions de l'examen" : lang === "ht" ? "Enstriksyon egzamen" : "Exam Instructions"}
+          </button>
+          <button
+            onClick={() => router.push(`/start?lang=${lang}`)}
+            style={{
+              padding: "8px 11px",
+              fontSize: "13px",
+              borderRadius: "10px",
+              border: `1px solid ${theme.chromeBorder}`,
+              background: "white",
+              color: theme.secondaryText,
+              cursor: "pointer",
+              fontWeight: 700,
+              minWidth: "unset",
+            }}
+          >
+            {TEXT.returnToStart}
+          </button>
+        </div>
       }
       footer={
         <div />

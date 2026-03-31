@@ -179,7 +179,13 @@ function assignCellPlan({ chapterTargets, categoryTargets, availabilityMatrix, r
   return null;
 }
 
-function pickQuestionsForPlan({ questions, plan, excludedIds, rng }) {
+function pickQuestionsForPlan({
+  questions,
+  plan,
+  excludedIds,
+  rng,
+  questionUsageCounts = {},
+}) {
   for (let attempt = 0; attempt < 250; attempt += 1) {
     const selected = [];
     const selectedIds = new Set();
@@ -217,7 +223,8 @@ function pickQuestionsForPlan({ questions, plan, excludedIds, rng }) {
         const difficulty = normalizeDifficulty(question);
         const difficultyNeed = difficultyRemaining[difficulty] || 0;
         const scarcity = 1 / Math.max(1, candidates.length);
-        return Math.max(0.1, 2 + difficultyNeed * 4 + scarcity);
+        const usagePenalty = (Number(questionUsageCounts[question.question_id]) || 0) * 3.5;
+        return Math.max(0.1, 2 + difficultyNeed * 4 + scarcity - usagePenalty);
       });
 
       if (!picked) {
@@ -307,6 +314,7 @@ export function assembleExamQuestionIds({
   questionBankSnapshot,
   excludedQuestionIds = [],
   rng = Math.random,
+  questionUsageCounts = {},
 }) {
   const allQuestions = toArray(questionBankSnapshot).filter(
     (question) => question && question.question_id && question.chapter_tag && question.category_tag
@@ -343,6 +351,7 @@ export function assembleExamQuestionIds({
       plan,
       excludedIds,
       rng,
+      questionUsageCounts,
     });
 
     if (!selectedQuestions) continue;

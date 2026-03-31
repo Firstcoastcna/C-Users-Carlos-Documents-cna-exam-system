@@ -359,7 +359,7 @@ function PracticeInner() {
     openHint: isNarrow
       ? t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")
       : t("Click to open", "Haga clic para abrir", "Cliquez pour ouvrir", "Klike pou louvri"),
-    backToWelcome: t("Back to welcome", "Volver a la bienvenida", "Retour a l'accueil", "Retounen nan byenvini"),
+    backToWelcome: t("Back to main menu", "Volver al menu principal", "Retour au menu principal", "Retounen nan meni prensipal la"),
     modesTitle: t("Choose a practice mode", "Elija un modo de practica", "Choisissez un mode de pratique", "Chwazi yon mÃƒÂ²d pratik"),
     chapterTitle: t("Choose one chapter", "Elija un capitulo", "Choisissez un chapitre", "Chwazi yon chapit"),
     categoryTitle: t(
@@ -662,21 +662,38 @@ function PracticeInner() {
       subtitle={TEXT.subtitle}
       theme={theme}
       headerAction={
-        <button
-          onClick={() => router.push(`/practice-welcome?lang=${lang}`)}
-          style={{
-            padding: "8px 11px",
-            fontSize: "13px",
-            borderRadius: "10px",
-            border: `1px solid ${theme.chromeBorder}`,
-            background: "white",
-            color: theme.secondaryText,
-            cursor: "pointer",
-            fontWeight: 700,
-          }}
-        >
-          {TEXT.backToWelcome}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => router.push(`/practice-instructions?lang=${lang}`)}
+            style={{
+              padding: "8px 11px",
+              fontSize: "13px",
+              borderRadius: "10px",
+              border: `1px solid ${theme.chromeBorder}`,
+              background: "white",
+              color: theme.secondaryText,
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            {lang === "es" ? "Instrucciones de la practica" : lang === "fr" ? "Instructions de pratique" : lang === "ht" ? "Enstriksyon pou pratik" : "Practice Instructions"}
+          </button>
+          <button
+            onClick={() => router.push(`/start?lang=${lang}`)}
+            style={{
+              padding: "8px 11px",
+              fontSize: "13px",
+              borderRadius: "10px",
+              border: `1px solid ${theme.chromeBorder}`,
+              background: "white",
+              color: theme.secondaryText,
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            {TEXT.backToWelcome}
+          </button>
+        </div>
       }
       footer={<div />}
     >

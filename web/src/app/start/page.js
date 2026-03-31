@@ -53,7 +53,7 @@ function Frame({ title, children, footer, theme, headerAction }) {
   );
 }
 
-function PathCard({ title, body, onClick, buttonLabel, theme }) {
+function PathCard({ title, body, onClick, buttonLabel, theme, extraContent = null }) {
   return (
     <div
       style={{
@@ -87,6 +87,7 @@ function PathCard({ title, body, onClick, buttonLabel, theme }) {
           {buttonLabel}
         </button>
       </div>
+      {extraContent ? <div>{extraContent}</div> : null}
     </div>
   );
 }
@@ -96,6 +97,22 @@ function StartInner() {
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);
+  const [skipPracticeWelcome, setSkipPracticeWelcome] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("cna_skip_practice_welcome") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [skipExamWelcome, setSkipExamWelcome] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("cna_skip_exam_welcome") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     let granted = false;
@@ -226,7 +243,40 @@ function StartInner() {
               "Svi ak pratik gide pou travay pa Chapit, pa Kategori, oswa nan Pratik Melanje ak sesyon ki pi kout, san limit tan, ak fidbak touswit ansanm ak eksplikasyon."
             )}
             buttonLabel={t("Go to Practice", "Ir a la Practica", "Aller a la pratique", "Ale nan Pratik")}
-            onClick={() => router.push(`/practice-welcome?lang=${lang}`)}
+            onClick={() => router.push(`${skipPracticeWelcome ? "/practice" : "/practice-welcome"}?lang=${lang}`)}
+            extraContent={
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: "#5c6d7d",
+                  fontSize: "14px",
+                  lineHeight: 1.5,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={skipPracticeWelcome}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    setSkipPracticeWelcome(next);
+                    try {
+                      localStorage.setItem("cna_skip_practice_welcome", next ? "1" : "0");
+                    } catch {}
+                  }}
+                />
+                <span>
+                  {t(
+                    "Skip welcome page",
+                    "Omitir pagina de bienvenida",
+                    "Ignorer la page de bienvenue",
+                    "Sote paj byenvini an"
+                  )}
+                </span>
+              </label>
+            }
           />
 
           <PathCard
@@ -239,9 +289,43 @@ function StartInner() {
               "Svi ak pati egzamen an pou viv eksperyans egzamen CNA a ak tout tan li, ansanm ak rezilta, analiz, revizyon kestyon, ak remedyasyon apre ou fin konplete chak egzamen."
             )}
             buttonLabel={t("Go to Exam", "Ir al Examen", "Aller a l'examen", "Ale nan Egzamen")}
-            onClick={() => router.push(`/welcome?lang=${lang}`)}
+            onClick={() => router.push(`${skipExamWelcome ? "/pilot" : "/welcome"}?lang=${lang}`)}
+            extraContent={
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  color: "#5c6d7d",
+                  fontSize: "14px",
+                  lineHeight: 1.5,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={skipExamWelcome}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    setSkipExamWelcome(next);
+                    try {
+                      localStorage.setItem("cna_skip_exam_welcome", next ? "1" : "0");
+                    } catch {}
+                  }}
+                />
+                <span>
+                  {t(
+                    "Skip welcome page",
+                    "Omitir pagina de bienvenida",
+                    "Ignorer la page de bienvenue",
+                    "Sote paj byenvini an"
+                  )}
+                </span>
+              </label>
+            }
           />
         </div>
+
       </div>
     </Frame>
   );
