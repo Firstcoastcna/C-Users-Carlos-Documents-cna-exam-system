@@ -663,36 +663,62 @@ function PracticeInner() {
       theme={theme}
       headerAction={
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button
-            onClick={() => router.push(`/practice-instructions?lang=${lang}`)}
-            style={{
-              padding: "8px 11px",
-              fontSize: "13px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.chromeBorder}`,
-              background: "white",
-              color: theme.secondaryText,
-              cursor: "pointer",
-              fontWeight: 700,
-            }}
-          >
-            {lang === "es" ? "Instrucciones de la practica" : lang === "fr" ? "Instructions de pratique" : lang === "ht" ? "Enstriksyon pou pratik" : "Practice Instructions"}
-          </button>
-          <button
-            onClick={() => router.push(`/start?lang=${lang}`)}
-            style={{
-              padding: "8px 11px",
-              fontSize: "13px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.chromeBorder}`,
-              background: "white",
-              color: theme.secondaryText,
-              cursor: "pointer",
-              fontWeight: 700,
-            }}
-          >
-            {TEXT.backToWelcome}
-          </button>
+          {(isNarrow
+            ? [
+                {
+                  key: "back",
+                  onClick: () => router.push(`/start?lang=${lang}`),
+                  label: TEXT.backToWelcome,
+                },
+                {
+                  key: "instructions",
+                  onClick: () => router.push(`/practice-instructions?lang=${lang}`),
+                  label:
+                    lang === "es"
+                      ? "Instrucciones de la practica"
+                      : lang === "fr"
+                        ? "Instructions de pratique"
+                        : lang === "ht"
+                          ? "Enstriksyon pou pratik"
+                          : "Practice Instructions",
+                },
+              ]
+            : [
+                {
+                  key: "instructions",
+                  onClick: () => router.push(`/practice-instructions?lang=${lang}`),
+                  label:
+                    lang === "es"
+                      ? "Instrucciones de la practica"
+                      : lang === "fr"
+                        ? "Instructions de pratique"
+                        : lang === "ht"
+                          ? "Enstriksyon pou pratik"
+                          : "Practice Instructions",
+                },
+                {
+                  key: "back",
+                  onClick: () => router.push(`/start?lang=${lang}`),
+                  label: TEXT.backToWelcome,
+                },
+              ]).map((item) => (
+            <button
+              key={item.key}
+              onClick={item.onClick}
+              style={{
+                padding: "8px 11px",
+                fontSize: "13px",
+                borderRadius: "10px",
+                border: `1px solid ${theme.chromeBorder}`,
+                background: "white",
+                color: theme.secondaryText,
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       }
       footer={<div />}

@@ -683,38 +683,63 @@ function PilotInner() {
       theme={theme}
       headerAction={
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button
-            onClick={() => router.push(`/instructions?lang=${lang}`)}
-            style={{
-              padding: "8px 11px",
-              fontSize: "13px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.chromeBorder}`,
-              background: "white",
-              color: theme.secondaryText,
-              cursor: "pointer",
-              fontWeight: 700,
-              minWidth: "unset",
-            }}
-          >
-            {lang === "es" ? "Instrucciones del examen" : lang === "fr" ? "Instructions de l'examen" : lang === "ht" ? "Enstriksyon egzamen" : "Exam Instructions"}
-          </button>
-          <button
-            onClick={() => router.push(`/start?lang=${lang}`)}
-            style={{
-              padding: "8px 11px",
-              fontSize: "13px",
-              borderRadius: "10px",
-              border: `1px solid ${theme.chromeBorder}`,
-              background: "white",
-              color: theme.secondaryText,
-              cursor: "pointer",
-              fontWeight: 700,
-              minWidth: "unset",
-            }}
-          >
-            {TEXT.returnToStart}
-          </button>
+          {(isNarrow
+            ? [
+                {
+                  key: "back",
+                  onClick: () => router.push(`/start?lang=${lang}`),
+                  label: TEXT.returnToStart,
+                },
+                {
+                  key: "instructions",
+                  onClick: () => router.push(`/instructions?lang=${lang}`),
+                  label:
+                    lang === "es"
+                      ? "Instrucciones del examen"
+                      : lang === "fr"
+                        ? "Instructions de l'examen"
+                        : lang === "ht"
+                          ? "Enstriksyon egzamen"
+                          : "Exam Instructions",
+                },
+              ]
+            : [
+                {
+                  key: "instructions",
+                  onClick: () => router.push(`/instructions?lang=${lang}`),
+                  label:
+                    lang === "es"
+                      ? "Instrucciones del examen"
+                      : lang === "fr"
+                        ? "Instructions de l'examen"
+                        : lang === "ht"
+                          ? "Enstriksyon egzamen"
+                          : "Exam Instructions",
+                },
+                {
+                  key: "back",
+                  onClick: () => router.push(`/start?lang=${lang}`),
+                  label: TEXT.returnToStart,
+                },
+              ]).map((item) => (
+            <button
+              key={item.key}
+              onClick={item.onClick}
+              style={{
+                padding: "8px 11px",
+                fontSize: "13px",
+                borderRadius: "10px",
+                border: `1px solid ${theme.chromeBorder}`,
+                background: "white",
+                color: theme.secondaryText,
+                cursor: "pointer",
+                fontWeight: 700,
+                minWidth: "unset",
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       }
       footer={
