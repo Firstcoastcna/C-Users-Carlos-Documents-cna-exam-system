@@ -207,6 +207,9 @@ function AccessInner() {
             <input
               value={code}
               onChange={(e) => setCode(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submit();
+              }}
               placeholder={t("Enter code", "Ingrese el codigo", "Entrez le code", "Antre kod la")}
               autoFocus
               style={{
