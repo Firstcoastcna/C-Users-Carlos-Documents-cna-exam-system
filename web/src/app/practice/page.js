@@ -1088,15 +1088,16 @@ function PracticeInner() {
                         {selectedCategory && group.items.includes(selectedCategory) ? (
                           <div
                             style={{
-                              border: "1px solid var(--chrome-border)",
+                              border: "2px solid var(--brand-teal)",
                               borderRadius: 12,
-                              background: "var(--surface-soft)",
+                              background: "white",
                               padding: "12px 14px",
                               color: "#4d6174",
                               lineHeight: 1.6,
                               fontWeight: 700,
                               marginTop: 2,
                               marginBottom: isNarrow ? 6 : 2,
+                              boxShadow: "0 8px 18px rgba(37, 131, 166, 0.10)",
                             }}
                           >
                             {categorySupportLabel(selectedCategory)}
