@@ -19,6 +19,7 @@ function toIndexEntry(session) {
     session_id: session.session_id,
     created_at: session.created_at || Date.now(),
     completed_at: session.completed_at || null,
+    lang: session.lang || null,
     status: session.status || "active",
     mode: session.mode || "mixed",
     selectedChapter: session.selectedChapter || null,

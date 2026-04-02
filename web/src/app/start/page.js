@@ -97,10 +97,12 @@ function StartInner() {
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);
+  const getSkipWelcomeKey = (side, langCode) => `cna_skip_${side}_welcome::${langCode || "en"}`;
   const [skipPracticeWelcome, setSkipPracticeWelcome] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
-      return localStorage.getItem("cna_skip_practice_welcome") === "1";
+      const initialLang = new URLSearchParams(window.location.search).get("lang") || "en";
+      return localStorage.getItem(getSkipWelcomeKey("practice", initialLang)) === "1";
     } catch {
       return false;
     }
@@ -108,7 +110,8 @@ function StartInner() {
   const [skipExamWelcome, setSkipExamWelcome] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
-      return localStorage.getItem("cna_skip_exam_welcome") === "1";
+      const initialLang = new URLSearchParams(window.location.search).get("lang") || "en";
+      return localStorage.getItem(getSkipWelcomeKey("exam", initialLang)) === "1";
     } catch {
       return false;
     }
@@ -134,6 +137,20 @@ function StartInner() {
     window.addEventListener("resize", syncWidth);
     return () => window.removeEventListener("resize", syncWidth);
   }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      try {
+        setSkipPracticeWelcome(localStorage.getItem(getSkipWelcomeKey("practice", lang)) === "1");
+        setSkipExamWelcome(localStorage.getItem(getSkipWelcomeKey("exam", lang)) === "1");
+      } catch {
+        setSkipPracticeWelcome(false);
+        setSkipExamWelcome(false);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(id);
+  }, [lang]);
 
   const theme = useMemo(
     () => ({
@@ -263,7 +280,7 @@ function StartInner() {
                     const next = e.target.checked;
                     setSkipPracticeWelcome(next);
                     try {
-                      localStorage.setItem("cna_skip_practice_welcome", next ? "1" : "0");
+                      localStorage.setItem(getSkipWelcomeKey("practice", lang), next ? "1" : "0");
                     } catch {}
                   }}
                 />
@@ -309,7 +326,7 @@ function StartInner() {
                     const next = e.target.checked;
                     setSkipExamWelcome(next);
                     try {
-                      localStorage.setItem("cna_skip_exam_welcome", next ? "1" : "0");
+                      localStorage.setItem(getSkipWelcomeKey("exam", lang), next ? "1" : "0");
                     } catch {}
                   }}
                 />

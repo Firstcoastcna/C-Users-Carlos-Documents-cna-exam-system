@@ -41,6 +41,7 @@ function makeSessionIndexEntry(session) {
     created_at: session.created_at,
     completed_at: session.completed_at,
     completion_ts: session.completion_ts,
+    lang: session.lang || null,
     results_attempt_id: session.results_attempt_id,
     selectedCategories: session.selectedCategories || [],
     status: session.status,
@@ -61,6 +62,7 @@ function toIndexEntry(session) {
     session_id: session.session_id,
     created_at: session.created_at || Date.now(),
     completed_at: session.completed_at || null,
+    lang: session.lang || null,
 
     // loop control / gating fields
     status: session.status || "active",

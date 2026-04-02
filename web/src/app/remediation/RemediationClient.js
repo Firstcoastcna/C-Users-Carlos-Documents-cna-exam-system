@@ -14,7 +14,6 @@ import { buildRemediationSession } from "../lib/remediationSessionBuilder";
 import {
   applyRemediationAnswerAndPersist,
   finalizeRemediationSessionCompletion,
-  markRemediationSessionExited,
 } from "../lib/remediationOutcomes";
 
 
@@ -211,6 +210,8 @@ introStart: "Start",
     selectedLabel: "Selected:",
     introTotal: "Questions in this set:",
 introQuestionsFrom: "from",
+    questionLabel: "Question",
+    ofLabel: "of",
 fbCorrect: "✅ Correct",
 fbIncorrect: (correct) => `❌ Incorrect — correct answer is ${correct}`,
 fbShowWhy: "Show explanation",
@@ -274,6 +275,8 @@ introStart: "Comenzar",
     selectedLabel: "Seleccionado:",
     introTotal: "Preguntas en este set:",
 introQuestionsFrom: "de",
+    questionLabel: "Pregunta",
+    ofLabel: "de",
 fbCorrect: "✅ Correcto",
 fbIncorrect: (correct) => `❌ Incorrecto — la respuesta correcta es ${correct}`,
 fbShowWhy: "Ver explicación",
@@ -337,6 +340,8 @@ introStart: "Commencer",
     selectedLabel: "Sélectionné :",
     introTotal: "Questions dans ce set :",
 introQuestionsFrom: "de",
+    questionLabel: "Question",
+    ofLabel: "sur",
 fbCorrect: "✅ Correct",
 fbIncorrect: (correct) => `❌ Incorrect — la bonne réponse est ${correct}`,
 fbShowWhy: "Voir l’explication",
@@ -396,7 +401,9 @@ introStart: "Kòmanse",
     btnExit: "Sòti",
     selectedLabel: "Ou chwazi:",
     introTotal: "Kantite kestyon nan set la:",
-introQuestionsFrom: "soti nan",
+    introQuestionsFrom: "soti nan",
+    questionLabel: "Kesyon",
+    ofLabel: "sou",
 fbCorrect: "✅ Kòrèk",
 fbIncorrect: (correct) => `❌ Pa kòrèk — bon repons lan se ${correct}`,
 fbShowWhy: "Gade eksplikasyon",
@@ -525,8 +532,8 @@ function getDisplayBlocks(q) {
 
   if (!q || !q.variants) return blocks;
 
-  if (lang === "en") blocks.push({ label: "EN", v: q.variants.en });
-  if (lang === "es") blocks.push({ label: "ES", v: q.variants.es });
+  if (lang === "en") blocks.push({ label: null, v: q.variants.en });
+  if (lang === "es") blocks.push({ label: null, v: q.variants.es });
   if (lang === "fr") {
     blocks.push({ label: "EN", v: q.variants.en });
     blocks.push({ label: "FR", v: q.variants.fr });
@@ -537,7 +544,7 @@ function getDisplayBlocks(q) {
   }
 
   // Safe fallback
-  if (blocks.length === 0) blocks.push({ label: "EN", v: q.variants.en });
+  if (blocks.length === 0) blocks.push({ label: null, v: q.variants.en });
 
   return blocks;
 }
@@ -891,17 +898,8 @@ function requestExitToResults() {
 
 
 function exitToResultsAnyway() {
-  try {
-    if (session?.session_id) {
-      const updated = markRemediationSessionExited({ session_id: session.session_id });
-      if (updated) {
-        setSession(updated);
-      }
-      setLoopStateVersion((v) => v + 1);
-    }
-  } catch {}
-
-  // Go back to hub AND clear session_id from URL
+  // Keep the current set active so the hub can resume it later.
+  setLoopStateVersion((v) => v + 1);
   goToHub();
 }
 
@@ -950,6 +948,55 @@ if (view === "intro") {
   }
 
   const reachedMaxAttempts = (loopState.completedCount || 0) >= 3;
+  const focusCats = (loopState.selectedCats || []).map(catLabel);
+  const focusLabel =
+    lang === "es"
+      ? "Categorias de enfoque"
+      : lang === "fr"
+        ? "Categories ciblees"
+        : lang === "ht"
+          ? "Kategori fokis yo"
+          : "Focus categories";
+  const howItWorksLabel =
+    lang === "es"
+      ? "Como funciona"
+      : lang === "fr"
+        ? "Comment cela fonctionne"
+        : lang === "ht"
+          ? "Kijan sa mache"
+          : "How it works";
+  const recommendationLabel =
+    lang === "es"
+      ? "Recomendacion"
+      : lang === "fr"
+        ? "Recommandation"
+        : lang === "ht"
+          ? "Rekòmandasyon"
+          : "Recommendation";
+  const attemptsLabel =
+    lang === "es"
+      ? "Intentos usados"
+      : lang === "fr"
+        ? "Tentatives utilisees"
+        : lang === "ht"
+          ? "Tantativ ou itilize"
+          : "Attempts used";
+  const questionsLabel =
+    lang === "es"
+      ? "Preguntas en este set"
+      : lang === "fr"
+        ? "Questions dans ce set"
+        : lang === "ht"
+          ? "Kantite kestyon nan set la"
+          : "Questions in this set";
+  const lastOutcomeLabel =
+    lang === "es"
+      ? "Ultimo resultado"
+      : lang === "fr"
+        ? "Dernier resultat"
+        : lang === "ht"
+          ? "Dènye rezilta"
+          : "Last outcome";
 
   const qaOverlayData = {
     enabled: qaMode,
@@ -997,29 +1044,90 @@ if (view === "intro") {
           padding: 18,
         }}
       >
-        <div style={{ fontWeight: "bold", marginBottom: 8 }}>{T.introTitle}</div>
+        <div style={{ fontWeight: "bold", fontSize: 20, color: "var(--heading)", marginBottom: 10 }}>{T.introTitle}</div>
 
         <div style={{ fontSize: 14, color: "#33495b", lineHeight: "1.6" }}>
-          <div style={{ marginBottom: 6 }}>
-            {T.introBody((loopState.selectedCats || []).map(catLabel).join(" + ") || "—")}
+          <div
+            style={{
+              border: "1px solid #d8e6ee",
+              borderRadius: 16,
+              background: "linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%)",
+              padding: 14,
+              marginBottom: 12,
+            }}
+          >
+            <div style={{ fontWeight: 800, color: "var(--heading)", marginBottom: 8 }}>{focusLabel}</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {focusCats.length ? (
+                focusCats.map((cat) => (
+                  <span
+                    key={cat}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "7px 11px",
+                      borderRadius: 999,
+                      background: "var(--brand-teal-soft)",
+                      color: "var(--brand-teal-dark)",
+                      border: "1px solid #b7d8e5",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {cat}
+                  </span>
+                ))
+              ) : (
+                <span style={{ color: "#667a8c" }}>—</span>
+              )}
+            </div>
+            <div style={{ marginTop: 10, color: "#4f6476" }}>
+              {T.introBody(focusCats.join(" + ") || "—")}
+            </div>
           </div>
 
-          <div style={{ marginBottom: 6 }}>
-            {T.introHowItWorks}
+          <div style={{ marginBottom: 10, border: "1px solid #d8e6ee", borderRadius: 14, background: "#fbfdff", padding: 13 }}>
+            <div style={{ fontWeight: 800, color: "var(--heading)", marginBottom: 6 }}>{howItWorksLabel}</div>
+            <div>{T.introHowItWorks}</div>
           </div>
 
-          <div style={{ marginBottom: 6 }}>
-            {T.introRecommendation}
+          <div style={{ marginBottom: 8, border: "1px solid #dce8d3", borderRadius: 14, background: "#f8fcf5", padding: 13 }}>
+            <div style={{ fontWeight: 800, color: "var(--heading)", marginBottom: 6 }}>{recommendationLabel}</div>
+            <div>{T.introRecommendation}</div>
           </div>
 
-          <div style={{ marginTop: 10, fontSize: 13, color: "#333" }}>
-  {T.attemptsLine(
-    loopState.completedCount || 0,
-    3,
-    outcomeLabel(loopState.lastOutcome)
-  )}
-</div>
-  </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+              gap: 10,
+              marginBottom: 12,
+            }}
+          >
+            <div style={{ border: "1px solid #d8e6ee", borderRadius: 14, background: "white", padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", color: "#667a8c", marginBottom: 4 }}>
+                {questionsLabel}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)" }}>12</div>
+            </div>
+            <div style={{ border: "1px solid #d8e6ee", borderRadius: 14, background: "white", padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", color: "#667a8c", marginBottom: 4 }}>
+                {attemptsLabel}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)" }}>
+                {loopState.completedCount || 0} / 3
+              </div>
+            </div>
+            <div style={{ border: "1px solid #d8e6ee", borderRadius: 14, background: "white", padding: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", color: "#667a8c", marginBottom: 4 }}>
+                {lastOutcomeLabel}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--heading)" }}>
+                {outcomeLabel(loopState.lastOutcome)}
+              </div>
+            </div>
+          </div>
+
+        </div>
 
 	        </div>
 
@@ -1106,6 +1214,7 @@ try {
     resultsPayload,
     questionBankSnapshot,
     priorRemediationState,
+    lang,
   });
 
   saveRemediationSession(sessionNew);
@@ -1480,7 +1589,7 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
       >
   <div>
     <div style={{ fontWeight: "bold", fontSize: "22px", color: "var(--heading)", lineHeight: 1.2 }}>
-      Question {session.currentIndex + 1} of {(session.questionIds || []).length}
+      {T.questionLabel} {session.currentIndex + 1} {T.ofLabel} {(session.questionIds || []).length}
     </div>
     <div style={{ fontSize: "12px", color: "#607282", marginTop: "4px" }}>
       ID: {questionId}
@@ -1528,8 +1637,8 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
 
 
        <div style={{ marginBottom: 16 }}>
-  {getDisplayBlocks(q).map((b) => (
-    <div key={b.label} style={{ marginTop: b.label === "EN" ? 0 : 12 }}>
+  {getDisplayBlocks(q).map((b, idx) => (
+    <div key={`${b.label || "primary"}_${idx}`} style={{ marginTop: idx === 0 ? 0 : 12 }}>
       <div style={{ fontSize: isNarrow ? 17 : 20, fontWeight: 600, lineHeight: isNarrow ? 1.42 : 1.5, color: "#1e3342" }}>
         <span
           style={{

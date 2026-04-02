@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-function Frame({ title, children, footer, theme }) {
+function Frame({ title, children, footer, theme, headerAction }) {
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
       <div
@@ -28,9 +28,14 @@ function Frame({ title, children, footer, theme }) {
             textTransform: "uppercase",
             letterSpacing: "0.04em",
             color: "var(--heading)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
           }}
         >
-          {title}
+          <span>{title}</span>
+          {headerAction ? <div>{headerAction}</div> : null}
         </div>
 
         <div style={{ flex: 1, padding: "24px", overflowY: "auto" }}>{children}</div>
@@ -122,6 +127,17 @@ function ChaptersInner() {
     background: theme.secondaryBg,
     color: theme.secondaryText,
     width: "100%",
+  };
+
+  const btnUtility = {
+    padding: "8px 11px",
+    fontSize: "13px",
+    fontWeight: 700,
+    borderRadius: "10px",
+    border: `1px solid ${theme.chromeBorder}`,
+    background: "white",
+    color: theme.secondaryText,
+    cursor: "pointer",
   };
 
   function t(en, es, fr, ht) {
@@ -625,6 +641,11 @@ function ChaptersInner() {
     <Frame
       title={pageTitle}
       theme={theme}
+      headerAction={
+        <button style={btnUtility} onClick={() => router.push(hubRoute)}>
+          {hubLabel}
+        </button>
+      }
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
           <button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", fontWeight: 700 }} onClick={() => router.push(hubRoute)}>

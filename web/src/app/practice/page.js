@@ -112,17 +112,22 @@ function PracticeInner() {
   function refreshActiveSession() {
     try {
       const all = loadAllPracticeSessions();
+      const filtered = all.filter((item) => !item?.lang || item.lang === lang);
       queueMicrotask(() => {
-        setPracticeHistory([...all].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0)));
+        setPracticeHistory([...filtered].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0)));
       });
       const latestOverall =
-        [...all].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0))[0] || null;
+        [...filtered].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0))[0] || null;
       queueMicrotask(() => {
         if (latestOverall?.status !== "active" || !latestOverall?.session_id) {
           setActiveSession(null);
           return;
         }
         const full = loadPracticeSession(latestOverall.session_id);
+        if (full?.lang && full.lang !== lang) {
+          setActiveSession(null);
+          return;
+        }
         setActiveSession(full || latestOverall);
       });
     } catch {
@@ -403,10 +408,10 @@ function PracticeInner() {
       "Konsantre sou yon chapit a la fwa pou yon revizyon pa sijÃƒÂ¨."
     ),
     categoryDesc: t(
-      "Focus on one decision category at a time to strengthen CNA logic and judgment.",
-      "Concentrese en una sola categoria de decision para fortalecer la logica y el juicio CNA.",
-      "Concentrez-vous sur une seule categorie de decision afin de renforcer la logique et le jugement CNA.",
-      "Konsantre sou yon sÃƒÂ¨l kategori desizyon pou ranfose lojik ak jijman CNA."
+      "Use this to practice what kind of decision a CNA should make before acting, such as noticing changes, preventing harm, or knowing when to report.",
+      "Use esta opcion para practicar que tipo de decision debe tomar un CNA antes de actuar, como notar cambios, prevenir danos o saber cuando reportar.",
+      "Utilisez cette option pour pratiquer le type de decision qu'un CNA doit prendre avant d'agir, par exemple remarquer les changements, prevenir les risques ou savoir quand signaler.",
+      "Svi ak opsyon sa a pou pratike ki kalite desizyon yon CNA dwe pran anvan li aji, tankou remake chanjman, anpeche danje, oswa konnen kile pou rapote."
     ),
     mixedDesc: t(
       "Practice a broader mix of questions from different chapters and categories without full-exam pressure.",
@@ -1033,10 +1038,17 @@ function PracticeInner() {
                         cursor: "pointer",
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "center",
+                        alignItems: "flex-start",
                       }}
                     >
-                      <span>{group.title}</span>
+                      <div style={{ display: "grid", gap: openCategoryGroup === group.id ? 6 : 0 }}>
+                        <span style={{ textTransform: "uppercase", letterSpacing: "0.03em" }}>{group.title}</span>
+                        {openCategoryGroup === group.id ? (
+                          <span style={{ color: "#4d6174", lineHeight: 1.6, fontWeight: 400, fontSize: 14 }}>
+                            {group.body}
+                          </span>
+                        ) : null}
+                      </div>
                       <span style={{ color: "#607282", fontSize: 13 }}>
                         {openCategoryGroup === group.id ? t("Hide", "Ocultar", "Masquer", "Kache") : t("Show", "Mostrar", "Afficher", "Montre")}
                       </span>
@@ -1044,48 +1056,56 @@ function PracticeInner() {
 
                     {openCategoryGroup === group.id ? (
                       <div style={{ display: "grid", gap: 10, padding: 12 }}>
-                        {group.items.map((cat) => (
-                          <button
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                            gap: 10,
+                          }}
+                        >
+                          {group.items.map((cat) => {
+                            const isSelected = selectedCategory === cat;
+                            return (
+                              <button
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                style={{
+                                  ...btnSecondary,
+                                  width: "100%",
+                                  minWidth: 0,
+                                  textAlign: "left",
+                                  fontWeight: 700,
+                                  background: isSelected ? "white" : theme.secondaryBg,
+                                  border: isSelected ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                                  boxShadow: isSelected ? "0 8px 18px rgba(37, 131, 166, 0.10)" : "none",
+                                }}
+                              >
+                                {categoryLabel(cat)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {selectedCategory && group.items.includes(selectedCategory) ? (
+                          <div
                             style={{
-                              ...btnSecondary,
-                              width: "100%",
-                              textAlign: "left",
+                              border: "1px solid var(--chrome-border)",
+                              borderRadius: 12,
+                              background: "var(--surface-soft)",
+                              padding: "12px 14px",
+                              color: "#4d6174",
+                              lineHeight: 1.6,
                               fontWeight: 700,
-                              background: selectedCategory === cat ? "white" : theme.secondaryBg,
-                              border: selectedCategory === cat ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                              marginTop: 2,
+                              marginBottom: isNarrow ? 6 : 2,
                             }}
                           >
-                            {categoryLabel(cat)}
-                          </button>
-                        ))}
+                            {categorySupportLabel(selectedCategory)}
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
                 ))}
-                <div
-                  style={{
-                    border: "1px solid var(--chrome-border)",
-                    borderRadius: 12,
-                    background: "var(--surface-soft)",
-                    padding: "12px 14px",
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)" }}>
-                    {selectedCategory && selectedCategoryIsInOpenGroup ? categoryGroupTitleFor(selectedCategory) : categoryGroups.find((group) => group.id === openCategoryGroup)?.title}
-                  </div>
-                  <div style={{ color: "var(--heading)", fontWeight: 800, lineHeight: 1.4 }}>
-                    {selectedCategory && selectedCategoryIsInOpenGroup
-                      ? categoryLabel(selectedCategory)
-                      : t("How this group helps", "Como ayuda este grupo", "Comment ce groupe aide", "Kijan gwoup sa a ede")}
-                  </div>
-                  <div style={{ color: "#4d6174", lineHeight: 1.6 }}>
-                    {selectedCategory && selectedCategoryIsInOpenGroup ? categorySupportLabel(selectedCategory) : categoryGroupBodyFor(openCategoryGroup)}
-                  </div>
-                </div>
               </div>
             }
           />

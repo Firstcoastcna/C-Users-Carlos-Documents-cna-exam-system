@@ -588,7 +588,9 @@ function PilotInner() {
         scoredResults.push({ testId: n, attemptId: saved.attempt_id, score });
       }
 
-      const remediationSessions = (loadAllRemediationSessions() || []).filter((session) => session?.status === "completed");
+      const remediationSessions = (loadAllRemediationSessions() || []).filter(
+        (session) => session?.status === "completed" && (!session?.lang || session.lang === lang)
+      );
       const completedCount = completed.length;
       const averageScore = scoredResults.length ? Math.round(scoredResults.reduce((sum, row) => sum + row.score, 0) / scoredResults.length) : null;
       const bestScore = scoredResults.length ? Math.max(...scoredResults.map((row) => row.score)) : null;

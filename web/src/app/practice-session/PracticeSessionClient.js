@@ -186,6 +186,7 @@ export default function PracticeSessionClient({ bankById }) {
         selectedChapter: chapter ? Number(chapter) : null,
         selectedCategory: category || null,
         questionBankSnapshot: Object.values(bankById || {}),
+        lang,
       });
       queueMicrotask(() => {
         setSession(built);

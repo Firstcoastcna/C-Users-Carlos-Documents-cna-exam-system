@@ -22,10 +22,11 @@ function matchesMode(question, mode, selectedChapter, selectedCategory) {
   return true;
 }
 
-function buildSeenQuestionIds() {
+function buildSeenQuestionIds(lang = null) {
   const allSessions = loadAllPracticeSessions();
   const seen = new Set();
   allSessions.forEach((session) => {
+    if (lang && session?.lang && session.lang !== lang) return;
     (session?.questionIds || []).forEach((qid) => seen.add(qid));
   });
   return seen;
@@ -37,6 +38,7 @@ export function buildPracticeSession({
   selectedChapter = null,
   selectedCategory = null,
   questionBankSnapshot,
+  lang = null,
 }) {
   if (!questionBankSnapshot) {
     throw new Error("buildPracticeSession: questionBankSnapshot is required");
@@ -62,7 +64,7 @@ export function buildPracticeSession({
     throw new Error("buildPracticeSession: no questions available for this practice setup");
   }
 
-  const seenQuestionIds = buildSeenQuestionIds();
+  const seenQuestionIds = buildSeenQuestionIds(lang);
   const unseen = [];
   const seen = [];
 
@@ -84,6 +86,7 @@ export function buildPracticeSession({
   const session = {
     session_id: `practice_${Date.now()}`,
     created_at: Date.now(),
+    lang: lang || null,
     status: "active",
     mode,
     selectedChapter: selectedChapter ? Number(selectedChapter) : null,

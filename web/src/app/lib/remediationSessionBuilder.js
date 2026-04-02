@@ -103,6 +103,7 @@ export function buildRemediationSession({
   resultsPayload,
   questionBankSnapshot,
   priorRemediationState,
+  lang = null,
 }) {
   if (!resultsPayload) {
     throw new Error("buildRemediationSession: resultsPayload is required (read-only)");
@@ -160,6 +161,7 @@ export function buildRemediationSession({
   const session = {
     session_id: `rem_${Date.now()}`,
     created_at: Date.now(),
+    lang: lang || null,
     mode,
     results_attempt_id: resultsPayload.attempt_id,
     selectedCategories,
