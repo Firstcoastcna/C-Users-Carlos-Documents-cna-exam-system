@@ -216,35 +216,6 @@ function StartInner() {
 
         <div
           style={{
-            marginBottom: "20px",
-            textAlign: "center",
-            color: "#4f6171",
-            fontSize: "13px",
-            lineHeight: 1.6,
-          }}
-        >
-          <span
-            style={{
-              display: "inline-block",
-              padding: "9px 12px",
-              borderRadius: "999px",
-              background: "var(--surface-soft)",
-              border: `1px solid ${theme.chromeBorder}`,
-              fontWeight: 700,
-              maxWidth: "100%",
-            }}
-          >
-            {t(
-              "Use the small button in the top-right corner if you need to go back or change your language.",
-              "Use el boton pequeno en la esquina superior derecha si necesita volver atras o cambiar el idioma.",
-              "Utilisez le petit bouton dans le coin superieur droit si vous devez revenir en arriere ou changer de langue.",
-              "Svi ak ti bouton ki nan kwen anwo adwat la si ou bezwen tounen oswa chanje lang ou."
-            )}
-          </span>
-        </div>
-
-        <div
-          style={{
             display: "grid",
             gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
             gap: "16px",

@@ -287,7 +287,7 @@ if (pausedRemainingSec === null) {
     granted = localStorage.getItem("cna_access_granted") === "1";
   } catch {}
 
-  router.push(granted ? `/start?lang=${lang}` : `/access?lang=${lang}`);
+  router.push(granted ? `/foundation?lang=${lang}` : `/access?lang=${lang}`);
 }}
 
 

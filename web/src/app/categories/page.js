@@ -134,16 +134,16 @@ function CategoriesInner() {
   const introBody =
     source === "practice"
       ? t(
-          "Use this guide to strengthen the logic behind CNA questions and build more confidence in how you make decisions during practice.",
-          "Use esta guia para fortalecer la logica detras de las preguntas del examen CNA y ganar mas confianza en su manera de tomar decisiones durante la practica.",
-          "Utilisez ce guide pour renforcer la logique derriere les questions de l'examen CNA et prendre davantage confiance dans votre facon de raisonner pendant la pratique.",
-          "Sèvi ak gid sa a pou ranfòse lojik ki dèyè kestyon egzamen CNA yo epi bati plis konfyans nan fason ou pran desizyon pandan pratik la."
+          "Use this guide to understand the 9 question categories used in this platform. They do not replace the chapters. They help you recognize what kind of CNA decision the question is testing and why one answer is safer or stronger than another.",
+          "Use esta guia para entender las 9 categorias de preguntas que se usan en esta plataforma. No reemplazan los capitulos. Le ayudan a reconocer que tipo de decision de CNA esta evaluando la pregunta y por que una respuesta es mas segura o mas solida que otra.",
+          "Utilisez ce guide pour comprendre les 9 categories de questions utilisees dans cette plateforme. Elles ne remplacent pas les chapitres. Elles vous aident a reconnaitre quel type de decision CNA la question evalue et pourquoi une reponse est plus sure ou plus solide qu'une autre.",
+          "Sèvi ak gid sa a pou konprann 9 kategori kestyon yo itilize nan platfom sa a. Yo pa ranplase chapit yo. Yo ede ou rekonet ki kalite desizyon CNA kestyon an ap teste epi poukisa yon repons pi an sekirite oswa pi solid pase yon lot."
         )
       : t(
-          "These categories explain the kind of thinking each question is testing. They help you move beyond memorizing answers and understand why one choice is safer, stronger, or more appropriate than another.",
-          "Estas categorias explican el tipo de razonamiento que evalua cada pregunta. Le ayudan a ir mas alla de memorizar respuestas y a comprender por que una opcion es mas segura, mas solida o mas apropiada que otra.",
-          "Ces categories expliquent le type de raisonnement que chaque question evalue. Elles vous aident a aller au-dela de la memorisation des reponses et a comprendre pourquoi un choix est plus sur, plus solide ou plus approprie qu'un autre.",
-          "Kategori sa yo esplike ki kalite refleksyon chak kestyon ap teste. Yo ede ou ale pi lwen pase memorize repons yo epi konprann poukisa yon chwa pi an sekirite, pi solid, oswa pi bon pase yon lot."
+          "These 9 categories are a platform study tool. They explain the kind of thinking each question is testing and help you move beyond memorizing answers so you can understand why one choice is safer, stronger, or more appropriate than another.",
+          "Estas 9 categorias son una herramienta de estudio de la plataforma. Explican el tipo de razonamiento que evalua cada pregunta y le ayudan a ir mas alla de memorizar respuestas para comprender por que una opcion es mas segura, mas solida o mas apropiada que otra.",
+          "Ces 9 categories sont un outil d'etude de la plateforme. Elles expliquent le type de raisonnement que chaque question evalue et vous aident a aller au-dela de la memorisation des reponses pour comprendre pourquoi un choix est plus sur, plus solide ou plus approprie qu'un autre.",
+          "9 kategori sa yo se yon zouti etid nan platfom nan. Yo esplike ki kalite refleksyon chak kestyon ap teste epi yo ede ou ale pi lwen pase memorize repons yo pou konprann poukisa yon chwa pi an sekirite, pi solid, oswa pi bon pase yon lot."
         );
   const practiceCalloutTitle = t(
     "How to use this in practice",
@@ -173,25 +173,25 @@ function CategoriesInner() {
   ];
 
   const frameworkTitle = t(
-    "A simpler way to understand the 9 categories",
-    "Una manera mas sencilla de entender las 9 categorias",
-    "Une facon plus simple de comprendre les 9 categories",
-    "Yon fason ki pi senp pou konprann 9 kategori yo"
+    "A simpler way to use the 9 categories",
+    "Una manera mas sencilla de usar las 9 categorias",
+    "Une facon plus simple d'utiliser les 9 categories",
+    "Yon fason ki pi senp pou itilize 9 kategori yo"
   );
 
   const frameworkBody =
     source === "practice"
       ? t(
-          "During practice, it may help to think of the 9 categories as 3 bigger reasoning groups. This gives you a quicker way to recognize what kind of CNA thinking the question is asking from you.",
-          "Durante la practica, puede ser util pensar en las 9 categorias como 3 grupos mas amplios de razonamiento. Esto le ayuda a reconocer mas rapido el tipo de logica CNA que exige la pregunta.",
-          "Pendant la pratique, il peut etre utile de voir les 9 categories comme 3 grands groupes de raisonnement. Cela vous aide a reconnaitre plus rapidement le type de logique CNA que la question demande.",
-          "Pandan pratik, sa ka ede ou gade 9 kategori yo tankou 3 pi gwo gwoup refleksyon. Sa ede ou rekonet pi vit ki kalite lojik CNA kestyon an mande."
+          "During practice, these categories can help you see what kind of CNA decision you are practicing. Instead of thinking only by chapter, you can also think about the type of clue, problem, or safest next step the question is asking you to recognize.",
+          "Durante la practica, estas categorias pueden ayudarle a ver que tipo de decision de CNA esta practicando. En lugar de pensar solo por capitulo, tambien puede pensar en el tipo de pista, problema o siguiente paso mas seguro que la pregunta le pide reconocer.",
+          "Pendant la pratique, ces categories peuvent vous aider a voir quel type de decision CNA vous etes en train de pratiquer. Au lieu de penser seulement par chapitre, vous pouvez aussi penser au type d'indice, de probleme ou d'etape suivante la plus sure que la question vous demande de reconnaitre.",
+          "Pandan pratik, kategori sa yo ka ede ou we ki kalite desizyon CNA ou ap pratike. Olye ou panse selman pa chapit, ou ka panse tou ak kalite siy, pwoblem, oswa pwochen etap ki pi an sekirite kestyon an mande ou rekonet."
         )
       : t(
-          "The 9 categories can also be understood as 3 larger thinking groups. This can make it easier to see what kind of logic the platform is measuring when you review questions, analytics, and remediation.",
-          "Las 9 categorias tambien pueden entenderse como 3 grupos mas amplios de razonamiento. Esto puede ayudarle a ver con mas claridad que tipo de logica evalua la plataforma en la revision, el analisis y la remediacion.",
-          "Les 9 categories peuvent aussi etre comprises comme 3 grands groupes de raisonnement. Cela peut vous aider a voir plus clairement le type de logique que la plateforme evalue dans la revision, l'analyse et la remediation.",
-          "9 kategori yo ka konprann tou tankou 3 pi gwo gwoup refleksyon. Sa ka ede ou we pi byen ki kalite lojik platfom nan ap mezire nan revizyon kestyon, analiz, ak remedyasyon."
+          "The 9 categories can also be understood as 3 larger thinking groups. This makes it easier to see what kind of logic the platform is measuring when you review missed questions, analytics, and remediation.",
+          "Las 9 categorias tambien pueden entenderse como 3 grupos mas amplios de razonamiento. Esto facilita ver que tipo de logica esta evaluando la plataforma cuando usted revisa preguntas falladas, analisis y remediacion.",
+          "Les 9 categories peuvent aussi etre comprises comme 3 grands groupes de raisonnement. Cela facilite la lecture du type de logique que la plateforme evalue quand vous revoyez les questions manquees, l'analyse et la remediacion.",
+          "9 kategori yo ka konprann tou tankou 3 pi gwo gwoup refleksyon. Sa rann li pi fasil pou we ki kalite lojik platfom nan ap mezire le ou ap revize kestyon ou rate yo, analiz, ak remedyasyon."
         );
 
   const frameworkGroups = [
@@ -337,10 +337,10 @@ const categories = [
     id: 1,
     title: t("Change in Condition", "Cambio en la condicion", "Changement de l'etat", "Chanjman nan kondisyon"),
     description: t(
-      "This category measures whether you notice when something about the resident is new, different, worse, or concerning.",
-      "Esta categoria evalua si usted reconoce cuando algo en el residente es nuevo, distinto, peor o preocupante.",
-      "Cette categorie evalue si vous remarquez qu'un element chez le resident est nouveau, different, plus grave ou inquietant.",
-        "Kategori sa a mezire si ou remake le yon bagay sou rezidan an nouvo, diferan, vin pi mal, oswa ta dwe fe ou poze kestyon."
+      "This category tests whether you notice when something about the resident is new, different from baseline, worse, or concerning. It includes physical, cognitive, emotional, and functional changes.",
+      "Esta categoria evalua si usted reconoce cuando algo en el residente es nuevo, diferente de su estado habitual, peor o preocupante. Incluye cambios fisicos, cognitivos, emocionales y funcionales.",
+      "Cette categorie evalue si vous remarquez qu'un element chez le resident est nouveau, different de son etat habituel, plus grave ou inquietant. Elle comprend les changements physiques, cognitifs, emotionnels et fonctionnels.",
+      "Kategori sa a mezire si ou remake le yon bagay sou rezidan an nouvo, diferan ak eta abityel li, vin pi mal, oswa ta dwe bay kestyon. Li gen ladan l chanjman fizik, mantal, emosyonel, ak fonksyonel."
     ),
     ask: t(
       "Is this a change that should not be ignored?",
@@ -349,20 +349,20 @@ const categories = [
       "Eske se yon chanjman ou pa dwe inyore?"
     ),
     why: t(
-      "Many CNA questions begin with a subtle clue. This category trains you to recognize when the resident is no longer at baseline.",
-      "Muchas preguntas del examen CNA empiezan con una pista sutil. Esta categoria le ayuda a reconocer cuando el residente ya no esta en su estado habitual.",
-      "De nombreuses questions de l'examen CNA commencent par un indice discret. Cette categorie vous aide a reconnaitre quand le resident n'est plus dans son etat habituel.",
-        "Anpil kestyon egzamen CNA konmanse ak yon ti siy ki pa two kle. Kategori sa a ede ou rekonet le rezidan an pa nan eta abityel li anko."
+      "Many CNA questions begin with a subtle clue. This category trains you to recognize new, worsening, or unusual signs early without diagnosing the problem yourself.",
+      "Muchas preguntas del examen CNA empiezan con una pista sutil. Esta categoria le ayuda a reconocer senales nuevas, que empeoran o inusuales sin intentar diagnosticar el problema usted mismo.",
+      "De nombreuses questions de l'examen CNA commencent par un indice discret. Cette categorie vous aide a reconnaitre les signes nouveaux, qui s'aggravent ou inhabituels sans essayer de poser vous-meme un diagnostic.",
+      "Anpil kestyon egzamen CNA konmanse ak yon ti siy ki pa two kle. Kategori sa a ede ou rekonet siy nouvo, siy ki vin pi mal, oswa siy ki pa abityel san ou pa eseye bay yon dyagnostik ou menm."
     ),
   },
   {
     id: 2,
     title: t("Scope of Practice & Reporting", "Alcance de practica y reporte", "Champ de pratique et signalement", "Limit pratik ak rapo"),
     description: t(
-      "This category measures whether you know what a nurse aide should do and what should be reported to the nurse.",
-      "Esta categoria evalua si usted sabe lo que un auxiliar de enfermeria puede hacer y lo que debe reportar a la enfermera.",
-      "Cette categorie evalue si vous savez ce qu'un aide-soignant peut faire et ce qui doit etre signale a l'infirmiere.",
-      "Kategori sa a mezire si ou konnen sa yon CNA ka fe ak sa li dwe rapote bay enfimye a."
+      "This category tests whether you know what is within the CNA role, what is outside that role, and who must be informed.",
+      "Esta categoria evalua si usted sabe que esta dentro del rol del CNA, que esta fuera de ese rol y a quien debe informarse.",
+      "Cette categorie evalue si vous savez ce qui est dans le role du CNA, ce qui est en dehors de ce role et qui doit etre informe.",
+      "Kategori sa a mezire si ou konnen sa ki nan wol CNA a, sa ki pa nan wol la, ak kiyès ki dwe resevwa rapo a."
     ),
     ask: t(
       "Should I do this, or should I report it?",
@@ -371,20 +371,20 @@ const categories = [
       "Eske se mwen ki dwe fe sa, oswa mwen dwe rapote li?"
     ),
     why: t(
-      "It helps you stay within the nurse aide role and choose safe answers instead of acting outside your scope.",
-      "Le ayuda a mantenerse dentro del rol del CNA y a escoger respuestas seguras en lugar de actuar fuera de sus funciones.",
-      "Elle vous aide a rester dans le role de l'aide-soignant et a choisir des reponses sures au lieu d'agir en dehors de votre champ de pratique.",
-      "Li ede ou rete nan wol CNA a epi chwazi repons ki an sekirite olye ou aji andeyo limit travay ou."
+      "It helps you separate observe from assess, report from intervene, and CNA duties from nurse or provider responsibilities.",
+      "Le ayuda a diferenciar observar de evaluar, reportar de intervenir y las tareas del CNA de las responsabilidades de la enfermera o del proveedor.",
+      "Elle vous aide a distinguer observer et evaluer, signaler et intervenir, ainsi que les taches du CNA et les responsabilites de l'infirmiere ou du professionnel de sante.",
+      "Li ede ou separe obseve ak evalye, rapote ak entevni, epi travay CNA a ak responsabilite enfimye oswa pwofesyonel sante a."
     ),
   },
   {
     id: 3,
     title: t("Communication & Emotional Support", "Comunicacion y apoyo emocional", "Communication et soutien emotionnel", "Kominikasyon ak sipor emosyonel"),
     description: t(
-      "This category measures how you speak to residents and how you respond in a calm, respectful, and supportive way.",
-      "Esta categoria evalua como habla con los residentes y como responde de una manera calmada, respetuosa y de apoyo.",
-      "Cette categorie evalue la facon dont vous parlez aux residents et dont vous repondez avec calme, respect et soutien.",
-      "Kategori sa a mezire fason ou pale ak rezidan yo ak fason ou reponn ak kalm, respe, ak sipor."
+      "This category tests how you speak to residents and how you respond verbally and emotionally in a calm, respectful, and supportive way.",
+      "Esta categoria evalua como habla con los residentes y como responde verbal y emocionalmente de una manera calmada, respetuosa y de apoyo.",
+      "Cette categorie evalue la facon dont vous parlez aux residents et dont vous repondez verbalement et emotionnellement avec calme, respect et soutien.",
+      "Kategori sa a mezire fason ou pale ak rezidan yo ak fason ou reponn an pawol ak emosyon ak kalm, respe, ak sipor."
     ),
     ask: t(
       "Which answer shows patience, respect, and support?",
@@ -393,20 +393,20 @@ const categories = [
       "Ki repons ki montre pasyans, respe, ak sipor?"
     ),
     why: t(
-      "Strong CNA answers are not only correct. They are also respectful, calming, and resident-centered.",
-      "Una buena respuesta de CNA no solo es correcta. Tambien debe ser respetuosa, tranquilizadora y centrada en el residente.",
-      "Une bonne reponse de CNA n'est pas seulement correcte. Elle doit aussi etre respectueuse, rassurante et centree sur le resident.",
-      "Yon bon repons CNA pa selman korek. Li dwe respekte rezidan an, kalme li, epi santre sou bezwen li."
+      "It trains you to listen for emotional cues and choose responses that use reassurance, orientation cues, and the right tone and pacing.",
+      "Le ensena a escuchar las senales emocionales y a elegir respuestas que usen tranquilidad, orientacion y el tono y ritmo adecuados.",
+      "Elle vous apprend a reconnaitre les indices emotionnels et a choisir des reponses qui utilisent le reassurance, les reperes d'orientation et le bon ton et rythme.",
+      "Li aprann ou remake siy emosyonel yo epi chwazi repons ki bay rasirans, endis oryantasyon, ak bon ton ak bon ritm."
     ),
   },
   {
     id: 4,
     title: t("Observation & Safety", "Observacion y seguridad", "Observation et securite", "Obsevasyon ak sekirite"),
     description: t(
-      "This category measures whether you notice warning signs, risks, or safety concerns before something gets worse.",
-      "Esta categoria evalua si usted detecta senales de alerta, riesgos o problemas de seguridad antes de que la situacion empeore.",
-      "Cette categorie evalue si vous remarquez des signes d'alerte, des risques ou des problemes de securite avant qu'une situation n'empire.",
-      "Kategori sa a mezire si ou remake siy avetisman, risk, oswa pwoblem sekirite anvan sitiyasyon an vin pi mal."
+      "This category tests whether you notice warning signs, risks, or safety concerns that must be recognized to keep the resident safe.",
+      "Esta categoria evalua si usted detecta senales de alerta, riesgos o problemas de seguridad que deben reconocerse para mantener seguro al residente.",
+      "Cette categorie evalue si vous remarquez des signes d'alerte, des risques ou des problemes de securite qui doivent etre reconnus pour garder le resident en securite.",
+      "Kategori sa a mezire si ou remake siy avetisman, risk, oswa pwoblem sekirite ki dwe rekonet pou kenbe rezidan an an sekirite."
     ),
     ask: t(
       "What problem or danger do I need to notice first?",
@@ -415,20 +415,20 @@ const categories = [
       "Ki pwoblem oswa danje mwen dwe remake an premye?"
     ),
     why: t(
-      "These questions test your ability to recognize risk early and protect the resident before harm increases.",
-      "Estas preguntas miden su capacidad para reconocer el riesgo a tiempo y proteger al residente antes de que el dano aumente.",
-      "Ces questions evaluent votre capacite a reconnaitre le risque tot et a proteger le resident avant que le danger ne s'aggrave.",
-        "Kestyon sa yo teste kapasite ou pou rekonet risk bone epi pwoteje rezidan an anvan danje a ogmante."
+      "These questions often involve fall risk, fatigue, confusion, discomfort, or monitoring during care. They test whether you notice danger before it becomes harm.",
+      "Estas preguntas suelen incluir riesgo de caidas, fatiga, confusion, incomodidad o vigilancia durante el cuidado. Evalúan si usted detecta el peligro antes de que se convierta en dano.",
+      "Ces questions portent souvent sur le risque de chute, la fatigue, la confusion, l'inconfort ou la surveillance pendant les soins. Elles evaluent si vous remarquez le danger avant qu'il ne cause un prejudice.",
+      "Kestyon sa yo souvan gen rapo ak risk tonbe, fatig, konfizyon, malez, oswa siveyans pandan swen. Yo teste si ou remake danje a anvan li tounen domaj."
     ),
   },
   {
     id: 5,
     title: t("Personal Care & Comfort", "Cuidado personal y comodidad", "Soins personnels et confort", "Swen pesonel ak konfo"),
     description: t(
-      "This category measures daily care that helps the resident stay clean, comfortable, and properly cared for.",
-      "Esta categoria evalua el cuidado diario que ayuda al residente a mantenerse limpio, comodo y bien atendido.",
-      "Cette categorie evalue les soins quotidiens qui aident le resident a rester propre, confortable et bien pris en charge.",
-      "Kategori sa a mezire swen chak jou ki ede rezidan an rete pwop, alez, epi byen pran swen."
+      "This category tests whether care is promoting comfort, dignity, participation, and good daily support.",
+      "Esta categoria evalua si el cuidado promueve comodidad, dignidad, participacion y un buen apoyo diario.",
+      "Cette categorie evalue si les soins favorisent le confort, la dignite, la participation et un bon soutien quotidien.",
+      "Kategori sa a mezire si swen an ap soutni konfo, diyite, patisipasyon, ak bon sipor chak jou."
     ),
     ask: t(
       "Which answer best supports comfort and proper care?",
@@ -437,20 +437,20 @@ const categories = [
       "Ki repons ki pi byen soutni konfo ak bon swen?"
     ),
     why: t(
-      "It focuses on the quality of routine care, not just finishing the task quickly.",
-      "Se enfoca en la calidad del cuidado rutinario, no solo en terminar la tarea rapidamente.",
-      "Elle met l'accent sur la qualite des soins de routine, et pas seulement sur le fait de terminer la tache rapidement.",
-      "Li konsantre sou kalite swen woutin yo, pa selman sou fini travay la vit."
+      "It includes routine care like bathing, grooming, and feeding, while also reminding you to support preferences, comfort, and participation instead of rushing the task.",
+      "Incluye cuidados rutinarios como bano, aseo y alimentacion, y tambien le recuerda apoyar las preferencias, la comodidad y la participacion en lugar de apresurar la tarea.",
+      "Elle comprend les soins de routine comme le bain, la toilette et l'alimentation, tout en vous rappelant de soutenir les preferences, le confort et la participation au lieu de vous precipiter.",
+      "Li gen ladan l swen woutin tankou benyen, netwayaj, ak manje, epi li raple ou soutni preferans, konfo, ak patisipasyon olye ou prese travay la."
     ),
   },
   {
     id: 6,
     title: t("Mobility & Positioning", "Movilidad y posicionamiento", "Mobilite et positionnement", "Mobilite ak pozisyonman"),
     description: t(
-      "This category measures safe movement, transfers, walking, and body positioning.",
-      "Esta categoria evalua el movimiento seguro, los traslados, la marcha y el posicionamiento del cuerpo.",
-      "Cette categorie evalue les deplacements securitaires, les transferts, la marche et le positionnement du corps.",
-      "Kategori sa a mezire mouvman an sekirite, transfere, mache, ak bon pozisyonman ko a."
+      "This category tests safe movement, transfers, repositioning, walking, and body positioning.",
+      "Esta categoria evalua el movimiento seguro, los traslados, los cambios de posicion, la marcha y el posicionamiento del cuerpo.",
+      "Cette categorie evalue les deplacements securitaires, les transferts, les changements de position, la marche et le positionnement du corps.",
+      "Kategori sa a mezire mouvman an sekirite, transfere, chanje pozisyon, mache, ak bon pozisyonman ko a."
     ),
     ask: t(
       "What keeps the resident safest during movement?",
@@ -459,20 +459,20 @@ const categories = [
       "Kisa ki kenbe rezidan an pi an sekirite pandan mouvman an?"
     ),
     why: t(
-      "It helps you think about balance, support, body mechanics, and positioning before you move the resident.",
-      "Le ayuda a pensar en el equilibrio, el apoyo, la mecanica corporal y el posicionamiento antes de mover al residente.",
-      "Elle vous aide a penser a l'equilibre, au soutien, a la mecanique du corps et au positionnement avant de deplacer le resident.",
-      "Li ede ou reflechi sou ekilib, sipor, mekanik ko, ak pozisyonman anvan ou deplase rezidan an."
+      "It helps you think about transfers, repositioning, body mechanics, and assistive devices before you move the resident.",
+      "Le ayuda a pensar en los traslados, los cambios de posicion, la mecanica corporal y los dispositivos de ayuda antes de mover al residente.",
+      "Elle vous aide a penser aux transferts, aux changements de position, a la mecanique du corps et aux dispositifs d'assistance avant de deplacer le resident.",
+      "Li ede ou reflechi sou transfere, chanje pozisyon, mekanik ko, ak aparey asistans anvan ou deplase rezidan an."
     ),
   },
   {
     id: 7,
     title: t("Environment & Safety", "Entorno y seguridad", "Environnement et securite", "Anviwonman ak sekirite"),
     description: t(
-      "This category measures whether the room and surroundings are safe for the resident.",
-      "Esta categoria evalua si la habitacion y el entorno son seguros para el residente.",
-      "Cette categorie evalue si la chambre et l'environnement sont securitaires pour le resident.",
-      "Kategori sa a mezire si chanm nan ak tout sa ki antoure li an sekirite pou rezidan an."
+      "This category tests whether the physical space is safe and supportive for the resident.",
+      "Esta categoria evalua si el espacio fisico es seguro y adecuado para el residente.",
+      "Cette categorie evalue si l'espace physique est sur et adapte au resident.",
+      "Kategori sa a mezire si espas fizik la an sekirite epi li bon pou rezidan an."
     ),
     ask: t(
       "Is there a hazard in the environment?",
@@ -481,20 +481,20 @@ const categories = [
       "Eske gen yon danje nan anviwonman an?"
     ),
     why: t(
-      "Some risks come from the space itself. This category helps you scan the environment, not only the resident.",
-      "Algunos riesgos vienen del entorno mismo. Esta categoria le ayuda a observar el espacio, no solo al residente.",
-      "Certains risques viennent de l'espace lui-meme. Cette categorie vous aide a observer l'environnement, pas seulement le resident.",
-      "Gen risk ki soti nan espas la menm. Kategori sa a ede ou gade anviwonman an, pa selman rezidan an."
+      "Some risks come from the space itself. This category teaches you to look at bed position, call light access, clutter, wet floors, lighting, and equipment placement.",
+      "Algunos riesgos vienen del entorno mismo. Esta categoria le ensena a mirar la posicion de la cama, el acceso al timbre, el desorden, los pisos mojados, la iluminacion y la ubicacion del equipo.",
+      "Certains risques viennent de l'espace lui-meme. Cette categorie vous apprend a verifier la position du lit, l'acces a la sonnette, l'encombrement, les sols mouilles, l'eclairage et l'emplacement du materiel.",
+      "Gen risk ki soti nan espas la menm. Kategori sa a aprann ou gade pozisyon kabann nan, aksè ak sonnet la, dezod, planche mouye, limyè, ak kote ekipman yo ye."
     ),
   },
   {
     id: 8,
     title: t("Dignity & Resident Rights", "Dignidad y derechos del residente", "Dignite et droits du resident", "Diyite ak dwa rezidan an"),
     description: t(
-      "This category measures privacy, choice, respect, and the resident's right to be treated with dignity.",
-      "Esta categoria evalua la privacidad, la capacidad de elegir, el respeto y el derecho del residente a ser tratado con dignidad.",
-      "Cette categorie evalue la vie privee, le choix, le respect et le droit du resident d'etre traite avec dignite.",
-      "Kategori sa a mezire vi prive, chwa, respe, ak dwa rezidan an pou yo trete li ak diyite."
+      "This category tests privacy, choice, respect, autonomy, and the resident's right to be treated with dignity.",
+      "Esta categoria evalua la privacidad, la capacidad de elegir, el respeto, la autonomia y el derecho del residente a ser tratado con dignidad.",
+      "Cette categorie evalue la vie privee, le choix, le respect, l'autonomie et le droit du resident d'etre traite avec dignite.",
+      "Kategori sa a mezire vi prive, chwa, respe, otonomi, ak dwa rezidan an pou yo trete li ak diyite."
     ),
     ask: t(
       "Does this answer protect the resident's rights and dignity?",
@@ -503,20 +503,20 @@ const categories = [
       "Eske repons sa a pwoteje dwa ak diyite rezidan an?"
     ),
     why: t(
-      "It reminds you that safe care also includes privacy, choice, autonomy, and respectful treatment.",
-      "Le recuerda que una atencion segura tambien incluye privacidad, capacidad de elegir, autonomia y un trato respetuoso.",
-      "Elle vous rappelle que des soins securitaires incluent aussi la vie privee, le choix, l'autonomie et un traitement respectueux.",
-      "Li raple ou ke swen ki an sekirite gen ladan l tou vi prive, chwa, otonomi, ak tretman ak respe."
+      "It reminds you to protect choice and consent, avoid overhelping, preserve privacy during care, and use respectful language.",
+      "Le recuerda proteger la eleccion y el consentimiento, evitar ayudar de mas, preservar la privacidad durante el cuidado y usar un lenguaje respetuoso.",
+      "Elle vous rappelle de proteger le choix et le consentement, d'eviter d'aider excessivement, de preserver l'intimite pendant les soins et d'utiliser un langage respectueux.",
+      "Li raple ou pwoteje chwa ak konsantman, evite ede twòp, prezève vi prive pandan swen, epi sèvi ak langaj ki gen respè."
     ),
   },
   {
     id: 9,
     title: t("Infection Control", "Control de infecciones", "Controle des infections", "Kontwol enfeksyon"),
     description: t(
-      "This category measures how to prevent the spread of germs and keep care clean and safe.",
-      "Esta categoria evalua como prevenir la propagacion de germenes y mantener el cuidado limpio y seguro.",
-      "Cette categorie evalue comment prevenir la propagation des germes et garder les soins propres et securitaires.",
-      "Kategori sa a mezire kijan pou anpeche mikwob gaye epi kenbe swen an pwop ak an sekirite."
+      "This category tests how germs are prevented from spreading and how care is kept clean and safe.",
+      "Esta categoria evalua como prevenir la propagacion de germenes y como mantener el cuidado limpio y seguro.",
+      "Cette categorie evalue comment empecher la propagation des germes et comment garder les soins propres et securitaires.",
+      "Kategori sa a mezire kijan yo anpeche mikwob gaye ak kijan yo kenbe swen an pwop ak an sekirite."
     ),
     ask: t(
       "What action helps prevent contamination?",
@@ -525,10 +525,10 @@ const categories = [
       "Ki aksyon ki ede anpeche kontaminasyon?"
     ),
     why: t(
-      "These questions test whether you can protect both the resident and yourself from avoidable spread.",
-      "Estas preguntas evaluan si puede proteger tanto al residente como a usted mismo de una propagacion que puede evitarse.",
-      "Ces questions evaluent si vous pouvez proteger a la fois le resident et vous-meme contre une propagation evitable.",
-      "Kestyon sa yo teste si ou ka pwoteje ni rezidan an ni tet ou kont pwopagasyon enfeksyon ki ka evite."
+      "It focuses on hand hygiene, PPE, clean versus dirty tasks, and the precautions that prevent contamination and spread.",
+      "Se enfoca en la higiene de manos, el uso de EPP, las tareas limpias frente a las sucias y las precauciones que previenen la contaminacion y la propagacion.",
+      "Elle porte sur l'hygiene des mains, l'EPI, les taches propres versus sales et les precautions qui previennent la contamination et la propagation.",
+      "Li konsantre sou ijyèn men, EPP, travay pwòp kont travay sal, ak prekosyon ki anpeche kontaminasyon ak pwopagasyon."
     ),
   },
 ];
@@ -659,9 +659,9 @@ const categories = [
               </summary>
               <ul style={ul}>
                 <li>{t("They help you notice important clues.", "Le ayudan a notar pistas importantes.", "Elles vous aident a remarquer des indices importants.", "Yo ede ou remake siy enpotan yo.")}</li>
-                <li>{t("They help you use safe logic.", "Le ayudan a usar una logica segura.", "Elles vous aident a utiliser une logique sure.", "Yo ede ou itilize yon lojik ki an sekirite.")}</li>
+                <li>{t("They help you use safe logic instead of only memorizing answers.", "Le ayudan a usar una logica segura en lugar de solo memorizar respuestas.", "Elles vous aident a utiliser une logique sure au lieu de seulement memoriser les reponses.", "Yo ede ou itilize yon lojik ki an sekirite olye ou selman memorize repons yo.")}</li>
                 <li>{t("They help you stay within the nurse aide role.", "Le ayudan a mantenerse dentro del rol del auxiliar.", "Elles vous aident a rester dans le role de l'aide-soignant.", "Yo ede ou rete nan wol CNA a.")}</li>
-                <li>{t("They help you choose answers with more confidence.", "Le ayudan a elegir respuestas con mas confianza.", "Elles vous aident a choisir des reponses avec plus d'assurance.", "Yo ede ou chwazi repons yo ak plis konfyans.")}</li>
+                <li>{t("They help you choose safer answers with more confidence.", "Le ayudan a elegir respuestas mas seguras y con mas confianza.", "Elles vous aident a choisir des reponses plus sures avec plus d'assurance.", "Yo ede ou chwazi repons ki pi an sekirite ak plis konfyans.")}</li>
               </ul>
             </details>
           ) : (
@@ -669,9 +669,9 @@ const categories = [
               <div style={subhead}>{t("Why they matter", "Por que importan", "Pourquoi elles sont importantes", "Poukisa yo enpotan")}</div>
               <ul style={ul}>
                 <li>{t("They help you notice important clues.", "Le ayudan a notar pistas importantes.", "Elles vous aident a remarquer des indices importants.", "Yo ede ou remake siy enpotan yo.")}</li>
-                <li>{t("They help you use safe logic.", "Le ayudan a usar una logica segura.", "Elles vous aident a utiliser une logique sure.", "Yo ede ou itilize yon lojik ki an sekirite.")}</li>
+                <li>{t("They help you use safe logic instead of only memorizing answers.", "Le ayudan a usar una logica segura en lugar de solo memorizar respuestas.", "Elles vous aident a utiliser une logique sure au lieu de seulement memoriser les reponses.", "Yo ede ou itilize yon lojik ki an sekirite olye ou selman memorize repons yo.")}</li>
                 <li>{t("They help you stay within the nurse aide role.", "Le ayudan a mantenerse dentro del rol del auxiliar.", "Elles vous aident a rester dans le role de l'aide-soignant.", "Yo ede ou rete nan wol CNA a.")}</li>
-                <li>{t("They help you choose answers with more confidence.", "Le ayudan a elegir respuestas con mas confianza.", "Elles vous aident a choisir des reponses avec plus d'assurance.", "Yo ede ou chwazi repons yo ak plis konfyans.")}</li>
+                <li>{t("They help you choose safer answers with more confidence.", "Le ayudan a elegir respuestas mas seguras y con mas confianza.", "Elles vous aident a choisir des reponses plus sures avec plus d'assurance.", "Yo ede ou chwazi repons ki pi an sekirite ak plis konfyans.")}</li>
               </ul>
             </>
           )}
@@ -683,7 +683,8 @@ const categories = [
               </summary>
               <ul style={ul}>
                 <li>{t("Look for the main clue in the question.", "Busque la pista principal en la pregunta.", "Cherchez l'indice principal dans la question.", "Chache siy prensipal la nan kestyon an.")}</li>
-                <li>{t("Decide which category best fits the problem.", "Decida que categoria se ajusta mejor al problema.", "Decidez quelle categorie correspond le mieux au probleme.", "Deside ki kategori ki pi byen mache ak pwoblem nan.")}</li>
+                <li>{t("Ask what kind of problem or decision the question is testing.", "Preguntese que tipo de problema o decision esta evaluando la pregunta.", "Demandez-vous quel type de probleme ou de decision la question evalue.", "Mande tet ou ki kalite pwoblem oswa desizyon kestyon an ap teste.")}</li>
+                <li>{t("Identify which category best fits the question.", "Identifique que categoria se ajusta mejor a la pregunta.", "Identifiez quelle categorie correspond le mieux a la question.", "Idantifye ki kategori ki pi byen mache ak kestyon an.")}</li>
                 <li>{t("Think about the safest next step.", "Piense en el siguiente paso mas seguro.", "Pensez a l'etape suivante la plus sure.", "Reflechi sou pwochen etap ki pi an sekirite a.")}</li>
                 <li>{t("Ask whether you should do it, report it, or watch closely.", "Preguntese si debe hacerlo, reportarlo o vigilarlo de cerca.", "Demandez-vous si vous devez le faire, le signaler ou l'observer de pres.", "Mande tet ou si ou dwe fe li, rapote li, oswa siveye li byen pre.")}</li>
                 <li>{t("Choose the answer that best protects the resident.", "Elija la respuesta que mejor protege al residente.", "Choisissez la reponse qui protege le mieux le resident.", "Chwazi repons ki pi byen pwoteje rezidan an.")}</li>
@@ -694,7 +695,8 @@ const categories = [
               <div style={subhead}>{t("How to use them", "Como usarlas", "Comment les utiliser", "Kijan pou itilize yo")}</div>
               <ul style={ul}>
                 <li>{t("Look for the main clue in the question.", "Busque la pista principal en la pregunta.", "Cherchez l'indice principal dans la question.", "Chache siy prensipal la nan kestyon an.")}</li>
-                <li>{t("Decide which category best fits the problem.", "Decida que categoria se ajusta mejor al problema.", "Decidez quelle categorie correspond le mieux au probleme.", "Deside ki kategori ki pi byen mache ak pwoblem nan.")}</li>
+                <li>{t("Ask what kind of problem or decision the question is testing.", "Preguntese que tipo de problema o decision esta evaluando la pregunta.", "Demandez-vous quel type de probleme ou de decision la question evalue.", "Mande tet ou ki kalite pwoblem oswa desizyon kestyon an ap teste.")}</li>
+                <li>{t("Identify which category best fits the question.", "Identifique que categoria se ajusta mejor a la pregunta.", "Identifiez quelle categorie correspond le mieux a la question.", "Idantifye ki kategori ki pi byen mache ak kestyon an.")}</li>
                 <li>{t("Think about the safest next step.", "Piense en el siguiente paso mas seguro.", "Pensez a l'etape suivante la plus sure.", "Reflechi sou pwochen etap ki pi an sekirite a.")}</li>
                 <li>{t("Ask whether you should do it, report it, or watch closely.", "Preguntese si debe hacerlo, reportarlo o vigilarlo de cerca.", "Demandez-vous si vous devez le faire, le signaler ou l'observer de pres.", "Mande tet ou si ou dwe fe li, rapote li, oswa siveye li byen pre.")}</li>
                 <li>{t("Choose the answer that best protects the resident.", "Elija la respuesta que mejor protege al residente.", "Choisissez la reponse qui protege le mieux le resident.", "Chwazi repons ki pi byen pwoteje rezidan an.")}</li>
