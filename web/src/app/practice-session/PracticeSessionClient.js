@@ -517,12 +517,30 @@ export default function PracticeSessionClient({ bankById }) {
                 <div style={{ fontWeight: "bold", fontSize: 17, marginBottom: 8, color: saved?.is_correct ? "#1f6f3d" : "var(--brand-red)" }}>
                   {saved?.is_correct ? t("Correct", "Correcto", "Correct", "Korek") : t(`Incorrect - correct answer is ${question.correct_answer}`, `Incorrecto - la respuesta correcta es ${question.correct_answer}`, `Incorrect - la bonne reponse est ${question.correct_answer}`, `Pa korek - bon repons lan se ${question.correct_answer}`)}
                 </div>
-                {(rationalePrimary?.why_correct || rationaleSupport?.why_correct) ? (
+                {(
+                  rationalePrimary?.why_correct ||
+                  rationaleSupport?.why_correct ||
+                  rationalePrimary?.prometric_signal ||
+                  rationaleSupport?.prometric_signal
+                ) ? (
                   <details>
                     <summary style={{ cursor: "pointer", fontSize: 14, fontWeight: 700, color: "var(--brand-teal-dark)" }}>{t("Show explanation", "Ver explicacion", "Voir l'explication", "Gade eksplikasyon")}</summary>
                     <div style={{ marginTop: 10, fontSize: 13, color: "#333", lineHeight: 1.7 }}>
                       {rationalePrimary?.why_correct ? <div>{rationalePrimary.why_correct}</div> : null}
                       {isBilingualSupport && rationaleSupport?.why_correct && rationaleSupport.why_correct !== rationalePrimary?.why_correct ? <div style={{ marginTop: 6, opacity: 0.92 }}>{rationaleSupport.why_correct}</div> : null}
+                      {rationalePrimary?.prometric_signal ? (
+                        <div style={{ marginTop: 10 }}>
+                          <div style={{ fontWeight: 700, color: "var(--heading)", marginBottom: 4 }}>
+                            {t("Prometric signal", "Senal de Prometric", "Signal Prometric", "Siyal Prometric")}
+                          </div>
+                          <div>{rationalePrimary.prometric_signal}</div>
+                        </div>
+                      ) : null}
+                      {isBilingualSupport &&
+                      rationaleSupport?.prometric_signal &&
+                      rationaleSupport.prometric_signal !== rationalePrimary?.prometric_signal ? (
+                        <div style={{ marginTop: 6, opacity: 0.92 }}>{rationaleSupport.prometric_signal}</div>
+                      ) : null}
                     </div>
                   </details>
                 ) : null}

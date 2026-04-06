@@ -9,6 +9,66 @@ function shuffle(list, rng = Math.random) {
   return arr;
 }
 
+function getDifficultyBucket(question) {
+  const raw = Number(question?.difficulty_tag ?? question?.difficulty ?? 2);
+  if (raw <= 1) return "easy";
+  if (raw >= 3) return "challenging";
+  return "moderate";
+}
+
+function buildPracticeDifficultyPlan(count) {
+  if (count <= 1) return ["moderate"];
+  if (count === 2) return ["easy", "moderate"];
+  if (count === 3) return ["easy", "moderate", "challenging"];
+  if (count === 4) return ["easy", "moderate", "moderate", "challenging"];
+  if (count === 5) return ["easy", "moderate", "moderate", "challenging", "moderate"];
+  if (count === 6) return ["easy", "moderate", "moderate", "challenging", "moderate", "easy"];
+
+  const plan = [];
+  const easyCount = Math.max(1, Math.round(count * 0.2));
+  const challengingCount = Math.max(1, Math.round(count * 0.2));
+  const moderateCount = Math.max(1, count - easyCount - challengingCount);
+
+  for (let i = 0; i < easyCount; i += 1) plan.push("easy");
+  for (let i = 0; i < moderateCount; i += 1) plan.push("moderate");
+  for (let i = 0; i < challengingCount; i += 1) plan.push("challenging");
+
+  return shuffle(plan);
+}
+
+function pickPracticeQuestions(unseen, seen, count, rng = Math.random) {
+  const targetCount = Math.max(1, Math.min(Number(count || 10), unseen.length + seen.length));
+  const orderedPool = [...shuffle(unseen, rng), ...shuffle(seen, rng)];
+  const plan = buildPracticeDifficultyPlan(targetCount);
+  const picked = [];
+  const usedIds = new Set();
+
+  const takeMatching = (bucketName) => {
+    const index = orderedPool.findIndex(
+      (question) =>
+        !usedIds.has(question.question_id) && getDifficultyBucket(question) === bucketName
+    );
+    if (index < 0) return null;
+    const question = orderedPool[index];
+    usedIds.add(question.question_id);
+    picked.push(question);
+    return question;
+  };
+
+  plan.forEach((bucketName) => {
+    takeMatching(bucketName);
+  });
+
+  for (const question of orderedPool) {
+    if (picked.length >= targetCount) break;
+    if (usedIds.has(question.question_id)) continue;
+    usedIds.add(question.question_id);
+    picked.push(question);
+  }
+
+  return picked;
+}
+
 function normalizeQuestionBank(questionBankSnapshot) {
   return Array.isArray(questionBankSnapshot)
     ? questionBankSnapshot
@@ -73,8 +133,7 @@ export function buildPracticeSession({
     else unseen.push(question);
   });
 
-  const ordered = [...shuffle(unseen), ...shuffle(seen)];
-  const picked = ordered.slice(0, Math.min(Number(questionCount || 10), ordered.length));
+  const picked = pickPracticeQuestions(unseen, seen, questionCount);
 
   if (!picked.length) {
     throw new Error("buildPracticeSession: unable to select questions for practice");

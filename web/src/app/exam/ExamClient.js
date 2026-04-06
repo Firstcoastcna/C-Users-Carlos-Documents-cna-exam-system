@@ -1228,32 +1228,64 @@ deliveredQuestionIds.forEach((qid) => {
             <div style={{ maxWidth: "720px", width: "100%" }}>
               <div
   style={{
-    fontSize: "30px",
-    fontWeight: "bold",
-    marginBottom: "12px",
-    color: didPass ? "green" : "red",
+    maxWidth: "640px",
+    margin: "0 auto 16px",
+    ...softPanel,
+    padding: isNarrow ? "16px" : "20px",
+    textAlign: "center",
+    background: didPass
+      ? "linear-gradient(180deg, #f5fff7 0%, #e8f7ee 100%)"
+      : "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
+    border: didPass ? "1px solid #b8ddc1" : "1px solid #f0caca",
   }}
 >
-  {T.scoreLine(percent, didPass)}
-
-  {resultsPayload?.overall_status && (
   <div
     style={{
-      fontSize: "16px",
-      color: "#333",
-      marginBottom: "16px",
+      fontSize: "12px",
+      fontWeight: 700,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      color: didPass ? "#2f6b43" : "#9f3131",
+      marginBottom: "8px",
     }}
   >
-    {T.readinessAssessment}:{" "}
-    <span style={{ fontWeight: "600", color: "#222" }}>
-      {resultsPayload.overall_status === "On Track"
-  ? T.statusOnTrack
-  : resultsPayload.overall_status === "High Risk"
-  ? T.statusHighRisk
-  : T.statusBorderline}
-    </span>
+    {T.resultsOnly}
   </div>
-)}
+  <div
+    style={{
+      fontSize: isNarrow ? "28px" : "32px",
+      fontWeight: "bold",
+      marginBottom: "8px",
+      color: didPass ? "#1f6f3d" : "var(--brand-red)",
+    }}
+  >
+    {T.scoreLine(percent, didPass)}
+  </div>
+
+  {resultsPayload?.overall_status && (
+    <div
+      style={{
+        fontSize: "15px",
+        color: "#334455",
+        marginBottom: "12px",
+        lineHeight: 1.6,
+      }}
+    >
+      {T.readinessAssessment}:{" "}
+      <span style={{ fontWeight: "700", color: "#22313d" }}>
+        {resultsPayload.overall_status === "On Track"
+          ? T.statusOnTrack
+          : resultsPayload.overall_status === "High Risk"
+            ? T.statusHighRisk
+            : T.statusBorderline}
+      </span>
+    </div>
+  )}
+
+  <div style={{ fontSize: "14px", color: "#4d6174", lineHeight: 1.65 }}>
+    {T.analyticsExplain}
+  </div>
+</div>
 
 {resultsPayload?.overall_status && (
   <div
@@ -1261,25 +1293,24 @@ deliveredQuestionIds.forEach((qid) => {
       margin: "0 auto 14px",
       maxWidth: "640px",
       ...softPanel,
-      padding: "8px 10px",
+      padding: "12px 14px",
       textAlign: "left",
+      background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
     }}
   >
-    <div style={{ fontWeight: 600, fontSize: "20px", marginBottom: "3px" }}>
-  {T.nextStepTitle}
-</div>
+    <div style={{ fontWeight: 700, fontSize: "18px", marginBottom: "6px", color: "var(--heading)" }}>
+      {T.nextStepTitle}
+    </div>
 
-    <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#333" }}>
+    <div style={{ fontSize: "14px", lineHeight: "1.65", color: "#334455" }}>
       {resultsPayload.overall_status === "On Track"
         ? T.nextStepOnTrack
         : resultsPayload.overall_status === "High Risk"
-        ? T.nextStepHighRisk
-        : T.nextStepBorderline}
+          ? T.nextStepHighRisk
+          : T.nextStepBorderline}
     </div>
   </div>
 )}
-
-</div>
 
               <div
                 style={{
@@ -1290,15 +1321,39 @@ deliveredQuestionIds.forEach((qid) => {
                   textAlign: "left",
                 }}
               >
-                <div style={{ fontSize: "14px", lineHeight: "1.9" }}>
-                  <div><strong>{T.total}:</strong> {result.total}</div>
-                  <div><strong>{T.correct}:</strong> {result.correct}</div>
-                  <div><strong>{T.incorrect}:</strong> {result.incorrect}</div>
-                  <div><strong>{T.unanswered}:</strong> {result.unanswered}</div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isNarrow ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))",
+                    gap: 10,
+                    marginBottom: "14px",
+                  }}
+                >
+                  {[
+                    [T.total, result.total],
+                    [T.correct, result.correct],
+                    [T.incorrect, result.incorrect],
+                    [T.unanswered, result.unanswered],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      style={{
+                        border: "1px solid var(--chrome-border)",
+                        borderRadius: 12,
+                        background: "white",
+                        padding: "12px 12px",
+                      }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--muted)", marginBottom: 6 }}>
+                        {label}
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)" }}>{value}</div>
+                    </div>
+                  ))}
                 </div>
 
                 <div style={{ marginTop: "14px" }}>
-  <div style={{ fontWeight: "bold", marginBottom: "6px" }}>
+  <div style={{ fontWeight: "bold", marginBottom: "6px", color: "var(--heading)" }}>
     {T.scoreByChapter}
   </div>
 
@@ -1307,9 +1362,26 @@ deliveredQuestionIds.forEach((qid) => {
   </div>
 
   {[1, 2, 3, 4, 5].map((ch) => (
-    <div key={ch} style={{ fontSize: "16px", marginBottom: "6px" }}>
-      {CHAPTER_NAMES[ch]}:{" "}
-      <strong>
+    <div
+      key={ch}
+      style={{
+        fontSize: "15px",
+        marginBottom: "8px",
+        padding: "10px 12px",
+        border: "1px solid var(--chrome-border)",
+        borderRadius: 12,
+        background: "white",
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        alignItems: isNarrow ? "flex-start" : "center",
+        flexWrap: "nowrap",
+      }}
+    >
+      <span style={{ color: "#334455", flex: 1, minWidth: 0, lineHeight: 1.45 }}>
+        {CHAPTER_NAMES[ch]}
+      </span>
+      <strong style={{ color: "var(--heading)", flexShrink: 0, whiteSpace: "nowrap" }}>
         {chapterStats[ch].correct} / {chapterStats[ch].total}
       </strong>
     </div>
@@ -2145,12 +2217,22 @@ let resultsPayload = null;
     style={{
       marginTop: "14px",
       padding: "12px",
-      border: "1px solid #d4dee8",
+      border:
+        resultsPayload.overall_status === "On Track"
+          ? "1px solid #b8ddc1"
+          : resultsPayload.overall_status === "High Risk"
+            ? "1px solid #efc2c2"
+            : "1px solid #e8d7a6",
       borderRadius: "12px",
-      background: "#fbfdff",
+      background:
+        resultsPayload.overall_status === "On Track"
+          ? "linear-gradient(180deg, #f5fff7 0%, #edf8f1 100%)"
+          : resultsPayload.overall_status === "High Risk"
+            ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
+            : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
     }}
   >
-    <div style={{ fontSize: "16px", fontWeight: "700", color: "#555", marginBottom: "6px" }}>
+    <div style={{ fontSize: "16px", fontWeight: "700", color: "#455867", marginBottom: "6px" }}>
   {T.readiness}
 </div>
 
@@ -2178,10 +2260,10 @@ let resultsPayload = null;
           marginBottom: "8px",
           color:
             resultsPayload.overall_status === "On Track"
-              ? "green"
+              ? "#1f6f3d"
               : resultsPayload.overall_status === "High Risk"
-              ? "red"
-              : "#111",
+                ? "var(--brand-red)"
+                : "#7a5a00",
         }}
       >
         {statusLabel}
@@ -2204,10 +2286,10 @@ let resultsPayload = null;
         padding: "12px",
         border: "1px solid #d4dee8",
         borderRadius: "12px",
-        background: "#fbfdff",
+        background: "linear-gradient(180deg, #f8fcff 0%, #f1f7fb 100%)",
       }}
     >
-      <div style={{ fontSize: "16px", fontWeight: "700", color: "#555", marginBottom: "8px" }}>
+      <div style={{ fontSize: "16px", fontWeight: "700", color: "#455867", marginBottom: "8px" }}>
   {T.categoryDiagnosis}
 </div>
       <div style={{ fontSize: "12px", color: "#555", lineHeight: "1.5", marginBottom: "10px" }}>
@@ -2226,10 +2308,10 @@ let resultsPayload = null;
 
   const colBox = {
     flex: 1,
-    border: "1px solid #e2ebf4",
+    border: "1px solid #dbe7ef",
     borderRadius: "10px",
     padding: "10px",
-    background: "white",
+    background: "#ffffff",
     minHeight: "140px",
   };
 
@@ -2292,18 +2374,18 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
 
   return (
     <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-      <div style={colBox}>
-        {colTitle(T.colStrengths)}
+      <div style={{ ...colBox, background: "#f5fff7", border: "1px solid #d8eadf" }}>
+        {colTitle(T.colStrengths, { color: "#2f6b43" })}
         {renderList(strengths, T.noneStrengths)}
       </div>
 
-      <div style={colBox}>
-        {colTitle(T.colWeaknesses)}
+      <div style={{ ...colBox, background: "#fffdf7", border: "1px solid #eadfbf" }}>
+        {colTitle(T.colWeaknesses, { color: "#7a5a00" })}
         {renderList(weaknesses, T.noneWeaknesses)}
       </div>
 
-      <div style={colBox}>
-        {colTitle(T.colHighRisk, { color: "red" })}
+      <div style={{ ...colBox, background: "#fff8f8", border: "1px solid #efcfcf" }}>
+        {colTitle(T.colHighRisk, { color: "var(--brand-red)" })}
         {renderList(highRisk, T.noneHighRisk)}
       </div>
     </div>
@@ -2320,10 +2402,10 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
         padding: "14px",
         border: "1px solid #d4dee8",
         borderRadius: "12px",
-        background: "#fbfdff",
+        background: "linear-gradient(180deg, #f8fcff 0%, #f1f7fb 100%)",
       }}
     >
-      <div style={{ fontSize: "16px", fontWeight: "700", color: "#555", marginBottom: "8px" }}>
+      <div style={{ fontSize: "16px", fontWeight: "700", color: "#455867", marginBottom: "8px" }}>
   {T.whatToStudyNext}
 </div>
 <div style={{ fontSize: "12px", color: "#555", lineHeight: "1.5", marginBottom: "10px" }}>
@@ -2360,10 +2442,10 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                 <div
                   key={category.category_id}
                   style={{
-                    border: "1px solid #e2ebf4",
+                    border: "1px solid #d8e4ec",
                     borderRadius: "10px",
                     padding: "12px",
-                    background: "white",
+                    background: "linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%)",
                     marginBottom: "12px",
                   }}
                 >
@@ -2404,10 +2486,10 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             <div
               key={lensTitle}
               style={{
-                border: "1px solid #e2ebf4",
+                border: "1px solid #d8e4ec",
                 borderRadius: "10px",
                 padding: "12px",
-                background: "white",
+                background: "linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%)",
                 marginBottom: "12px",
               }}
             >

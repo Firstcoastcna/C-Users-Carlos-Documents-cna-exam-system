@@ -867,7 +867,7 @@ function PracticeInner() {
             }
             action={
               <button
-                style={{ ...btnSecondary, width: isNarrow ? "100%" : "220px" }}
+                style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }}
                 onClick={() => router.push(`/practice-session?lang=${lang}&session_id=${activeSession.session_id}`)}
               >
                 {TEXT.resumeButton}
@@ -1178,7 +1178,37 @@ function PracticeInner() {
               </div>
             </div>
           }
-          action={<button style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", opacity: mode === "category" && !selectedCategory ? 0.6 : 1, cursor: mode === "category" && !selectedCategory ? "not-allowed" : "pointer" }} onClick={startPractice} disabled={mode === "category" && !selectedCategory}>{TEXT.startPractice}</button>}
+          action={
+            <div style={{ width: isNarrow ? "100%" : "220px" }}>
+              <button
+                style={{
+                  ...btnPrimary,
+                  width: "100%",
+                  opacity: mode === "category" && !selectedCategory ? 0.6 : activeSession ? 0.55 : 1,
+                  cursor:
+                    mode === "category" && !selectedCategory
+                      ? "not-allowed"
+                      : activeSession
+                        ? "not-allowed"
+                        : "pointer",
+                }}
+                onClick={startPractice}
+                disabled={mode === "category" && !selectedCategory || !!activeSession}
+              >
+                {TEXT.startPractice}
+              </button>
+              {activeSession ? (
+                <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#6c5b00" }}>
+                  {t(
+                    "Finish or resume your current practice session before starting a new one.",
+                    "Termine o reanude su sesion de practica actual antes de comenzar una nueva.",
+                    "Terminez ou reprenez votre session de pratique en cours avant d'en commencer une nouvelle.",
+                    "Fini oswa reprann sesyon pratik aktyel ou a anvan ou komanse yon lot."
+                  )}
+                </div>
+              ) : null}
+            </div>
+          }
         />
       </div>
     </Frame>
