@@ -1528,6 +1528,7 @@ if (mode === "rationales") {
       unanswered: "Unanswered",
       correctAnswer: "Correct Answer",
       openHint: isNarrow ? "Tap to open" : "Click to open",
+      closeHint: isNarrow ? "Tap to close" : "Click to close",
     },
     es: {
       noMissedQuestions: "No hay preguntas falladas.",
@@ -1536,6 +1537,7 @@ if (mode === "rationales") {
       unanswered: "Sin responder",
       correctAnswer: "Respuesta correcta",
       openHint: isNarrow ? "Toque para abrir" : "Haga clic para abrir",
+      closeHint: isNarrow ? "Toque para cerrar" : "Haga clic para cerrar",
     },
     fr: {
       noMissedQuestions: "Aucune question manquée.",
@@ -1544,6 +1546,7 @@ if (mode === "rationales") {
       unanswered: "Sans réponse",
       correctAnswer: "Bonne réponse",
       openHint: isNarrow ? "Touchez pour ouvrir" : "Cliquez pour ouvrir",
+      closeHint: isNarrow ? "Touchez pour fermer" : "Cliquez pour fermer",
     },
     ht: {
       noMissedQuestions: "Pa gen kestyon ou rate.",
@@ -1552,6 +1555,7 @@ if (mode === "rationales") {
       unanswered: "San repons",
       correctAnswer: "Bon repons",
       openHint: isNarrow ? "Peze pou louvri" : "Klike pou louvri",
+      closeHint: isNarrow ? "Peze pou femen" : "Klike pou femen",
     },
   };
 
@@ -1740,6 +1744,8 @@ if (lang === "ht") {
   rationaleBlocks.push({ label: "HT", r: q.variants?.ht?.rationale });
 }
 
+      const isOpen = openRationaleQid === qid;
+
       return (
         <details
           key={qid}
@@ -1773,7 +1779,7 @@ if (lang === "ht") {
                 {RT.question} {num}
               </div>
               <div style={{ color: "#607282", fontSize: "12px", fontWeight: 700, whiteSpace: "nowrap" }}>
-                {RT.openHint}
+                {isOpen ? RT.closeHint : RT.openHint}
               </div>
             </div>
             <div style={{ display: "grid", gap: "4px", color: "#516677", fontSize: "13px", lineHeight: "1.5" }}>

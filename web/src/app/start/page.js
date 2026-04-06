@@ -184,14 +184,54 @@ function StartInner() {
     return en;
   }
 
+  const headerButtons = isNarrow
+    ? [
+        {
+          key: "change-language",
+          label: t("Change language", "Cambiar idioma", "Changer de langue", "Chanje lang"),
+          onClick: () => router.push("/?force_lang=1"),
+        },
+        {
+          key: "categories",
+          label: t(
+            "Understanding Categories",
+            "Entender las categorias",
+            "Comprendre les categories",
+            "Konprann kategori yo"
+          ),
+          onClick: () => router.push(`/category-foundation?lang=${lang}`),
+        },
+      ]
+    : [
+        {
+          key: "categories",
+          label: t(
+            "Understanding Categories",
+            "Entender las categorias",
+            "Comprendre les categories",
+            "Konprann kategori yo"
+          ),
+          onClick: () => router.push(`/category-foundation?lang=${lang}`),
+        },
+        {
+          key: "change-language",
+          label: t("Change language", "Cambiar idioma", "Changer de langue", "Chanje lang"),
+          onClick: () => router.push("/?force_lang=1"),
+        },
+      ];
+
   return (
     <Frame
       title={t("MAIN MENU", "MENU PRINCIPAL", "MENU PRINCIPAL", "MENI PRENSIPAL")}
       theme={theme}
       headerAction={
-        <button style={btnSecondary} onClick={() => router.push("/?force_lang=1")}>
-          {t("Change language", "Cambiar idioma", "Changer de langue", "Chanje lang")}
-        </button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {headerButtons.map((button) => (
+            <button key={button.key} style={btnSecondary} onClick={button.onClick}>
+              {button.label}
+            </button>
+          ))}
+        </div>
       }
       footer={<div />}
     >

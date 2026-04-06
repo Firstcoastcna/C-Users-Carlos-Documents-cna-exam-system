@@ -145,8 +145,13 @@ function FoundationInner() {
       theme={theme}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
-          <button style={btnPrimary} onClick={() => router.push(`/start?lang=${lang}`)}>
-            {t("Continue to Main Menu", "Continuar al menu principal", "Continuer vers le menu principal", "Kontinye nan meni prensipal la")}
+          <button style={btnPrimary} onClick={() => router.push(`/category-foundation?lang=${lang}`)}>
+            {t(
+              "Continue to Category Guide",
+              "Continuar a la guia de categorias",
+              "Continuer vers le guide des categories",
+              "Kontinye nan gid kategori yo"
+            )}
           </button>
         </div>
       }
@@ -187,7 +192,7 @@ function FoundationInner() {
             {t(
               "This platform helps you study in two ways",
               "Esta plataforma le ayuda a estudiar de dos maneras",
-              "Cette plateforme vous aide a etudier de deux facons",
+              "Cette plateforme vous aide a etudier de deux manieres",
               "Platfom sa a ede ou etidye nan de fason"
             )}
           </div>
@@ -216,8 +221,8 @@ function FoundationInner() {
             title={t("Chapters", "Capitulos", "Chapitres", "Chapit")}
             body={t(
               "Chapters are the familiar study topics. They help you review the official CNA content areas, like safety, resident care, function, and changes in condition. Use chapters when you want to study by topic or review your notes and book.",
-              "Los capitulos son los temas de estudio familiares. Le ayudan a revisar las areas oficiales de contenido CNA, como seguridad, cuidado del residente, funcion y cambios en la condicion. Use capitulos cuando quiera estudiar por tema o repasar sus apuntes y libro.",
-              "Les chapitres sont les themes d'etude familiers. Ils vous aident a revoir les domaines officiels du contenu CNA, comme la securite, les soins au resident, la fonction et les changements d'etat. Utilisez les chapitres lorsque vous voulez etudier par sujet ou revoir vos notes et votre livre.",
+              "Los capitulos son los temas de estudio que ya conoce. Le ayudan a repasar las areas oficiales del contenido CNA, como seguridad, cuidado del residente, funcion y cambios en la condicion. Use los capitulos cuando quiera estudiar por tema o repasar sus apuntes y su libro.",
+              "Les chapitres sont les themes d'etude que vous connaissez deja. Ils vous aident a revoir les domaines officiels du contenu CNA, comme la securite, les soins au resident, la fonction et les changements d'etat. Utilisez les chapitres lorsque vous voulez etudier par sujet ou revoir vos notes et votre manuel.",
               "Chapit yo se sijè etid ou deja konnen. Yo ede ou revize kontni ofisyel CNA yo, tankou sekirite, swen rezidan an, fonksyon, ak chanjman nan kondisyon. Sèvi ak chapit yo lè ou vle etidye pa sijè oswa revize nòt ak liv ou."
             )}
           />
@@ -228,23 +233,31 @@ function FoundationInner() {
             title={t("Categories", "Categorias", "Categories", "Kategori")}
             body={t(
               "Categories are a platform study tool. They group questions by the kind of CNA decision the question is testing, not by textbook topic. Use categories when you want to understand why a question is being asked and what kind of judgment the safest answer requires.",
-              "Las categorias son una herramienta de estudio de la plataforma. Agrupan las preguntas por el tipo de decision de CNA que la pregunta esta evaluando, no por tema del libro. Use categorias cuando quiera entender por que se hace una pregunta y que tipo de juicio requiere la respuesta mas segura.",
-              "Les categories sont un outil d'etude de la plateforme. Elles regroupent les questions selon le type de decision CNA que la question evalue, et non selon le sujet du manuel. Utilisez les categories lorsque vous voulez comprendre pourquoi une question est posee et quel type de jugement exige la reponse la plus sure.",
+              "Las categorias son una herramienta de estudio de la plataforma. Agrupan las preguntas segun el tipo de decision de CNA que la pregunta esta evaluando, no segun el tema del libro. Use las categorias cuando quiera entender por que se hace una pregunta y que tipo de juicio exige la respuesta mas segura.",
+              "Les categories sont un outil d'etude propre a la plateforme. Elles regroupent les questions selon le type de decision CNA que la question evalue, et non selon le sujet du manuel. Utilisez les categories lorsque vous voulez comprendre pourquoi une question est posee et quel type de jugement demande la reponse la plus sure.",
               "Kategori yo se yon zouti etid nan platfom nan. Yo gwoupe kestyon yo selon kalite desizyon CNA kestyon an ap teste, pa selon sijè liv la. Sèvi ak kategori yo lè ou vle konprann poukisa kestyon an poze ak ki kalite jijman repons ki pi an sekirite a mande."
             )}
           />
         </div>
 
-        <InfoCard
-          theme={theme}
-          title={t("Simple comparison", "Comparacion simple", "Comparaison simple", "Konparezon senp")}
-          body={t(
-            "Chapter practice asks: What topic am I studying? Category practice asks: What kind of CNA decision is this question testing? The strongest study process is to use both: review by chapter, then strengthen decision-making by category.",
-            "La practica por capitulo pregunta: ¿Que tema estoy estudiando? La practica por categoria pregunta: ¿Que tipo de decision de CNA esta evaluando esta pregunta? El proceso de estudio mas fuerte es usar ambos: revisar por capitulo y luego fortalecer la toma de decisiones por categoria.",
-            "La pratique par chapitre demande : Quel sujet suis-je en train d'etudier ? La pratique par categorie demande : Quel type de decision CNA cette question evalue-t-elle ? Le processus d'etude le plus solide consiste a utiliser les deux : revoir par chapitre, puis renforcer la prise de decision par categorie.",
-            "Pratik pa chapit mande: Ki sijè mwen ap etidye? Pratik pa kategori mande: Ki kalite desizyon CNA kestyon sa a ap teste? Pi bon fason pou etidye se sèvi ak toude: revize pa chapit, epi ranfòse fason ou pran desizyon pa kategori."
+        <div
+          style={{
+            border: `1px solid ${theme.chromeBorder}`,
+            borderRadius: "16px",
+            background: "white",
+            padding: "18px",
+            color: "#456173",
+            lineHeight: 1.75,
+            fontSize: 14,
+          }}
+        >
+          {t(
+            "Next, you will see a short category guide. It explains the most important platform idea before you enter the Main Menu.",
+            "A continuacion, vera una breve guia de categorias. Explica la idea mas importante de la plataforma antes de entrar al Menu Principal.",
+            "Ensuite, vous verrez un court guide des categories. Il explique l'idee la plus importante de la plateforme avant d'entrer dans le menu principal.",
+            "Apre sa, ou pral we yon ti gid kategori yo. Li esplike lide ki pi enpotan nan platfom nan anvan ou antre nan meni prensipal la."
           )}
-        />
+        </div>
       </div>
     </Frame>
   );

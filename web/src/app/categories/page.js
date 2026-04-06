@@ -59,6 +59,7 @@ function CategoriesInner() {
   const lang = sp.get("lang") || "en";
   const source = sp.get("src") || "exam";
   const [isNarrow, setIsNarrow] = useState(false);
+  const [openCategoryId, setOpenCategoryId] = useState(null);
 
   useEffect(() => {
     let granted = false;
@@ -141,8 +142,8 @@ function CategoriesInner() {
         )
       : t(
           "These 9 categories are a platform study tool. They explain the kind of thinking each question is testing and help you move beyond memorizing answers so you can understand why one choice is safer, stronger, or more appropriate than another.",
-          "Estas 9 categorias son una herramienta de estudio de la plataforma. Explican el tipo de razonamiento que evalua cada pregunta y le ayudan a ir mas alla de memorizar respuestas para comprender por que una opcion es mas segura, mas solida o mas apropiada que otra.",
-          "Ces 9 categories sont un outil d'etude de la plateforme. Elles expliquent le type de raisonnement que chaque question evalue et vous aident a aller au-dela de la memorisation des reponses pour comprendre pourquoi un choix est plus sur, plus solide ou plus approprie qu'un autre.",
+          "Estas 9 categorias son una herramienta de estudio de la plataforma. Explican el tipo de razonamiento que evalua cada pregunta y le ayudan a ir mas alla de memorizar respuestas para comprender por que una opcion es mas segura, mas solida o mas adecuada que otra.",
+          "Ces 9 categories sont un outil d'etude de la plateforme. Elles expliquent le type de raisonnement que chaque question evalue et vous aident a aller au-dela de la memorisation des reponses pour comprendre pourquoi un choix est plus sur, plus solide ou plus adapte qu'un autre.",
           "9 kategori sa yo se yon zouti etid nan platfom nan. Yo esplike ki kalite refleksyon chak kestyon ap teste epi yo ede ou ale pi lwen pase memorize repons yo pou konprann poukisa yon chwa pi an sekirite, pi solid, oswa pi bon pase yon lot."
         );
   const practiceCalloutTitle = t(
@@ -166,8 +167,8 @@ function CategoriesInner() {
     ),
     t(
       "Use your practice answers to improve CNA logic, judgment, and safer decision-making.",
-      "Use sus respuestas de practica para mejorar la logica CNA, el juicio y una toma de decisiones mas segura.",
-      "Utilisez vos reponses de pratique pour ameliorer la logique CNA, le jugement et une prise de decision plus sure.",
+      "Use sus respuestas de practica para mejorar la logica CNA, el juicio y la toma de decisiones seguras.",
+      "Utilisez vos reponses de pratique pour ameliorer la logique CNA, le jugement et la prise de decision sure.",
       "Sèvi ak repons pratik ou yo pou amelyore lojik CNA, jijman, ak fason pou pran desizyon ki pi an sekirite."
     ),
   ];
@@ -258,11 +259,11 @@ function CategoriesInner() {
   };
 
   const detailsStyle = {
-    border: `1px solid ${theme.chromeBorder}`,
+    border: `2px solid ${theme.primaryBg}`,
     borderRadius: "16px",
     padding: isNarrow ? "16px" : "18px",
-    background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
-    boxShadow: "0 8px 20px rgba(31, 52, 74, 0.04)",
+    background: "white",
+    boxShadow: "0 10px 24px rgba(31, 52, 74, 0.08)",
   };
 
   const summaryStyle = {
@@ -314,23 +315,15 @@ function CategoriesInner() {
   };
 
   function handleToggle(categoryId, e) {
-    if (!e?.target?.open) return;
+    const isOpen = !!e?.target?.open;
+    setOpenCategoryId(isOpen ? categoryId : null);
+    if (!isOpen) return;
     try {
       document.querySelectorAll('details[data-category]').forEach((d) => {
         if (d.getAttribute("data-category") !== String(categoryId)) d.open = false;
       });
     } catch {}
   }
-
-  function handleGroupToggle(groupId, e) {
-    if (!e?.target?.open) return;
-    try {
-      document.querySelectorAll('details[data-group]').forEach((d) => {
-        if (d.getAttribute("data-group") !== String(groupId)) d.open = false;
-      });
-    } catch {}
-  }
-
 
 const categories = [
   {
@@ -534,6 +527,189 @@ const categories = [
 ];
 
   const categoryById = Object.fromEntries(categories.map((category) => [category.id, category]));
+  const orderedCategoryIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const expandedCategoryContent = {
+    1: {
+      description: t(
+        "Questions in this category ask whether something about the resident is changing from baseline and what that change means for your next step.",
+        "Las preguntas de esta categoria preguntan si algo en el residente esta cambiando con respecto a su estado basal y que significa ese cambio para su siguiente paso.",
+        "Les questions de cette categorie demandent si quelque chose change par rapport a l'etat habituel du resident et ce que cela signifie pour votre prochaine etape.",
+        "Kesyon nan kategori sa a mande si gen yon bagay k ap chanje nan eta nomal rezidan an epi sa chanjman sa a vle di pou pwochen etap ou."
+      ),
+      clues: t(
+        "new weakness, confusion, sudden pain, breathing changes, fever, unusual behavior",
+        "debilidad nueva, confusion, dolor repentino, cambios en la respiracion, fiebre, conducta inusual",
+        "nouvelle faiblesse, confusion, douleur soudaine, changements respiratoires, fievre, comportement inhabituel",
+        "nouvo febles, konfizyon, doule toudenkou, chanjman nan respirasyon, lafyèv, konpotman ki pa nomal"
+      ),
+      why: t(
+        "It helps you stop and recognize when the safest answer is to report or respond to a new problem instead of treating it like normal care.",
+        "Le ayuda a detenerse y reconocer cuando la respuesta mas segura es reportar o responder a un problema nuevo en lugar de tratarlo como cuidado normal.",
+        "Elle vous aide a vous arreter et a reconnaitre quand la reponse la plus sure est de signaler ou de reagir a un nouveau probleme au lieu de le traiter comme un soin normal.",
+        "Li ede ou pran poz epi rekonet le repons ki pi an sekirite a se rapote oswa reyaji ak yon nouvo pwoblem olye ou trete l tankou swen nomal."
+      ),
+    },
+    2: {
+      description: t(
+        "Questions in this category ask what a CNA should do, what a CNA should not do, and when the correct action is to report instead of acting alone.",
+        "Las preguntas de esta categoria preguntan que debe hacer un CNA, que no debe hacer y cuando la accion correcta es reportar en lugar de actuar por su cuenta.",
+        "Les questions de cette categorie demandent ce qu'un CNA doit faire, ne doit pas faire, et quand l'action correcte est de signaler plutot que d'agir seul.",
+        "Kesyon nan kategori sa a mande sa yon CNA dwe fe, sa yon CNA pa dwe fe, ak ki le aksyon ki korek la se rapote olye ou aji poukont ou."
+      ),
+      clues: t(
+        "diagnosis, medication, treatment decisions, calling the nurse, reporting findings",
+        "diagnostico, medicamentos, decisiones de tratamiento, llamar a la enfermera, reportar hallazgos",
+        "diagnostic, medicaments, decisions de traitement, appeler l'infirmiere, signaler des observations",
+        "dyagnostik, medikaman, desizyon tretman, rele enfimye a, rapote sa ou remake"
+      ),
+      why: t(
+        "It keeps you anchored in the CNA role and protects you from choosing answers that go beyond observation, assistance, or reporting.",
+        "Le mantiene enfocado en el rol del CNA y le protege de elegir respuestas que van mas alla de observar, ayudar o reportar.",
+        "Elle vous maintient dans le role du CNA et vous protege contre des reponses qui depassent l'observation, l'aide ou le signalement.",
+        "Li kenbe ou byen plase nan wol CNA a epi li pwoteje ou kont repons ki ale pi lwen pase obsevasyon, asistans, oswa rapo."
+      ),
+    },
+    3: {
+      description: t(
+        "Questions in this category ask how to respond with the right words, tone, and emotional support.",
+        "Las preguntas de esta categoria preguntan como responder con las palabras, el tono y el apoyo emocional adecuados.",
+        "Les questions de cette categorie demandent comment repondre avec les bons mots, le bon ton et le bon soutien emotionnel.",
+        "Kesyon nan kategori sa a mande kijan pou reponn ak bon mo yo, bon ton an, ak bon sipor emosyonel la."
+      ),
+      clues: t(
+        "anxiety, fear, confusion, upset family, reassurance, validation, calm explanation",
+        "ansiedad, miedo, confusion, familia angustiada, tranquilidad, validacion, explicacion calmada",
+        "anxiete, peur, confusion, famille bouleversee, reassurance, validation, explication calme",
+        "enkyetid, lapez, konfizyon, fanmi boulvese, rasirans, validasyon, eksplikasyon kalm"
+      ),
+      why: t(
+        "It helps you pick the response that calms, respects, and supports instead of correcting too sharply or ignoring emotion.",
+        "Le ayuda a elegir la respuesta que calma, respeta y apoya en lugar de corregir con dureza o ignorar la emocion.",
+        "Elle vous aide a choisir la reponse qui apaise, respecte et soutient au lieu de corriger trop durement ou d'ignorer l'emotion.",
+        "Li ede ou chwazi repons ki kalme, respekte, epi soutni olye ou korije two seve oswa inyore emosyon an."
+      ),
+    },
+    4: {
+      description: t(
+        "Questions in this category ask what important clue or risk you should notice before something unsafe happens.",
+        "Las preguntas de esta categoria preguntan que pista o riesgo importante debe notar antes de que ocurra algo inseguro.",
+        "Les questions de cette categorie demandent quel indice ou risque important vous devez remarquer avant qu'une situation dangereuse n'arrive.",
+        "Kesyon nan kategori sa a mande ki siy oswa risk enpotan ou dwe remake anvan yon sitiyasyon danjere rive."
+      ),
+      clues: t(
+        "fall risk, fatigue, clutter, weak gait, alarm not in place, unsafe setup",
+        "riesgo de caida, fatiga, desorden, marcha debil, alarma sin colocar, entorno inseguro",
+        "risque de chute, fatigue, encombrement, demarche faible, alarme absente, installation peu sure",
+        "risk tonbe, fatig, dezod, mache feb, alam pa an plas, anviwonman ki pa an sekirite"
+      ),
+      why: t(
+        "It helps you see the warning sign before harm happens and choose the answer that protects the resident sooner.",
+        "Le ayuda a ver la senal de alerta antes de que ocurra el dano y elegir la respuesta que protege al residente mas pronto.",
+        "Elle vous aide a voir le signe d'alerte avant que le danger ne survienne et a choisir la reponse qui protege le resident plus tot.",
+        "Li ede ou we siy avetisman an anvan domaj rive epi chwazi repons ki pwoteje rezidan an pi vit."
+      ),
+    },
+    5: {
+      description: t(
+        "Questions in this category ask how to help with everyday care in a way that is safe, respectful, and comfortable for the resident.",
+        "Las preguntas de esta categoria preguntan como ayudar con el cuidado diario de una manera segura, respetuosa y comoda para el residente.",
+        "Les questions de cette categorie demandent comment aider aux soins quotidiens d'une facon sure, respectueuse et confortable pour le resident.",
+        "Kesyon nan kategori sa a mande kijan pou ede ak swen chak jou yon fason ki an sekirite, respekte rezidan an, epi bay konfo."
+      ),
+      clues: t(
+        "bathing, dressing, grooming, toileting, feeding, pain, comfort, preferences",
+        "bano, vestido, aseo, toileteo, alimentacion, dolor, comodidad, preferencias",
+        "bain, habillage, toilette, elimination, alimentation, douleur, confort, preferences",
+        "benyen, abiye, swen ko, twalet, manje, doule, konfo, preferans"
+      ),
+      why: t(
+        "It helps you choose answers that support dignity and comfort instead of rushing through the task.",
+        "Le ayuda a elegir respuestas que apoyan la dignidad y la comodidad en lugar de apresurarse en la tarea.",
+        "Elle vous aide a choisir des reponses qui soutiennent la dignite et le confort au lieu de se precipiter dans la tache.",
+        "Li ede ou chwazi repons ki soutni diyite ak konfo olye ou prese fini travay la."
+      ),
+    },
+    6: {
+      description: t(
+        "Questions in this category ask how to move, transfer, or position the resident safely.",
+        "Las preguntas de esta categoria preguntan como mover, transferir o posicionar al residente de manera segura.",
+        "Les questions de cette categorie demandent comment deplacer, transferer ou positionner le resident en toute securite.",
+        "Kesyon nan kategori sa a mande kijan pou deplase, transfere, oswa pozisyone rezidan an san danje."
+      ),
+      clues: t(
+        "gait belt, transfer, wheelchair, turning, lifting, alignment, body mechanics",
+        "cinturon de marcha, transferencia, silla de ruedas, giro, levantamiento, alineacion, mecanica corporal",
+        "ceinture de marche, transfert, fauteuil roulant, retournement, levage, alignement, mecanique du corps",
+        "senti mache, transfer, chez woulant, vire, leve, aliyman, mouvman ko"
+      ),
+      why: t(
+        "It helps you slow down and choose the answer that prevents falls, strain, and unsafe movement.",
+        "Le ayuda a ir mas despacio y elegir la respuesta que previene caidas, esfuerzo fisico y movimientos inseguros.",
+        "Elle vous aide a ralentir et a choisir la reponse qui previent les chutes, les efforts et les mouvements dangereux.",
+        "Li ede ou ralanti epi chwazi repons ki anpeche tonbe, fos twop, ak mouvman ki pa an sekirite."
+      ),
+    },
+    7: {
+      description: t(
+        "Questions in this category ask whether the room, equipment, or setup is safe enough before care continues.",
+        "Las preguntas de esta categoria preguntan si la habitacion, el equipo o la preparacion son lo suficientemente seguros antes de continuar con el cuidado.",
+        "Les questions de cette categorie demandent si la chambre, l'equipement ou l'installation sont suffisamment surs avant de poursuivre les soins.",
+        "Kesyon nan kategori sa a mande si chanm nan, ekipman an, oswa fason tout bagay ranje a ase an sekirite anvan swen an kontinye."
+      ),
+      clues: t(
+        "bed height, call light, spills, clutter, locked wheels, side rails, equipment placement",
+        "altura de la cama, timbre, derrames, desorden, ruedas bloqueadas, barandas, ubicacion del equipo",
+        "hauteur du lit, sonnette, deversements, encombrement, roues bloquees, barrieres, placement du materiel",
+        "wote kabann, sonnet, likid ate, dezod, wou femen, baro kabann, kote ekipman an ye"
+      ),
+      why: t(
+        "It reminds you that safe care starts with a safe setup, not only with what you do after the task begins.",
+        "Le recuerda que el cuidado seguro empieza con una preparacion segura, no solo con lo que hace despues de comenzar la tarea.",
+        "Elle vous rappelle que des soins surs commencent par une installation sure, pas seulement par ce que vous faites apres le debut de la tache.",
+        "Li fe ou sonje swen ki an sekirite komanse ak yon bon preparasyon, pa selman ak sa ou fe apre travay la komanse."
+      ),
+    },
+    8: {
+      description: t(
+        "Questions in this category ask how to protect the resident's privacy, choice, respect, and independence.",
+        "Las preguntas de esta categoria preguntan como proteger la privacidad, la eleccion, el respeto y la independencia del residente.",
+        "Les questions de cette categorie demandent comment proteger l'intimite, le choix, le respect et l'independance du resident.",
+        "Kesyon nan kategori sa a mande kijan pou pwoteje vi prive, chwa, respe, ak endepandans rezidan an."
+      ),
+      clues: t(
+        "privacy, refusal, choice, consent, independence, embarrassment, respectful language",
+        "privacidad, rechazo, eleccion, consentimiento, independencia, verguenza, lenguaje respetuoso",
+        "intimite, refus, choix, consentement, independance, gene, langage respectueux",
+        "vi prive, refi, chwa, konsantman, endepandans, wont, langaj respe"
+      ),
+      why: t(
+        "It helps you choose answers that preserve the personhood of the resident, not just finish the task.",
+        "Le ayuda a elegir respuestas que preservan la dignidad de la persona residente, no solo terminar la tarea.",
+        "Elle vous aide a choisir des reponses qui preservent la dignite de la personne residente, pas seulement a finir la tache.",
+        "Li ede ou chwazi repons ki pwoteje diyite moun rezidan an, pa selman fini travay la."
+      ),
+    },
+    9: {
+      description: t(
+        "Questions in this category ask how to stop germs from spreading during care.",
+        "Las preguntas de esta categoria preguntan como evitar que los germenes se propaguen durante el cuidado.",
+        "Les questions de cette categorie demandent comment empecher les germes de se propager pendant les soins.",
+        "Kesyon nan kategori sa a mande kijan pou anpeche mikwob gaye pandan swen an."
+      ),
+      clues: t(
+        "hand hygiene, gloves, PPE, clean vs dirty tasks, isolation, body fluids",
+        "higiene de manos, guantes, PPE, tareas limpias y sucias, aislamiento, fluidos corporales",
+        "hygiene des mains, gants, EPI, taches propres et sales, isolement, liquides corporels",
+        "ijyen men, gan, PPE, travay pwop ak sal, izolasyon, likid ko"
+      ),
+      why: t(
+        "It trains you to protect the resident, yourself, and other residents by choosing the cleanest and safest order of care.",
+        "Le entrena para proteger al residente, a usted mismo y a otros residentes al elegir el orden de cuidado mas limpio y mas seguro.",
+        "Elle vous entraine a proteger le resident, vous-meme et les autres residents en choisissant l'ordre de soins le plus propre et le plus sur.",
+        "Li antrene ou pou pwoteje rezidan an, tet ou, ak lot rezidan yo le ou chwazi lod swen ki pi pwop ak pi an sekirite."
+      ),
+    },
+  };
 
   return (
     <Frame
@@ -616,6 +792,7 @@ const categories = [
 
           <div
             style={{
+              display: "none",
               border: `1px solid ${theme.chromeBorder}`,
               borderRadius: "16px",
               background: "white",
@@ -627,6 +804,7 @@ const categories = [
             <div style={{ ...bodyText, marginBottom: 12 }}>{frameworkBody}</div>
             <div
               style={{
+                display: "none",
                 display: "grid",
                 gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
                 gap: 10,
@@ -714,7 +892,60 @@ const categories = [
           </div>
         </div>
 
-        {frameworkGroups.map((group, groupIndex) => {
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isNarrow ? "1fr" : "repeat(2, minmax(0, 1fr))",
+            gap: 12,
+          }}
+        >
+          {orderedCategoryIds.map((categoryId) => {
+            const category = categoryById[categoryId];
+            const expanded = expandedCategoryContent[categoryId] || {};
+            if (!category) return null;
+            return (
+              <div key={`direct-${category.id}`}>
+                <details
+                  style={detailsStyle}
+                  data-category={String(category.id)}
+                  onToggle={(e) => handleToggle(category.id, e)}
+                >
+                  <summary style={summaryStyle}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                      <div>{`${category.id}. ${category.title}`}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>
+                        {openCategoryId === category.id
+                          ? isNarrow
+                            ? t("Tap to close", "Toque para cerrar", "Touchez pour fermer", "Peze pou femen")
+                            : t("Click to close", "Haga clic para cerrar", "Cliquez pour fermer", "Klike pou femen")
+                          : isNarrow
+                            ? t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")
+                            : t("Click to open", "Haga clic para abrir", "Cliquez pour ouvrir", "Klike pou louvri")}
+                      </div>
+                    </div>
+                  </summary>
+
+                  <div style={{ ...bodyText, marginTop: 10 }}>{expanded.description || category.description}</div>
+
+                  {expanded.clues ? (
+                    <>
+                      <div style={subhead}>{t("Common clues", "Pistas comunes", "Indices frequents", "Siy komen")}</div>
+                      <div style={bodyText}>{expanded.clues}</div>
+                    </>
+                  ) : null}
+
+                  <div style={subhead}>{t("Ask yourself", "Preguntese", "Posez-vous la question", "Mande tet ou")}</div>
+                  <div style={bodyText}>{category.ask}</div>
+
+                  <div style={subhead}>{t("Why this category helps", "Por que esta categoria ayuda", "Pourquoi cette categorie aide", "Poukisa kategori sa a ede")}</div>
+                  <div style={bodyText}>{expanded.why || category.why}</div>
+                </details>
+              </div>
+            );
+          })}
+        </div>
+
+        {false && frameworkGroups.map((group, groupIndex) => {
           const groupCategories = group.items.map((categoryId, index) => {
             const category = categoryById[categoryId];
             if (!category) return null;

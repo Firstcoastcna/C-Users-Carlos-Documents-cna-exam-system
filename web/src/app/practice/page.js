@@ -96,16 +96,40 @@ function SectionCard({ title, body, action, theme, tone = "default" }) {
   );
 }
 
+function CollapsibleSection({ title, hint, openHint, closeHint, defaultOpen = false, children }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <details
+      open={defaultOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "white", overflow: "hidden" }}
+    >
+      <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 16px", background: "var(--surface-soft)" }}>
+        <div style={{ display: "grid", gap: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <div style={{ fontWeight: 800, color: "var(--heading)" }}>{title}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>
+              {isOpen ? closeHint || openHint : openHint}
+            </div>
+          </div>
+          {hint ? <div style={{ fontSize: 13, color: "var(--muted)" }}>{hint}</div> : null}
+        </div>
+      </summary>
+      <div style={{ padding: 14 }}>{children}</div>
+    </details>
+  );
+}
+
 function PracticeInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);
   const [mode, setMode] = useState("chapter");
-  const [count, setCount] = useState(10);
+  const [count, setCount] = useState(5);
   const [selectedChapter, setSelectedChapter] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [openCategoryGroup, setOpenCategoryGroup] = useState("care-judgment");
+  const [selectedCategory, setSelectedCategory] = useState("Change in Condition");
   const [activeSession, setActiveSession] = useState(null);
   const [practiceHistory, setPracticeHistory] = useState([]);
 
@@ -252,6 +276,20 @@ function PracticeInner() {
     }[lang]?.[cat] || cat;
   }
 
+  function categoryNumber(cat) {
+    return categoryOptions.indexOf(cat) + 1;
+  }
+
+  function categoryButtonLabel(cat) {
+    const number = categoryNumber(cat);
+    return t(
+      `Category ${number}`,
+      `Categoria ${number}`,
+      `Categorie ${number}`,
+      `Kategori ${number}`
+    );
+  }
+
   function chapterLabel(chapter) {
     return t(
       `Chapter ${chapter}`,
@@ -292,16 +330,6 @@ function PracticeInner() {
         5: "Chapit 5 - Chanjman nan kondisyon ak swen espesyalize",
       },
     }[lang]?.[chapter] || chapterLabel(chapter);
-  }
-
-  function categoryGroupTitleFor(cat) {
-    const found = categoryGroups.find((group) => group.items.includes(cat));
-    return found?.title || "";
-  }
-
-  function categoryGroupBodyFor(groupId) {
-    const found = categoryGroups.find((group) => group.id === groupId);
-    return found?.body || "";
   }
 
   function categorySupportLabel(cat) {
@@ -364,15 +392,13 @@ function PracticeInner() {
     openHint: isNarrow
       ? t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")
       : t("Click to open", "Haga clic para abrir", "Cliquez pour ouvrir", "Klike pou louvri"),
+    closeHint: isNarrow
+      ? t("Tap to close", "Toque para cerrar", "Touchez pour fermer", "Peze pou femen")
+      : t("Click to close", "Haga clic para cerrar", "Cliquez pour fermer", "Klike pou femen"),
     backToWelcome: t("Back to main menu", "Volver al menu principal", "Retour au menu principal", "Retounen nan meni prensipal la"),
     modesTitle: t("Choose a practice mode", "Elija un modo de practica", "Choisissez un mode de pratique", "Chwazi yon mÃƒÂ²d pratik"),
     chapterTitle: t("Choose one chapter", "Elija un capitulo", "Choisissez un chapitre", "Chwazi yon chapit"),
-    categoryTitle: t(
-      "Choose one category from a thinking group",
-      "Elija una categoria de un grupo de razonamiento",
-      "Choisissez une categorie dans un groupe de raisonnement",
-      "Chwazi yon kategori nan yon gwoup refleksyon"
-    ),
+    categoryTitle: t("Choose one category", "Elija una categoria", "Choisissez une categorie", "Chwazi yon kategori"),
     categoryGroup1: t(
       "Notice and Understand",
       "Observar y comprender",
@@ -510,14 +536,14 @@ function PracticeInner() {
   const chapterOptions = [1, 2, 3, 4, 5];
   const categoryOptions = [
     "Change in Condition",
+    "Scope of Practice & Reporting",
     "Communication & Emotional Support",
-    "Dignity & Resident Rights",
-    "Environment & Safety",
-    "Infection Control",
-    "Mobility & Positioning",
     "Observation & Safety",
     "Personal Care & Comfort",
-    "Scope of Practice & Reporting",
+    "Mobility & Positioning",
+    "Environment & Safety",
+    "Dignity & Resident Rights",
+    "Infection Control",
   ];
 
   const categoryGroups = [
@@ -570,15 +596,13 @@ function PracticeInner() {
 
   const selectedModeLabel =
     mode === "chapter" ? TEXT.modeChapter : mode === "category" ? TEXT.modeCategory : TEXT.modeMixed;
-  const selectedCategoryIsInOpenGroup =
-    !!selectedCategory && categoryGroups.find((group) => group.id === openCategoryGroup)?.items.includes(selectedCategory);
   const selectedTargetLabel =
     mode === "chapter"
       ? chapterLabel(selectedChapter)
       : mode === "category"
         ? selectedCategory
           ? categoryLabel(selectedCategory)
-          : categoryGroups.find((group) => group.id === openCategoryGroup)?.title || null
+          : null
         : null;
 
   const activeSessionTargetLabel =
@@ -729,17 +753,7 @@ function PracticeInner() {
       footer={<div />}
     >
       <div style={{ display: "grid", gap: 14 }}>
-        <details style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "white", overflow: "hidden" }}>
-          <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 16px", background: "var(--surface-soft)" }}>
-            <div style={{ display: "grid", gap: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.studySupportTitle}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>{TEXT.openHint}</div>
-              </div>
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>{TEXT.studySupportHint}</div>
-            </div>
-          </summary>
-          <div style={{ padding: 14 }}>
+        <CollapsibleSection title={TEXT.studySupportTitle} hint={TEXT.studySupportHint} openHint={TEXT.openHint} closeHint={TEXT.closeHint}>
             <div
               style={{
                 display: "grid",
@@ -776,20 +790,10 @@ function PracticeInner() {
                 }
               />
             </div>
-          </div>
-        </details>
+        </CollapsibleSection>
 
-        <details open={!isNarrow} style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "white", overflow: "hidden" }}>
-          <summary style={{ cursor: "pointer", listStyle: "none", padding: "14px 16px", background: "var(--surface-soft)" }}>
-            <div style={{ display: "grid", gap: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.progressTitle}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>{TEXT.openHint}</div>
-              </div>
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>{TEXT.progressHint}</div>
-            </div>
-          </summary>
-          <div style={{ padding: 14, display: "grid", gap: 14 }}>
+        <CollapsibleSection title={TEXT.progressTitle} hint={TEXT.progressHint} openHint={TEXT.openHint} closeHint={TEXT.closeHint} defaultOpen={!isNarrow}>
+          <div style={{ display: "grid", gap: 14 }}>
             <div>{TEXT.progressBody}</div>
             <div
               style={{
@@ -847,7 +851,7 @@ function PracticeInner() {
               </details>
             </div>
           </div>
-        </details>
+        </CollapsibleSection>
 
         {activeSession ? (
           <SectionCard
@@ -971,14 +975,15 @@ function PracticeInner() {
             title={TEXT.chapterTitle}
             body={
               <div style={{ display: "grid", gap: 10 }}>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: isNarrow ? 8 : 10, flexWrap: "wrap" }}>
                   {chapterOptions.map((n) => (
                     <button
                       key={n}
                       onClick={() => setSelectedChapter(n)}
                       style={{
                         ...btnSecondary,
-                        minWidth: 110,
+                        minWidth: isNarrow ? 96 : 110,
+                        padding: isNarrow ? "8px 10px" : btnSecondary.padding,
                         fontWeight: 700,
                         background: selectedChapter === n ? "white" : theme.secondaryBg,
                         border: selectedChapter === n ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
@@ -1012,101 +1017,101 @@ function PracticeInner() {
             title={TEXT.categoryTitle}
             body={
               <div style={{ display: "grid", gap: 10 }}>
-                {categoryGroups.map((group) => (
-                  <div
-                    key={group.id}
-                    style={{
-                      border: "1px solid var(--chrome-border)",
-                      borderRadius: 14,
-                      background: "white",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <button
-                      onClick={() => {
-                        setOpenCategoryGroup(group.id);
-                        setSelectedCategory(null);
-                      }}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        padding: "12px 14px",
-                        border: "0",
-                        background: "var(--surface-soft)",
-                        color: "var(--heading)",
-                        fontWeight: 800,
-                        cursor: "pointer",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <div style={{ display: "grid", gap: openCategoryGroup === group.id ? 6 : 0 }}>
-                        <span style={{ textTransform: "uppercase", letterSpacing: "0.03em" }}>{group.title}</span>
-                        {openCategoryGroup === group.id ? (
-                          <span style={{ color: "#4d6174", lineHeight: 1.6, fontWeight: 400, fontSize: 14 }}>
-                            {group.body}
-                          </span>
-                        ) : null}
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isNarrow ? "repeat(3, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))",
+                    gap: isNarrow ? 8 : 10,
+                  }}
+                >
+                  {categoryOptions.map((cat) => {
+                    const isSelected = selectedCategory === cat;
+                    const categorySummary = (
+                      <div
+                        style={{
+                          border: "2px solid var(--brand-teal)",
+                          borderRadius: 12,
+                          background: "white",
+                          padding: "12px 14px",
+                          color: "#4d6174",
+                          lineHeight: 1.6,
+                          fontWeight: 700,
+                          marginTop: 8,
+                          boxShadow: "0 8px 18px rgba(37, 131, 166, 0.10)",
+                        }}
+                      >
+                        <div style={{ color: "var(--heading)", fontWeight: 800, marginBottom: 6 }}>
+                          {`${categoryButtonLabel(cat)} - ${categoryLabel(cat)}`}
+                        </div>
+                        {categorySupportLabel(cat)}
                       </div>
-                      <span style={{ color: "#607282", fontSize: 13 }}>
-                        {openCategoryGroup === group.id ? t("Hide", "Ocultar", "Masquer", "Kache") : t("Show", "Mostrar", "Afficher", "Montre")}
-                      </span>
-                    </button>
-
-                    {openCategoryGroup === group.id ? (
-                      <div style={{ display: "grid", gap: 10, padding: 12 }}>
-                        <div
+                    );
+                    return (
+                      <div key={cat}>
+                        <button
+                          onClick={() => setSelectedCategory(cat)}
                           style={{
-                            display: "grid",
-                            gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
-                            gap: 10,
+                            ...btnSecondary,
+                          width: "100%",
+                          minWidth: 0,
+                          padding: isNarrow ? "8px 10px" : btnSecondary.padding,
+                          textAlign: "left",
+                          fontWeight: 700,
+                          background: isSelected ? "white" : theme.secondaryBg,
+                            border: isSelected ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                            boxShadow: isSelected ? "0 8px 18px rgba(37, 131, 166, 0.10)" : "none",
                           }}
                         >
-                          {group.items.map((cat) => {
-                            const isSelected = selectedCategory === cat;
-                            return (
-                              <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                style={{
-                                  ...btnSecondary,
-                                  width: "100%",
-                                  minWidth: 0,
-                                  textAlign: "left",
-                                  fontWeight: 700,
-                                  background: isSelected ? "white" : theme.secondaryBg,
-                                  border: isSelected ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
-                                  boxShadow: isSelected ? "0 8px 18px rgba(37, 131, 166, 0.10)" : "none",
-                                }}
-                              >
-                                {categoryLabel(cat)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {selectedCategory && group.items.includes(selectedCategory) ? (
-                          <div
-                            style={{
-                              border: "2px solid var(--brand-teal)",
-                              borderRadius: 12,
-                              background: "white",
-                              padding: "12px 14px",
-                              color: "#4d6174",
-                              lineHeight: 1.6,
-                              fontWeight: 700,
-                              marginTop: 2,
-                              marginBottom: isNarrow ? 6 : 2,
-                              boxShadow: "0 8px 18px rgba(37, 131, 166, 0.10)",
-                            }}
-                          >
-                            {categorySupportLabel(selectedCategory)}
-                          </div>
-                        ) : null}
+                          {categoryButtonLabel(cat)}
+                        </button>
                       </div>
-                    ) : null}
+                    );
+                  })}
+                  {isNarrow && selectedCategory ? (
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <div
+                        style={{
+                          border: "2px solid var(--brand-teal)",
+                          borderRadius: 12,
+                          background: "white",
+                          padding: "12px 14px",
+                          color: "#4d6174",
+                          lineHeight: 1.6,
+                          fontWeight: 700,
+                          marginTop: 2,
+                          boxShadow: "0 8px 18px rgba(37, 131, 166, 0.10)",
+                        }}
+                      >
+                        <div style={{ color: "var(--heading)", fontWeight: 800, marginBottom: 6 }}>
+                          {`${categoryButtonLabel(selectedCategory)} - ${categoryLabel(selectedCategory)}`}
+                        </div>
+                        {categorySupportLabel(selectedCategory)}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                {!isNarrow && selectedCategory ? (
+                  <div
+                    style={{
+                      border: "2px solid var(--brand-teal)",
+                      borderRadius: 12,
+                      background: "white",
+                      padding: "12px 14px",
+                      color: "#4d6174",
+                      lineHeight: 1.6,
+                      fontWeight: 700,
+                      marginTop: 2,
+                      marginBottom: isNarrow ? 6 : 2,
+                      boxShadow: "0 8px 18px rgba(37, 131, 166, 0.10)",
+                    }}
+                  >
+                    <div style={{ color: "var(--heading)", fontWeight: 800, marginBottom: 6 }}>
+                      {`${categoryButtonLabel(selectedCategory)} - ${categoryLabel(selectedCategory)}`}
+                    </div>
+                    {categorySupportLabel(selectedCategory)}
                   </div>
-                ))}
+                ) : null}
               </div>
             }
           />

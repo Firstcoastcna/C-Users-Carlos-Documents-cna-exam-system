@@ -155,6 +155,7 @@ function scoreCandidate({
   categoryId,
   preferredPattern,
   targetDifficulty,
+  chapterPriority,
   questionStats,
   seenSet,
   lastSessionSet,
@@ -185,6 +186,12 @@ function scoreCandidate({
 
   if (preferredPattern && pattern === preferredPattern) score += 120;
   else if (preferredPattern) score -= 10;
+
+  if (Number.isFinite(chapterPriority)) {
+    if (chapterPriority === 0) score += 90;
+    else if (chapterPriority === 1) score += 45;
+    else if (chapterPriority === 2) score += 15;
+  }
 
   score -= Math.abs(difficulty - targetDifficulty) * 35;
   score -= stats.seenCount * 18;
@@ -296,6 +303,9 @@ export function selectRemediationQuestions({
 
     const preferredPattern = preferredPatternsByCategory[categoryId] || null;
     const difficultyPlan = makeDifficultyPlan(needed);
+    const chapterPriorityByTag = Object.fromEntries(
+      allowedChapters.map((chapter, index) => [String(chapter), index])
+    );
     const picked = [];
 
     for (let slot = 0; slot < needed; slot += 1) {
@@ -308,6 +318,7 @@ export function selectRemediationQuestions({
             categoryId,
             preferredPattern,
             targetDifficulty,
+            chapterPriority: chapterPriorityByTag[String(question.chapter_tag)],
             questionStats,
             seenSet,
             lastSessionSet,

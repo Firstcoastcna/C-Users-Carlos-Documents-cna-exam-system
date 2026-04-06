@@ -96,7 +96,7 @@ function SectionCard({ title, body, action, theme, tone = "default" }) {
   );
 }
 
-function TestCard({ label, statusLabel, onClick, theme, statusTone, description, meta }) {
+function TestCard({ label, statusLabel, onClick, theme, statusTone, description, meta, disabled = false }) {
   const tones = {
     not_started: {
       background: "#ffffff",
@@ -123,6 +123,7 @@ function TestCard({ label, statusLabel, onClick, theme, statusTone, description,
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       style={{
         width: "100%",
         textAlign: "left",
@@ -130,11 +131,12 @@ function TestCard({ label, statusLabel, onClick, theme, statusTone, description,
         borderRadius: "16px",
         border: `1px solid ${palette.border}`,
         background: palette.background,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         display: "flex",
         flexDirection: "column",
         gap: "8px",
         minHeight: 124,
+        opacity: disabled ? 0.62 : 1,
       }}
     >
       <div
@@ -179,10 +181,13 @@ function StatTile({ label, value }) {
   );
 }
 
-function CollapsibleSection({ title, hint, openHint, children, defaultOpen = false }) {
+function CollapsibleSection({ title, hint, openHint, closeHint, children, defaultOpen = false }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
   return (
     <details
       open={defaultOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
       style={{
         border: "1px solid var(--chrome-border)",
         borderRadius: 14,
@@ -194,7 +199,11 @@ function CollapsibleSection({ title, hint, openHint, children, defaultOpen = fal
         <div style={{ display: "grid", gap: 4 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
             <div style={{ fontWeight: 800, color: "var(--heading)" }}>{title}</div>
-            {openHint ? <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>{openHint}</div> : null}
+            {openHint || closeHint ? (
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>
+                {isOpen ? closeHint || openHint : openHint}
+              </div>
+            ) : null}
           </div>
           {hint ? <div style={{ fontSize: 13, color: "var(--muted)" }}>{hint}</div> : null}
         </div>
@@ -284,6 +293,7 @@ function PilotInner() {
         descNotStarted: "Start a new full 60-question practice exam.",
         descInProgress: "Continue this saved test on this device.",
         descCompleted: "Open this completed test to review your results.",
+        descLocked: "Finish the exam already in progress before starting another one.",
         resetTitle: "Refresh the Full Exam Set",
         resetAll: "Reset All Tests",
         resetHintLocked: "Reset becomes available only after all 4 tests are completed.",
@@ -336,6 +346,7 @@ function PilotInner() {
         descNotStarted: "Comience un nuevo examen completo de practica de 60 preguntas.",
         descInProgress: "Continue este examen guardado en este dispositivo.",
         descCompleted: "Abra este examen completado para revisar sus resultados.",
+        descLocked: "Termine el examen que ya esta en curso antes de comenzar otro.",
         resetTitle: "Renovar el conjunto completo",
         resetAll: "Reiniciar todos",
         resetHintLocked: "El reinicio estara disponible solo despues de completar los 4 examenes.",
@@ -388,6 +399,7 @@ function PilotInner() {
         descNotStarted: "Commencez un nouvel examen de pratique complet de 60 questions.",
         descInProgress: "Continuez ce test enregistre sur cet appareil.",
         descCompleted: "Ouvrez ce test termine pour revoir vos resultats.",
+        descLocked: "Terminez le test deja en cours avant d'en commencer un autre.",
         resetTitle: "Renouveler l'ensemble complet",
         resetAll: "Reinitialiser tout",
         resetHintLocked: "La reinitialisation sera disponible seulement apres avoir termine les 4 tests.",
@@ -440,6 +452,7 @@ function PilotInner() {
         descNotStarted: "Komanse yon nouvo egzamen pratik konple ak 60 kestyon.",
         descInProgress: "Kontinye tes sa a ki te deja sove sou aparey sa a.",
         descCompleted: "Louvri tes sa a ou deja fini pou revize rezilta ou yo.",
+        descLocked: "Fini egzamen ki deja an pwogre a anvan ou komanse yon lot.",
         resetTitle: "Rafrechi tout seri egzamen an",
         resetAll: "Reyinisyalize tout",
         resetHintLocked: "Reyinisyalizasyon ap disponib selman apre ou fin konplete 4 tes yo.",
@@ -449,8 +462,35 @@ function PilotInner() {
       },
     };
 
-    return t[lang] || t.en;
-  }, [lang]);
+    const selected = t[lang] || t.en;
+    return {
+      ...selected,
+      openHint: isNarrow
+        ? selected.openHint
+        : lang === "es"
+          ? "Haga clic para abrir"
+          : lang === "fr"
+            ? "Cliquez pour ouvrir"
+            : lang === "ht"
+              ? "Klike pou louvri"
+              : "Click to open",
+      closeHint: isNarrow
+        ? lang === "es"
+          ? "Toque para cerrar"
+          : lang === "fr"
+            ? "Touchez pour fermer"
+            : lang === "ht"
+              ? "Peze pou femen"
+              : "Tap to close"
+        : lang === "es"
+          ? "Haga clic para cerrar"
+          : lang === "fr"
+            ? "Cliquez pour fermer"
+            : lang === "ht"
+              ? "Klike pou femen"
+              : "Click to close",
+    };
+  }, [isNarrow, lang]);
 
   function makeStateKey(testId, langCode) {
     return `cna_exam_state::form_001::test_${testId}::${langCode}`;
@@ -614,6 +654,10 @@ function PilotInner() {
   }
 
   const allCompleted = useMemo(() => [1, 2, 3, 4].every((n) => testStatus[n] === "completed"), [testStatus]);
+  const activeTestId = useMemo(
+    () => [1, 2, 3, 4].find((n) => testStatus[n] === "in_progress") || null,
+    [testStatus]
+  );
 
   function startOrResume(testId) {
     try {
@@ -768,22 +812,29 @@ function PilotInner() {
             gap: 12,
           }}
         >
-          {[1, 2, 3, 4].map((n) => (
-            <TestCard
-              key={n}
-              label={getTestLabel(n)}
-              statusLabel={getStatusLabel(testStatus[n])}
-              description={getStatusDescription(testStatus[n])}
-              statusTone={testStatus[n]}
-              meta={TEXT.testMeta}
-              onClick={() => startOrResume(n)}
-              theme={theme}
-            />
-          ))}
+          {[1, 2, 3, 4].map((n) => {
+            const disabled = !!activeTestId && activeTestId !== n && testStatus[n] === "not_started";
+            return (
+              <TestCard
+                key={n}
+                label={getTestLabel(n)}
+                statusLabel={getStatusLabel(testStatus[n])}
+                description={disabled ? TEXT.descLocked : getStatusDescription(testStatus[n])}
+                statusTone={testStatus[n]}
+                meta={TEXT.testMeta}
+                onClick={() => {
+                  if (disabled) return;
+                  startOrResume(n);
+                }}
+                theme={theme}
+                disabled={disabled}
+              />
+            );
+          })}
         </div>
 
         {isNarrow ? (
-          <CollapsibleSection title={TEXT.progressTitle} hint={TEXT.progressHint} openHint={TEXT.openHint}>
+          <CollapsibleSection title={TEXT.progressTitle} hint={TEXT.progressHint} openHint={TEXT.openHint} closeHint={TEXT.closeHint}>
             <div style={{ display: "grid", gap: 12 }}>
               <div>{TEXT.progressText}</div>
               <div
@@ -886,7 +937,7 @@ function PilotInner() {
         )}
 
         {isNarrow ? (
-          <CollapsibleSection title={TEXT.refreshTitle} hint={TEXT.refreshText} openHint={TEXT.openHint}>
+          <CollapsibleSection title={TEXT.refreshTitle} hint={TEXT.refreshText} openHint={TEXT.openHint} closeHint={TEXT.closeHint}>
             <div style={{ display: "grid", gap: 12 }}>
               <div
                 style={{
@@ -961,91 +1012,76 @@ function PilotInner() {
             </div>
           </CollapsibleSection>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gap: 12,
-            }}
-          >
-            <SectionCard
-              theme={theme}
-              tone="muted"
-              title={TEXT.refreshTitle}
-              body={
-                <div style={{ display: "grid", gap: 12 }}>
-                  <div>{TEXT.refreshText}</div>
-                  <div
+          <CollapsibleSection title={TEXT.refreshTitle} hint={TEXT.refreshText} openHint={TEXT.openHint} closeHint={TEXT.closeHint}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  border: "1px solid var(--chrome-border)",
+                  borderRadius: 12,
+                  background: "white",
+                  padding: "14px",
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.studyTitle}</div>
+                <div style={{ color: "#4d6174", lineHeight: 1.6 }}>{TEXT.studyText}</div>
+                <div style={{ fontSize: 13, color: "#607282" }}>{TEXT.studyHint}</div>
+                <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 4 }}>
+                  <button
+                    onClick={() => router.push(`/chapters?lang=${lang}&src=exam`)}
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                      gap: 12,
+                      padding: "9px 12px",
+                      fontSize: "14px",
+                      borderRadius: "10px",
+                      border: `1px solid ${theme.buttonBorder}`,
+                      background: theme.secondaryBg,
+                      color: theme.secondaryText,
+                      cursor: "pointer",
                     }}
                   >
-                    <div
-                      style={{
-                        border: "1px solid var(--chrome-border)",
-                        borderRadius: 12,
-                        background: "white",
-                        padding: "14px",
-                        display: "grid",
-                        gap: 8,
-                      }}
-                    >
-                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.studyTitle}</div>
-                      <div style={{ color: "#4d6174", lineHeight: 1.6 }}>{TEXT.studyText}</div>
-                      <div style={{ fontSize: 13, color: "#607282" }}>{TEXT.studyHint}</div>
-                      <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 4 }}>
-                        <button
-                          onClick={() => router.push(`/chapters?lang=${lang}&src=exam`)}
-                          style={{
-                            padding: "9px 12px",
-                            fontSize: "14px",
-                            borderRadius: "10px",
-                            border: `1px solid ${theme.buttonBorder}`,
-                            background: theme.secondaryBg,
-                            color: theme.secondaryText,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {TEXT.studyButton}
-                        </button>
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        border: "1px solid var(--chrome-border)",
-                        borderRadius: 12,
-                        background: "white",
-                        padding: "14px",
-                        display: "grid",
-                        gap: 8,
-                      }}
-                    >
-                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.categoryTitle}</div>
-                      <div style={{ color: "#4d6174", lineHeight: 1.6 }}>{TEXT.categoryText}</div>
-                      <div style={{ fontSize: 13, color: "#607282" }}>{TEXT.categoryHint}</div>
-                      <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 4 }}>
-                        <button
-                          onClick={() => router.push(`/categories?lang=${lang}&src=exam`)}
-                          style={{
-                            padding: "9px 12px",
-                            fontSize: "14px",
-                            borderRadius: "10px",
-                            border: `1px solid ${theme.buttonBorder}`,
-                            background: theme.secondaryBg,
-                            color: theme.secondaryText,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {TEXT.categoryButton}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                    {TEXT.studyButton}
+                  </button>
                 </div>
-              }
-            />
-          </div>
+              </div>
+              <div
+                style={{
+                  border: "1px solid var(--chrome-border)",
+                  borderRadius: 12,
+                  background: "white",
+                  padding: "14px",
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{TEXT.categoryTitle}</div>
+                <div style={{ color: "#4d6174", lineHeight: 1.6 }}>{TEXT.categoryText}</div>
+                <div style={{ fontSize: 13, color: "#607282" }}>{TEXT.categoryHint}</div>
+                <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 4 }}>
+                  <button
+                    onClick={() => router.push(`/categories?lang=${lang}&src=exam`)}
+                    style={{
+                      padding: "9px 12px",
+                      fontSize: "14px",
+                      borderRadius: "10px",
+                      border: `1px solid ${theme.buttonBorder}`,
+                      background: theme.secondaryBg,
+                      color: theme.secondaryText,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {TEXT.categoryButton}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </CollapsibleSection>
         )}
 
         <SectionCard

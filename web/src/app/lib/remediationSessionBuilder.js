@@ -129,7 +129,7 @@ export function buildRemediationSession({
       throw new Error(`Missing chapter mapping for category: ${categoryId}`);
     }
 
-    categoryChapterSources[categoryId] = [...mapping.primary, ...mapping.secondary].slice(0, 2);
+    categoryChapterSources[categoryId] = [...mapping.primary, ...mapping.secondary].slice(0, 3);
   });
 
   const preferredPatternsByCategory = Object.fromEntries(
