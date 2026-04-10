@@ -506,6 +506,7 @@ function pauseAndPersist() {
   const TOTAL_PAGES = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const [summaryPage, setSummaryPage] = useState(1);
   const [summaryFilter, setSummaryFilter] = useState("all"); // all | answered | unanswered | marked
+  const [openRationaleQid, setOpenRationaleQid] = useState(null);
 
   // TIMER: 90-minute countdown (Prometric style)
   // For testing, temporarily set START_SEC = 30
@@ -1586,7 +1587,9 @@ if (mode === "rationales") {
     : (availableReviewChapters[0] || 1);
 
   function handleRationaleToggle(qid, e) {
-    if (!e?.target?.open) return;
+    const isOpen = !!e?.target?.open;
+    setOpenRationaleQid(isOpen ? qid : null);
+    if (!isOpen) return;
     try {
       document.querySelectorAll('details[data-rationale]').forEach((d) => {
         if (d.getAttribute("data-rationale") !== String(qid)) d.open = false;
