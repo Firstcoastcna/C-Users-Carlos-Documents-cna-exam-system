@@ -753,7 +753,7 @@ function PracticeInner() {
       footer={<div />}
     >
       <div style={{ display: "grid", gap: 14 }}>
-        <CollapsibleSection title={TEXT.studySupportTitle} hint={TEXT.studySupportHint} openHint={TEXT.openHint} closeHint={TEXT.closeHint}>
+        <CollapsibleSection key={`study-${isNarrow ? "narrow" : "wide"}`} title={TEXT.studySupportTitle} hint={TEXT.studySupportHint} openHint={TEXT.openHint} closeHint={TEXT.closeHint}>
             <div
               style={{
                 display: "grid",
@@ -792,7 +792,7 @@ function PracticeInner() {
             </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title={TEXT.progressTitle} hint={TEXT.progressHint} openHint={TEXT.openHint} closeHint={TEXT.closeHint} defaultOpen={!isNarrow}>
+        <CollapsibleSection key={`progress-${isNarrow ? "narrow" : "wide"}`} title={TEXT.progressTitle} hint={TEXT.progressHint} openHint={TEXT.openHint} closeHint={TEXT.closeHint} defaultOpen={!isNarrow}>
           <div style={{ display: "grid", gap: 14 }}>
             <div>{TEXT.progressBody}</div>
             <div

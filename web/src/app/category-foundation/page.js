@@ -722,6 +722,7 @@ function DraftInner() {
         </SectionCard>
 
         <MobileCollapsibleSection
+          key={`examples-${isNarrow ? "narrow" : "wide"}`}
           isNarrow={isNarrow}
           title={t(
             "A couple of examples",
