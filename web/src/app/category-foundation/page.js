@@ -201,7 +201,14 @@ function DraftInner() {
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);
-  const [showMainMenu, setShowMainMenu] = useState(false);
+  const [showMainMenu, setShowMainMenu] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("cna_access_granted") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     function syncWidth() {
@@ -216,13 +223,18 @@ function DraftInner() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      let granted = false;
+      try {
+        granted = localStorage.getItem("cna_access_granted") === "1";
+      } catch {}
+
       try {
         const payload = await fetchUserPreferences();
         const prefs = payload?.preferences;
         if (cancelled) return;
-        setShowMainMenu(!!prefs?.hasSeenCategoryIntro);
+        setShowMainMenu(!!prefs?.accessGranted || granted);
       } catch {
-        if (!cancelled) setShowMainMenu(false);
+        if (!cancelled) setShowMainMenu(granted);
       }
     })();
     return () => {
@@ -480,24 +492,61 @@ function DraftInner() {
       theme={theme}
       headerAction={
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          <button style={btnUtility} onClick={() => router.push(`/foundation?lang=${lang}`)}>
-            {t(
-              "Back to orientation",
-              "Volver a la orientacion",
-              "Retour a l'orientation",
-              "Retounen nan oryantasyon an"
-            )}
-          </button>
-          {showMainMenu ? (
-            <button style={btnUtility} onClick={() => router.push(`/start?lang=${lang}`)}>
-              {t(
-                "Back to Main Menu",
-                "Volver al menu principal",
-                "Retour au menu principal",
-                "Retounen nan meni prensipal la"
-              )}
-            </button>
-          ) : null}
+          {(isNarrow
+            ? [
+                showMainMenu
+                  ? {
+                      key: "main",
+                      label: t(
+                        "Back to Main Menu",
+                        "Volver al menu principal",
+                        "Retour au menu principal",
+                        "Retounen nan meni prensipal la"
+                      ),
+                      onClick: () => router.push(`/start?lang=${lang}`),
+                    }
+                  : null,
+                {
+                  key: "orientation",
+                  label: t(
+                    "Back to orientation",
+                    "Volver a la orientacion",
+                    "Retour a l'orientation",
+                    "Retounen nan oryantasyon an"
+                  ),
+                  onClick: () => router.push(`/foundation?lang=${lang}`),
+                },
+              ]
+            : [
+                {
+                  key: "orientation",
+                  label: t(
+                    "Back to orientation",
+                    "Volver a la orientacion",
+                    "Retour a l'orientation",
+                    "Retounen nan oryantasyon an"
+                  ),
+                  onClick: () => router.push(`/foundation?lang=${lang}`),
+                },
+                showMainMenu
+                  ? {
+                      key: "main",
+                      label: t(
+                        "Back to Main Menu",
+                        "Volver al menu principal",
+                        "Retour au menu principal",
+                        "Retounen nan meni prensipal la"
+                      ),
+                      onClick: () => router.push(`/start?lang=${lang}`),
+                    }
+                  : null,
+              ])
+            .filter(Boolean)
+            .map((item) => (
+              <button key={item.key} style={btnUtility} onClick={item.onClick}>
+                {item.label}
+              </button>
+            ))}
         </div>
       }
       footer={

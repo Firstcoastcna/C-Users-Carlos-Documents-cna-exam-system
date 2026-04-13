@@ -321,7 +321,7 @@ if (pausedRemainingSec === null) {
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
               style={{ ...btnPrimary, width: "220px" }}
-              onClick={() => router.push(`/pilot?lang=${resumeInfo.lang}`)}
+              onClick={() => router.push(`/exam-hub?lang=${resumeInfo.lang}`)}
 
             >
               Resume Exam

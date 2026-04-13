@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchUserPreferences, updateUserPreferences } from "../lib/backend/auth/browserAuth";
 
-function Frame({ title, children, footer, theme }) {
+function Frame({ title, children, footer, theme, headerAction }) {
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
       <div
@@ -28,9 +28,14 @@ function Frame({ title, children, footer, theme }) {
             textTransform: "uppercase",
             letterSpacing: "0.04em",
             color: "var(--heading)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
           }}
         >
-          {title}
+          <span>{title}</span>
+          {headerAction ? <div>{headerAction}</div> : null}
         </div>
 
         <div style={{ flex: 1, padding: "24px", overflowY: "auto", background: "white" }}>{children}</div>
@@ -83,7 +88,14 @@ function FoundationInner() {
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);
-  const [showMainMenu, setShowMainMenu] = useState(false);
+  const [showMainMenu, setShowMainMenu] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("cna_access_granted") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -121,13 +133,18 @@ function FoundationInner() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      let granted = false;
+      try {
+        granted = localStorage.getItem("cna_access_granted") === "1";
+      } catch {}
+
       try {
         const payload = await fetchUserPreferences();
         const prefs = payload?.preferences;
         if (cancelled) return;
-        setShowMainMenu(!!prefs?.hasSeenFoundation);
+        setShowMainMenu(!!prefs?.accessGranted || granted);
       } catch {
-        if (!cancelled) setShowMainMenu(false);
+        if (!cancelled) setShowMainMenu(granted);
       }
     })();
     return () => {
@@ -168,6 +185,16 @@ function FoundationInner() {
     width: isNarrow ? "100%" : "220px",
     fontWeight: 700,
   };
+  const btnUtility = {
+    padding: "9px 12px",
+    fontSize: "13px",
+    borderRadius: "10px",
+    border: `1px solid ${theme.chromeBorder}`,
+    background: "white",
+    color: "var(--brand-teal-dark)",
+    cursor: "pointer",
+    fontWeight: 700,
+  };
 
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
@@ -186,7 +213,7 @@ function FoundationInner() {
       )}
       headerAction={
         showMainMenu ? (
-          <button style={btnPrimary} onClick={() => router.push(`/start?lang=${lang}`)}>
+          <button style={btnUtility} onClick={() => router.push(`/start?lang=${lang}`)}>
             {t("Back to Main Menu", "Volver al menu principal", "Retour au menu principal", "Retounen nan meni prensipal la")}
           </button>
         ) : null

@@ -475,7 +475,7 @@ const [testId, setTestId] = useState(() => {
   }, [form.exam_form_id, testId, lang]);
 
   const hubUrl = useMemo(
-    () => `/pilot?lang=${lang}${useServer ? "&storage=server" : ""}`,
+    () => `/exam-hub?lang=${lang}${useServer ? "&storage=server" : ""}`,
     [lang, useServer]
   );
 

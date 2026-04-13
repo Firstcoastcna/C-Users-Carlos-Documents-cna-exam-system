@@ -10,7 +10,7 @@ import {
   updateUserPreferences,
 } from "../lib/backend/auth/browserAuth";
 
-function Frame({ title, children, footer, theme, headerAction }) {
+function Frame({ title, children, footer, theme, headerAction, headerSize }) {
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
       <div
@@ -34,6 +34,7 @@ function Frame({ title, children, footer, theme, headerAction }) {
             textTransform: "uppercase",
             letterSpacing: "0.04em",
             color: "var(--heading)",
+            fontSize: headerSize || "16px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -330,6 +331,7 @@ function StartInner() {
     <Frame
       title={t("MAIN MENU", "MENU PRINCIPAL", "MENU PRINCIPAL", "MENI PRENSIPAL")}
       theme={theme}
+      headerSize={isNarrow ? "20px" : "16px"}
       headerAction={
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
           {headerButtons.map((button) => (
@@ -485,7 +487,7 @@ function StartInner() {
               "Svi ak pati egzamen an pou viv eksperyans egzamen CNA a ak tout tan li, ansanm ak rezilta, analiz, revizyon kestyon, ak remedyasyon apre ou fin konplete chak egzamen."
             )}
             buttonLabel={t("Go to Exam", "Ir al Examen", "Aller a l'examen", "Ale nan Egzamen")}
-            onClick={() => router.push(`${skipExamWelcome ? "/pilot" : "/welcome"}?lang=${lang}`)}
+            onClick={() => router.push(`${skipExamWelcome ? "/exam-hub" : "/welcome"}?lang=${lang}`)}
             extraContent={
               <label
                 style={{

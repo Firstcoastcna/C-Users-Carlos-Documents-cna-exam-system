@@ -195,7 +195,7 @@ function WelcomeInner() {
           <button
             style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }}
             onClick={() => {
-              router.push(`/pilot?lang=${lang}`);
+              router.push(`/exam-hub?lang=${lang}`);
             }}
           >
             {t(

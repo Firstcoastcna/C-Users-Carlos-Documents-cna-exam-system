@@ -160,7 +160,7 @@ function InstructionsInner() {
         >
           <button
             style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }}
-            onClick={() => router.push(`/pilot?lang=${lang}`)}
+            onClick={() => router.push(`/exam-hub?lang=${lang}`)}
           >
             {t("Go to Exam Hub", "Ir al Centro de Examenes", "Aller au hub d'examen", "Ale nan Hub Egzamen an")}
           </button>

@@ -147,7 +147,7 @@ function ChaptersInner() {
     return en;
   }
 
-  const hubRoute = source === "practice" ? `/practice?lang=${lang}` : `/pilot?lang=${lang}`;
+  const hubRoute = source === "practice" ? `/practice?lang=${lang}` : `/exam-hub?lang=${lang}`;
   const hubLabel =
     source === "practice"
       ? t("Go to Practice Hub", "Ir al Centro de Practica", "Aller au hub de pratique", "Ale nan Hub Pratik la")
