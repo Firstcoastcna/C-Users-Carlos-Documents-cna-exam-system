@@ -1,5 +1,6 @@
 export function getBackendMode() {
-  return process.env.NEXT_PUBLIC_APP_STORAGE_MODE || process.env.APP_STORAGE_MODE || "local";
+  const raw = process.env.NEXT_PUBLIC_APP_STORAGE_MODE || process.env.APP_STORAGE_MODE || "local";
+  return String(raw).trim().toLowerCase();
 }
 
 export function isServerPersistenceEnabled() {
