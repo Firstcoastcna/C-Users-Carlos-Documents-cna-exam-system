@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   fetchUserPreferences,
   getStudentSessionSnapshot,
+  requestPasswordReset,
   signInStudent,
   signUpStudent,
   syncStudentProfile,
@@ -193,6 +194,32 @@ export default function SignInPage() {
               }
             >
               Create Account
+            </button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <button
+              style={{
+                border: "none",
+                background: "transparent",
+                color: "var(--brand-teal-dark)",
+                fontWeight: 700,
+                cursor: "pointer",
+                padding: 0,
+              }}
+              disabled={busy}
+              onClick={() =>
+                runAction(async () => {
+                  if (!email.trim()) {
+                    setMessage("Enter your email first so we can send the reset link.");
+                    return;
+                  }
+                  await requestPasswordReset(email.trim());
+                  setMessage("Reset link sent. Check your email to continue.");
+                })
+              }
+            >
+              Forgot password?
             </button>
           </div>
 

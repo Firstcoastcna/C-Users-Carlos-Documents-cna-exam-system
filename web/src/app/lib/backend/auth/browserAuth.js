@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient } from "../supabase/browserClient";
+import { getPublicAppUrl } from "../config";
 
 function getClient() {
   const supabase = getSupabaseBrowserClient();
@@ -84,6 +85,20 @@ export async function syncStudentProfile() {
   }
 
   return payload;
+}
+
+export async function requestPasswordReset(email) {
+  const supabase = getClient();
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : getPublicAppUrl();
+  const redirectTo = `${origin}/reset-password`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) {
+    throw new Error(`Password reset failed: ${error.message}`);
+  }
+  return { ok: true };
 }
 
 export async function fetchStudentProfile() {
