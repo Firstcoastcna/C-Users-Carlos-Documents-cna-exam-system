@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { fetchUserPreferences } from "../lib/backend/auth/browserAuth";
+import { fetchUserPreferences, updateUserPreferences } from "../lib/backend/auth/browserAuth";
 
 function Frame({ title, children, footer, theme }) {
   return (
@@ -169,7 +169,20 @@ function FoundationInner() {
       theme={theme}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
-          <button style={btnPrimary} onClick={() => router.push(`/category-foundation?lang=${lang}`)}>
+          <button
+            style={btnPrimary}
+            onClick={async () => {
+              try {
+                await updateUserPreferences({
+                  preferredLanguage: lang,
+                  hasSeenFoundation: true,
+                });
+              } catch {
+                // Continue even if server write fails.
+              }
+              router.push(`/category-foundation?lang=${lang}`);
+            }}
+          >
             {t(
               "Continue to Category Guide",
               "Continuar a la guia de categorias",

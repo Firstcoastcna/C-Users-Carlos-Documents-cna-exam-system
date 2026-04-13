@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { updateUserPreferences } from "../lib/backend/auth/browserAuth";
 
 function Frame({ title, children, footer, theme, headerAction }) {
   return (
@@ -471,7 +472,20 @@ function DraftInner() {
       }
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
-          <button style={btnPrimary} onClick={() => router.push(`/start?lang=${lang}`)}>
+          <button
+            style={btnPrimary}
+            onClick={async () => {
+              try {
+                await updateUserPreferences({
+                  preferredLanguage: lang,
+                  hasSeenCategoryIntro: true,
+                });
+              } catch {
+                // Continue even if server write fails.
+              }
+              router.push(`/start?lang=${lang}`);
+            }}
+          >
             {t(
               "Continue to Main Menu",
               "Continuar al menu principal",

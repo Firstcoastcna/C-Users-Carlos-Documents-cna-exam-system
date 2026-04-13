@@ -68,6 +68,19 @@ export default function HomePage() {
           router.replace("/access");
           return;
         }
+
+        if (!forceLang && prefs.accessGranted && prefs.preferredLanguage) {
+          if (!prefs.hasSeenFoundation) {
+            router.replace(`/foundation?lang=${prefs.preferredLanguage}`);
+            return;
+          }
+          if (!prefs.hasSeenCategoryIntro) {
+            router.replace(`/category-foundation?lang=${prefs.preferredLanguage}`);
+            return;
+          }
+          router.replace(`/start?lang=${prefs.preferredLanguage}`);
+          return;
+        }
       } catch {
         // Signed-out users and local-only flows still fall back to browser state.
       } finally {

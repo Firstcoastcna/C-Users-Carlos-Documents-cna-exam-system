@@ -12,6 +12,8 @@ function normalizePreferences(record, userId) {
     accessGranted: !!record?.access_granted,
     skipPracticeWelcome: !!record?.skip_practice_welcome,
     skipExamWelcome: !!record?.skip_exam_welcome,
+    hasSeenFoundation: !!record?.has_seen_foundation,
+    hasSeenCategoryIntro: !!record?.has_seen_category_intro,
     createdAt: record?.created_at || null,
     updatedAt: record?.updated_at || null,
   };
@@ -68,6 +70,14 @@ export async function PUT(request) {
         Object.prototype.hasOwnProperty.call(body, "skipExamWelcome")
           ? !!body.skipExamWelcome
           : !!existing?.skip_exam_welcome,
+      hasSeenFoundation:
+        Object.prototype.hasOwnProperty.call(body, "hasSeenFoundation")
+          ? !!body.hasSeenFoundation
+          : !!existing?.has_seen_foundation,
+      hasSeenCategoryIntro:
+        Object.prototype.hasOwnProperty.call(body, "hasSeenCategoryIntro")
+          ? !!body.hasSeenCategoryIntro
+          : !!existing?.has_seen_category_intro,
     });
 
     return NextResponse.json({

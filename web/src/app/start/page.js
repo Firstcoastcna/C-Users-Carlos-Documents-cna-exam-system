@@ -4,7 +4,9 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   fetchUserPreferences,
+  fetchStudentProfile,
   signOutStudent,
+  updateStudentProfile,
   updateUserPreferences,
 } from "../lib/backend/auth/browserAuth";
 
@@ -121,6 +123,9 @@ function StartInner() {
       return false;
     }
   });
+  const [needsName, setNeedsName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [nameMessage, setNameMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -206,6 +211,28 @@ function StartInner() {
     };
   }, [lang]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const payload = await fetchStudentProfile();
+        const fullName = payload?.appUser?.full_name || "";
+        if (cancelled) return;
+        setNeedsName(!fullName);
+        setNameDraft(fullName || "");
+      } catch {
+        if (!cancelled) {
+          setNeedsName(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const theme = useMemo(
     () => ({
       frameBorder: "var(--frame-border)",
@@ -230,6 +257,12 @@ function StartInner() {
     color: theme.secondaryText,
     cursor: "pointer",
   };
+  const btnSignOut = {
+    ...btnSecondary,
+    background: "#ffe8e6",
+    border: "1px solid #f3b2ad",
+    color: "#9c1c1c",
+  };
 
   async function handleSignOut() {
     try {
@@ -251,6 +284,7 @@ function StartInner() {
           key: "sign-out",
           label: t("Sign out", "Cerrar sesion", "Deconnexion", "Dekonekte"),
           onClick: () => void handleSignOut(),
+          isSignOut: true,
         },
         {
           key: "change-language",
@@ -273,6 +307,7 @@ function StartInner() {
           key: "sign-out",
           label: t("Sign out", "Cerrar sesion", "Deconnexion", "Dekonekte"),
           onClick: () => void handleSignOut(),
+          isSignOut: true,
         },
         {
           key: "categories",
@@ -298,7 +333,7 @@ function StartInner() {
       headerAction={
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end" }}>
           {headerButtons.map((button) => (
-            <button key={button.key} style={btnSecondary} onClick={button.onClick}>
+            <button key={button.key} style={button.isSignOut ? btnSignOut : btnSecondary} onClick={button.onClick}>
               {button.label}
             </button>
           ))}
@@ -307,6 +342,64 @@ function StartInner() {
       footer={<div />}
     >
       <div style={{ maxWidth: "760px", margin: "0 auto", paddingTop: "8px" }}>
+        {needsName ? (
+          <div
+            style={{
+              border: `1px solid ${theme.chromeBorder}`,
+              borderRadius: "14px",
+              padding: "16px",
+              background: "linear-gradient(180deg, #ffffff 0%, #fff1ef 100%)",
+              marginBottom: "16px",
+              display: "grid",
+              gap: "10px",
+            }}
+          >
+            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+              {t("Add your name", "Agregue su nombre", "Ajoutez votre nom", "Ajoute non ou")}
+            </div>
+            <div style={{ color: "#5a6773", fontSize: 14, lineHeight: 1.6 }}>
+              {t(
+                "This helps instructors and support identify your account.",
+                "Esto ayuda a identificar su cuenta.",
+                "Cela aide a identifier votre compte.",
+                "Sa ede idantifye kont ou."
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <input
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                placeholder={t("Full name", "Nombre completo", "Nom complet", "Non konple")}
+                style={{
+                  flex: "1 1 240px",
+                  padding: "10px 12px",
+                  borderRadius: "10px",
+                  border: `1px solid ${theme.chromeBorder}`,
+                  fontSize: 14,
+                }}
+              />
+              <button
+                style={{ ...btnSecondary, minWidth: 140 }}
+                onClick={async () => {
+                  setNameMessage("");
+                  if (!nameDraft.trim()) {
+                    setNameMessage(t("Please enter your full name.", "Ingrese su nombre completo.", "Veuillez saisir votre nom complet.", "Tanpri antre non konple ou."));
+                    return;
+                  }
+                  try {
+                    await updateStudentProfile({ fullName: nameDraft.trim() });
+                    setNeedsName(false);
+                  } catch {
+                    setNameMessage(t("Unable to save name.", "No se pudo guardar el nombre.", "Impossible d'enregistrer le nom.", "Pa kapab sove non an."));
+                  }
+                }}
+              >
+                {t("Save name", "Guardar nombre", "Enregistrer le nom", "Sove non")}
+              </button>
+            </div>
+            {nameMessage ? <div style={{ color: "var(--brand-red)", fontSize: 13 }}>{nameMessage}</div> : null}
+          </div>
+        ) : null}
         <div style={{ fontSize: "28px", fontWeight: 800, marginBottom: "12px", color: "var(--heading)", lineHeight: 1.2 }}>
           {t(
             "Choose how you want to use the platform",

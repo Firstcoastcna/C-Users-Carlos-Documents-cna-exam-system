@@ -86,6 +86,52 @@ export async function syncStudentProfile() {
   return payload;
 }
 
+export async function fetchStudentProfile() {
+  const session = await getStudentSessionSnapshot().catch(() => null);
+  if (!session?.access_token) {
+    return null;
+  }
+
+  const response = await fetch("/api/backend/auth/me", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || "Unable to load student profile.");
+  }
+
+  return payload;
+}
+
+export async function updateStudentProfile(patch) {
+  const session = await getStudentSessionSnapshot().catch(() => null);
+  if (!session?.access_token) {
+    return null;
+  }
+
+  const response = await fetch("/api/backend/auth/me", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify(patch || {}),
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || "Unable to update student profile.");
+  }
+
+  return payload;
+}
+
 export async function getAuthenticatedRequestHeaders(extraHeaders = {}) {
   const headers = { ...extraHeaders };
   const session = await getStudentSessionSnapshot().catch(() => null);

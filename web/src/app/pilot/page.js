@@ -286,6 +286,17 @@ function PilotInner() {
     }),
     []
   );
+  const btnSignOut = {
+    padding: "8px 11px",
+    fontSize: "13px",
+    borderRadius: "10px",
+    border: "1px solid #f3b2ad",
+    background: "#ffe8e6",
+    color: "#9c1c1c",
+    cursor: "pointer",
+    fontWeight: 700,
+    minWidth: "unset",
+  };
 
   const TEXT = useMemo(() => {
     const t = {
@@ -890,6 +901,7 @@ function PilotInner() {
                   key: "signout",
                   onClick: handleSignOut,
                   label: lang === "es" ? "Cerrar sesion" : lang === "fr" ? "Deconnexion" : lang === "ht" ? "Dekonekte" : "Sign out",
+                  isSignOut: true,
                 },
                 {
                   key: "back",
@@ -931,22 +943,27 @@ function PilotInner() {
                   key: "signout",
                   onClick: handleSignOut,
                   label: lang === "es" ? "Cerrar sesion" : lang === "fr" ? "Deconnexion" : lang === "ht" ? "Dekonekte" : "Sign out",
+                  isSignOut: true,
                 },
               ]).map((item) => (
             <button
               key={item.key}
               onClick={item.onClick}
-              style={{
-                padding: "8px 11px",
-                fontSize: "13px",
-                borderRadius: "10px",
-                border: `1px solid ${theme.chromeBorder}`,
-                background: "white",
-                color: theme.secondaryText,
-                cursor: "pointer",
-                fontWeight: 700,
-                minWidth: "unset",
-              }}
+              style={
+                item.isSignOut
+                  ? btnSignOut
+                  : {
+                      padding: "8px 11px",
+                      fontSize: "13px",
+                      borderRadius: "10px",
+                      border: `1px solid ${theme.chromeBorder}`,
+                      background: "white",
+                      color: theme.secondaryText,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      minWidth: "unset",
+                    }
+              }
             >
               {item.label}
             </button>

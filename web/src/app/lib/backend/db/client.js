@@ -82,7 +82,9 @@ export async function loadUserPreferences(userId) {
 
   const { data, error } = await supabase
     .from("user_preferences")
-    .select("user_id, preferred_language, access_granted, skip_practice_welcome, skip_exam_welcome, created_at, updated_at")
+    .select(
+      "user_id, preferred_language, access_granted, skip_practice_welcome, skip_exam_welcome, has_seen_foundation, has_seen_category_intro, created_at, updated_at"
+    )
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -105,13 +107,17 @@ export async function upsertUserPreferences(record) {
     access_granted: !!record.accessGranted,
     skip_practice_welcome: !!record.skipPracticeWelcome,
     skip_exam_welcome: !!record.skipExamWelcome,
+    has_seen_foundation: !!record.hasSeenFoundation,
+    has_seen_category_intro: !!record.hasSeenCategoryIntro,
     updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase
     .from("user_preferences")
     .upsert(payload, { onConflict: "user_id" })
-    .select("user_id, preferred_language, access_granted, skip_practice_welcome, skip_exam_welcome, created_at, updated_at")
+    .select(
+      "user_id, preferred_language, access_granted, skip_practice_welcome, skip_exam_welcome, has_seen_foundation, has_seen_category_intro, created_at, updated_at"
+    )
     .single();
 
   if (error) {

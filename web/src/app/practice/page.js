@@ -706,6 +706,16 @@ function PracticeInner() {
     color: theme.secondaryText,
     cursor: "pointer",
   };
+  const btnSignOut = {
+    padding: "8px 11px",
+    fontSize: "13px",
+    borderRadius: "10px",
+    border: "1px solid #f3b2ad",
+    background: "#ffe8e6",
+    color: "#9c1c1c",
+    cursor: "pointer",
+    fontWeight: 700,
+  };
 
   function startPractice() {
     const base = `/practice-session?lang=${lang}&mode=${encodeURIComponent(mode)}&count=${encodeURIComponent(count)}${forceServer ? "&storage=server" : ""}`;
@@ -741,6 +751,7 @@ function PracticeInner() {
                         : lang === "ht"
                           ? "Dekonekte"
                           : "Sign out",
+                  isSignOut: true,
                 },
                 {
                   key: "back",
@@ -772,6 +783,7 @@ function PracticeInner() {
                         : lang === "ht"
                           ? "Dekonekte"
                           : "Sign out",
+                  isSignOut: true,
                 },
                 {
                   key: "instructions",
@@ -794,16 +806,20 @@ function PracticeInner() {
             <button
               key={item.key}
               onClick={item.onClick}
-              style={{
-                padding: "8px 11px",
-                fontSize: "13px",
-                borderRadius: "10px",
-                border: `1px solid ${theme.chromeBorder}`,
-                background: "white",
-                color: theme.secondaryText,
-                cursor: "pointer",
-                fontWeight: 700,
-              }}
+              style={
+                item.isSignOut
+                  ? btnSignOut
+                  : {
+                      padding: "8px 11px",
+                      fontSize: "13px",
+                      borderRadius: "10px",
+                      border: `1px solid ${theme.chromeBorder}`,
+                      background: "white",
+                      color: theme.secondaryText,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }
+              }
             >
               {item.label}
             </button>

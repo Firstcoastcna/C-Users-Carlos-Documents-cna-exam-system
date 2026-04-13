@@ -67,7 +67,12 @@ const btnSecondary = {
 
 async function resolveLandingRoute() {
   const prefsPayload = await fetchUserPreferences().catch(() => null);
-  return prefsPayload?.preferences?.accessGranted ? "/" : "/access";
+  const prefs = prefsPayload?.preferences || null;
+  if (!prefs?.accessGranted) return "/access";
+  if (!prefs.preferredLanguage) return "/";
+  if (!prefs.hasSeenFoundation) return `/foundation?lang=${prefs.preferredLanguage}`;
+  if (!prefs.hasSeenCategoryIntro) return `/category-foundation?lang=${prefs.preferredLanguage}`;
+  return `/start?lang=${prefs.preferredLanguage}`;
 }
 
 export default function SignInPage() {
@@ -128,7 +133,7 @@ export default function SignInPage() {
               style={inputStyle}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Full name"
+              placeholder="Full name (required for new accounts)"
             />
             <input
               style={inputStyle}
@@ -168,6 +173,10 @@ export default function SignInPage() {
               disabled={busy}
               onClick={() =>
                 runAction(async () => {
+                  if (!fullName.trim()) {
+                    setMessage("Please enter your full name to create a new account.");
+                    return;
+                  }
                   const data = await signUpStudent({ email, password, fullName });
 
                   if (data?.session?.access_token) {

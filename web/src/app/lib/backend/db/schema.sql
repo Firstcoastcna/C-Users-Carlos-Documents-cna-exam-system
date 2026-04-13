@@ -15,6 +15,8 @@ create table if not exists user_preferences (
   access_granted boolean not null default false,
   skip_practice_welcome boolean not null default false,
   skip_exam_welcome boolean not null default false,
+  has_seen_foundation boolean not null default false,
+  has_seen_category_intro boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
