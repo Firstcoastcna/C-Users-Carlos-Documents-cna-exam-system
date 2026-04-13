@@ -73,7 +73,7 @@ async function resolveLandingRoute() {
   if (!prefs.preferredLanguage) return "/";
   if (!prefs.hasSeenFoundation) return `/foundation?lang=${prefs.preferredLanguage}`;
   if (!prefs.hasSeenCategoryIntro) return `/category-foundation?lang=${prefs.preferredLanguage}`;
-  return `/start?lang=${prefs.preferredLanguage}`;
+  return `/foundation?lang=${prefs.preferredLanguage}`;
 }
 
 export default function SignInPage() {

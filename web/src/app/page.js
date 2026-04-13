@@ -78,7 +78,7 @@ export default function HomePage() {
             router.replace(`/category-foundation?lang=${prefs.preferredLanguage}`);
             return;
           }
-          router.replace(`/start?lang=${prefs.preferredLanguage}`);
+          router.replace(`/foundation?lang=${prefs.preferredLanguage}`);
           return;
         }
       } catch {

@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { updateUserPreferences } from "../lib/backend/auth/browserAuth";
+import { fetchUserPreferences, updateUserPreferences } from "../lib/backend/auth/browserAuth";
 
 function Frame({ title, children, footer, theme, headerAction }) {
   return (
@@ -201,6 +201,7 @@ function DraftInner() {
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);
+  const [showMainMenu, setShowMainMenu] = useState(false);
 
   useEffect(() => {
     function syncWidth() {
@@ -210,6 +211,23 @@ function DraftInner() {
     syncWidth();
     window.addEventListener("resize", syncWidth);
     return () => window.removeEventListener("resize", syncWidth);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const payload = await fetchUserPreferences();
+        const prefs = payload?.preferences;
+        if (cancelled) return;
+        setShowMainMenu(!!prefs?.hasSeenCategoryIntro);
+      } catch {
+        if (!cancelled) setShowMainMenu(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const theme = useMemo(
@@ -461,14 +479,26 @@ function DraftInner() {
       )}
       theme={theme}
       headerAction={
-        <button style={btnUtility} onClick={() => router.push(`/foundation?lang=${lang}`)}>
-          {t(
-            "Back to orientation",
-            "Volver a la orientacion",
-            "Retour a l'orientation",
-            "Retounen nan oryantasyon an"
-          )}
-        </button>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button style={btnUtility} onClick={() => router.push(`/foundation?lang=${lang}`)}>
+            {t(
+              "Back to orientation",
+              "Volver a la orientacion",
+              "Retour a l'orientation",
+              "Retounen nan oryantasyon an"
+            )}
+          </button>
+          {showMainMenu ? (
+            <button style={btnUtility} onClick={() => router.push(`/start?lang=${lang}`)}>
+              {t(
+                "Back to Main Menu",
+                "Volver al menu principal",
+                "Retour au menu principal",
+                "Retounen nan meni prensipal la"
+              )}
+            </button>
+          ) : null}
+        </div>
       }
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>

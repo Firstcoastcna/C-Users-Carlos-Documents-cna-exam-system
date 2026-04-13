@@ -83,6 +83,7 @@ function FoundationInner() {
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);
+  const [showMainMenu, setShowMainMenu] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,6 +117,23 @@ function FoundationInner() {
       cancelled = true;
     };
   }, [router, lang]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const payload = await fetchUserPreferences();
+        const prefs = payload?.preferences;
+        if (cancelled) return;
+        setShowMainMenu(!!prefs?.hasSeenFoundation);
+      } catch {
+        if (!cancelled) setShowMainMenu(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     function syncWidth() {
@@ -166,6 +184,13 @@ function FoundationInner() {
         "CHAPITRES ET CATEGORIES",
         "CHAPIT AK KATEGORI"
       )}
+      headerAction={
+        showMainMenu ? (
+          <button style={btnPrimary} onClick={() => router.push(`/start?lang=${lang}`)}>
+            {t("Back to Main Menu", "Volver al menu principal", "Retour au menu principal", "Retounen nan meni prensipal la")}
+          </button>
+        ) : null
+      }
       theme={theme}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
