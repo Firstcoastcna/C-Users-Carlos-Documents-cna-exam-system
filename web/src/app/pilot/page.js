@@ -2,7 +2,10 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { loadAllRemediationSessions } from "../lib/remediationSessionStorage";
+import { loadAllRemediationSessionRecords } from "../lib/remediationSessionPersistence";
+import { loadAllExamAttemptRecords } from "../lib/examAttemptPersistence";
+import { resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
+import { isServerPersistenceEnabled } from "../lib/backend/config";
 
 function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   return (
@@ -217,6 +220,10 @@ function PilotInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const [lang, setLang] = useState("en");
+  const storageMode = sp.get("storage") === "server" ? "server" : "local";
+  const forceServer = storageMode === "server";
+  const useServer = forceServer || isServerPersistenceEnabled();
+  const serverUser = forceServer ? "dev-exam-server-user" : null;
   const [isNarrow, setIsNarrow] = useState(false);
   const [testStatus, setTestStatus] = useState({
     1: "not_started",
@@ -231,6 +238,41 @@ function PilotInner() {
     remediationCount: 0,
     recentResults: [],
   });
+  const [serverAttemptIndex, setServerAttemptIndex] = useState({});
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const state = await resolveStudentEntryState();
+        if (cancelled) return;
+
+        if (state.status === "signin") {
+          router.replace("/signin");
+          return;
+        }
+
+        if (state.status === "access") {
+          router.replace(`/access?lang=${lang}`);
+          return;
+        }
+
+        try {
+          localStorage.setItem("cna_access_granted", "1");
+          localStorage.setItem("cna_pilot_lang", lang);
+        } catch {}
+        setAuthReady(true);
+      } catch {
+        router.replace("/signin");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, router]);
 
   const theme = useMemo(
     () => ({
@@ -526,6 +568,7 @@ function PilotInner() {
 
   useEffect(() => {
     function syncProgress() {
+      if (!authReady) return;
       refreshStatuses();
       refreshExamProgress();
     }
@@ -534,7 +577,9 @@ function PilotInner() {
       if (document.visibilityState === "visible") syncProgress();
     }
 
-    syncProgress();
+    if (authReady) {
+      syncProgress();
+    }
     window.addEventListener("focus", syncProgress);
     window.addEventListener("storage", syncProgress);
     document.addEventListener("visibilitychange", onVisible);
@@ -544,9 +589,43 @@ function PilotInner() {
       document.removeEventListener("visibilitychange", onVisible);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }, [authReady, forceServer, lang, serverUser, useServer]);
 
   function refreshStatuses() {
+    if (useServer) {
+      void (async () => {
+        try {
+          const attempts = await loadAllExamAttemptRecords(lang, { forceServer: useServer, serverUser });
+          const next = { 1: "not_started", 2: "not_started", 3: "not_started", 4: "not_started" };
+          const nextIndex = {};
+
+          attempts.forEach((attempt) => {
+            const testId = Number(attempt?.test_id);
+            if (!Number.isFinite(testId) || testId < 1 || testId > 4) return;
+            if (!nextIndex[testId]) nextIndex[testId] = attempt;
+          });
+
+          [1, 2, 3, 4].forEach((n) => {
+            const item = nextIndex[n];
+            if (!item) {
+              next[n] = "not_started";
+              return;
+            }
+            next[n] = item.mode === "finished" || item.mode === "time_expired" || item.mode === "analytics" || item.mode === "rationales"
+              ? "completed"
+              : "in_progress";
+          });
+
+          setServerAttemptIndex(nextIndex);
+          setTestStatus(next);
+        } catch {
+          setServerAttemptIndex({});
+          setTestStatus({ 1: "not_started", 2: "not_started", 3: "not_started", 4: "not_started" });
+        }
+      })();
+      return;
+    }
+
     const next = { ...testStatus };
     try {
       for (let n = 1; n <= 4; n += 1) {
@@ -590,67 +669,116 @@ function PilotInner() {
   }
 
   function refreshExamProgress() {
-    try {
-      const completed = [];
-      const scoredResults = [];
-      for (let n = 1; n <= 4; n += 1) {
-        const key = makeStateKey(n, lang);
-        const raw = localStorage.getItem(key);
-        if (!raw) continue;
-        const saved = JSON.parse(raw);
-        if (
-          !saved ||
-          !saved.attempt_id ||
-          (saved.mode !== "finished" &&
-            saved.mode !== "time_expired" &&
-            saved.mode !== "analytics" &&
-            saved.mode !== "rationales")
-        ) {
-          continue;
+    void (async () => {
+      if (useServer) {
+        try {
+          const attempts = await loadAllExamAttemptRecords(lang, { forceServer: useServer, serverUser });
+          const latestByTest = {};
+          attempts.forEach((attempt) => {
+            const testId = Number(attempt?.test_id);
+            if (!Number.isFinite(testId) || testId < 1 || testId > 4) return;
+            if (!latestByTest[testId]) latestByTest[testId] = attempt;
+          });
+
+          const completed = Object.values(latestByTest).filter((attempt) =>
+            attempt?.mode === "finished" || attempt?.mode === "time_expired" || attempt?.mode === "analytics" || attempt?.mode === "rationales"
+          );
+
+          const remediationSessions = (await loadAllRemediationSessionRecords(lang, { forceServer: useServer, serverUser })) || [];
+          const completedRemediation = remediationSessions.filter((session) => session?.status === "completed");
+
+          const scoredResults = completed
+            .map((attempt) => Number(attempt.score))
+            .filter((score) => Number.isFinite(score));
+
+          setExamProgress({
+            completedCount: completed.length,
+            averageScore: scoredResults.length
+              ? Math.round(scoredResults.reduce((sum, score) => sum + score, 0) / scoredResults.length)
+              : null,
+            bestScore: scoredResults.length ? Math.max(...scoredResults) : null,
+            remediationCount: completedRemediation.length,
+            recentResults: completed
+              .map((attempt) => ({
+                testId: Number(attempt.test_id),
+                attemptId: attempt.attempt_id,
+                score: Number.isFinite(attempt.score) ? attempt.score : null,
+              }))
+              .sort((a, b) => b.testId - a.testId),
+          });
+        } catch {
+          setExamProgress({
+            completedCount: 0,
+            averageScore: null,
+            bestScore: null,
+            remediationCount: 0,
+            recentResults: [],
+          });
         }
-
-        const completedEntry = {
-          testId: n,
-          attemptId: saved.attempt_id,
-          score: null,
-        };
-        completed.push(completedEntry);
-
-        const payloadRaw = localStorage.getItem(`cna:results:${saved.attempt_id}`);
-        if (!payloadRaw) continue;
-
-        const payload = JSON.parse(payloadRaw);
-        const accuracy = Number(payload?.analytics_meta?.overall_accuracy);
-        if (!Number.isFinite(accuracy)) continue;
-
-        const score = Math.round(accuracy * 100);
-        completedEntry.score = score;
-        scoredResults.push({ testId: n, attemptId: saved.attempt_id, score });
+        return;
       }
 
-      const remediationSessions = (loadAllRemediationSessions() || []).filter(
-        (session) => session?.status === "completed" && (!session?.lang || session.lang === lang)
-      );
-      const completedCount = completed.length;
-      const averageScore = scoredResults.length ? Math.round(scoredResults.reduce((sum, row) => sum + row.score, 0) / scoredResults.length) : null;
-      const bestScore = scoredResults.length ? Math.max(...scoredResults.map((row) => row.score)) : null;
+      try {
+        const completed = [];
+        const scoredResults = [];
+        for (let n = 1; n <= 4; n += 1) {
+          const key = makeStateKey(n, lang);
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const saved = JSON.parse(raw);
+          if (
+            !saved ||
+            !saved.attempt_id ||
+            (saved.mode !== "finished" &&
+              saved.mode !== "time_expired" &&
+              saved.mode !== "analytics" &&
+              saved.mode !== "rationales")
+          ) {
+            continue;
+          }
 
-      setExamProgress({
-        completedCount,
-        averageScore,
-        bestScore,
-        remediationCount: remediationSessions.length,
-        recentResults: completed.sort((a, b) => b.testId - a.testId),
-      });
-    } catch {
-      setExamProgress({
-        completedCount: 0,
-        averageScore: null,
-        bestScore: null,
-        remediationCount: 0,
-        recentResults: [],
-      });
-    }
+          const completedEntry = {
+            testId: n,
+            attemptId: saved.attempt_id,
+            score: null,
+          };
+          completed.push(completedEntry);
+
+          const payloadRaw = localStorage.getItem(`cna:results:${saved.attempt_id}`);
+          if (!payloadRaw) continue;
+
+          const payload = JSON.parse(payloadRaw);
+          const accuracy = Number(payload?.analytics_meta?.overall_accuracy);
+          if (!Number.isFinite(accuracy)) continue;
+
+          const score = Math.round(accuracy * 100);
+          completedEntry.score = score;
+          scoredResults.push({ testId: n, attemptId: saved.attempt_id, score });
+        }
+
+      const remediationSessions = (await loadAllRemediationSessionRecords(lang, { forceServer: useServer, serverUser })) || [];
+        const completedRemediation = remediationSessions.filter((session) => session?.status === "completed");
+        const completedCount = completed.length;
+        const averageScore = scoredResults.length ? Math.round(scoredResults.reduce((sum, row) => sum + row.score, 0) / scoredResults.length) : null;
+        const bestScore = scoredResults.length ? Math.max(...scoredResults.map((row) => row.score)) : null;
+
+        setExamProgress({
+          completedCount,
+          averageScore,
+          bestScore,
+          remediationCount: completedRemediation.length,
+          recentResults: completed.sort((a, b) => b.testId - a.testId),
+        });
+      } catch {
+        setExamProgress({
+          completedCount: 0,
+          averageScore: null,
+          bestScore: null,
+          remediationCount: 0,
+          recentResults: [],
+        });
+      }
+    })();
   }
 
   const allCompleted = useMemo(() => [1, 2, 3, 4].every((n) => testStatus[n] === "completed"), [testStatus]);
@@ -660,6 +788,15 @@ function PilotInner() {
   );
 
   function startOrResume(testId) {
+    if (useServer) {
+      const attempt = serverAttemptIndex[testId] || null;
+      const params = new URLSearchParams({ lang, test_id: String(testId) });
+      if (forceServer) params.set("storage", "server");
+      if (attempt?.attempt_id) params.set("attempt_id", attempt.attempt_id);
+      router.push(`/exam?${params.toString()}`);
+      return;
+    }
+
     try {
       const key = makeStateKey(testId, lang);
       const raw = localStorage.getItem(key);
@@ -683,11 +820,29 @@ function PilotInner() {
     router.push(`/exam?lang=${lang}`);
   }
 
+  async function handleSignOut() {
+    try {
+      await signOutStudent();
+    } catch {}
+    router.replace("/signin");
+  }
+
   function resetAll() {
     if (!allCompleted) return;
 
     const ok = window.confirm(TEXT.confirmReset);
     if (!ok) return;
+
+    if (forceServer) {
+      void (async () => {
+        try {
+          await fetch("/api/backend/exam-attempts/dev-reset", { method: "GET", cache: "no-store" });
+        } catch {}
+        refreshStatuses();
+        refreshExamProgress();
+      })();
+      return;
+    }
 
     try {
       for (let n = 1; n <= 4; n += 1) {
@@ -732,6 +887,11 @@ function PilotInner() {
           {(isNarrow
             ? [
                 {
+                  key: "signout",
+                  onClick: handleSignOut,
+                  label: lang === "es" ? "Cerrar sesion" : lang === "fr" ? "Deconnexion" : lang === "ht" ? "Dekonekte" : "Sign out",
+                },
+                {
                   key: "back",
                   onClick: () => router.push(`/start?lang=${lang}`),
                   label: TEXT.returnToStart,
@@ -766,6 +926,11 @@ function PilotInner() {
                   key: "back",
                   onClick: () => router.push(`/start?lang=${lang}`),
                   label: TEXT.returnToStart,
+                },
+                {
+                  key: "signout",
+                  onClick: handleSignOut,
+                  label: lang === "es" ? "Cerrar sesion" : lang === "fr" ? "Deconnexion" : lang === "ht" ? "Dekonekte" : "Sign out",
                 },
               ]).map((item) => (
             <button

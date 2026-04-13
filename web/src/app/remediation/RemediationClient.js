@@ -4,14 +4,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import {
-  loadRemediationSession,
-  saveRemediationSession,
-  loadAllRemediationSessions,
-} from "../lib/remediationSessionStorage";
+  loadRemediationSessionRecord,
+  saveRemediationSessionRecord,
+  loadAllRemediationSessionRecords,
+} from "../lib/remediationSessionPersistence";
+import { loadExamAttemptRecord } from "../lib/examAttemptPersistence";
+import { loadAllRemediationSessions } from "../lib/remediationSessionStorage";
 
-import { buildRemediationSession } from "../lib/remediationSessionBuilder";
+import { buildRemediationSession, buildRemediationSessionRecord } from "../lib/remediationSessionBuilder";
 
 import {
+  recordRemediationAnswer,
   applyRemediationAnswerAndPersist,
   finalizeRemediationSessionCompletion,
 } from "../lib/remediationOutcomes";
@@ -25,6 +28,10 @@ export default function RemediationClient({ bankById }) {
 const sessionId = searchParams.get("session_id");
 const attemptIdParam = searchParams.get("attemptId");
 const urlLang = searchParams.get("lang");
+const explicitForceServer = searchParams.get("storage") === "server";
+const [autoForceServer, setAutoForceServer] = useState(explicitForceServer);
+const forceServer = autoForceServer;
+const serverUser = forceServer ? "dev-remediation-server-user" : null;
 const reviewParam = searchParams.get("review"); // "1" means view-only
 const qaParam = searchParams.get("qa"); // "1" enables QA debug overlay
 
@@ -33,6 +40,39 @@ const [isNarrow, setIsNarrow] = useState(false);
 useEffect(() => {
   if (urlLang) setLang(urlLang);
 }, [urlLang]);
+
+useEffect(() => {
+  setAutoForceServer(explicitForceServer);
+}, [explicitForceServer]);
+
+useEffect(() => {
+  if (explicitForceServer) return;
+  if (!attemptIdParam) return;
+
+  let cancelled = false;
+
+  void (async () => {
+    try {
+      const serverAttempt = await loadExamAttemptRecord(attemptIdParam, {
+        forceServer: true,
+        serverUser: "dev-exam-server-user",
+      });
+      if (!serverAttempt || cancelled) return;
+
+      setAutoForceServer(true);
+
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("storage", "server");
+      router.replace(`/remediation?${params.toString()}`);
+    } catch {
+      // Keep local mode when the attempt does not exist on the server lane.
+    }
+  })();
+
+  return () => {
+    cancelled = true;
+  };
+}, [attemptIdParam, explicitForceServer, router, searchParams]);
 
 const [reviewMode, setReviewMode] = useState(reviewParam === "1");
 useEffect(() => {
@@ -49,6 +89,29 @@ const [resultsPayload, setResultsPayload] = useState(null);
 
 useEffect(() => {
   if (!attemptIdParam) return;
+  if (forceServer) {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const saved = await loadExamAttemptRecord(attemptIdParam, {
+          forceServer: true,
+          serverUser: "dev-exam-server-user",
+        });
+        if (!cancelled) {
+          setResultsPayload(saved?.resultsPayload || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setResultsPayload(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }
 
   try {
     const raw = localStorage.getItem(`cna:results:${attemptIdParam}`);
@@ -60,7 +123,7 @@ useEffect(() => {
   } catch (e) {
     setResultsPayload(null);
   }
-}, [attemptIdParam]);
+}, [attemptIdParam, forceServer]);
 
 const EMPTY_LOOP_STATE = {
   selectedCats: [],
@@ -75,9 +138,48 @@ const EMPTY_LOOP_STATE = {
 const [loopState, setLoopState] = useState(EMPTY_LOOP_STATE);
 const [loopStateVersion, setLoopStateVersion] = useState(0);
 
+const examReturnUrl = useMemo(() => {
+  const sourceAttemptId = resultsPayload?.attempt_id || attemptIdParam || null;
+  return `/exam?lang=${lang}${sourceAttemptId ? `&attempt_id=${encodeURIComponent(sourceAttemptId)}` : ""}${forceServer ? "&storage=server" : ""}`;
+}, [attemptIdParam, forceServer, lang, resultsPayload?.attempt_id]);
+
 function refreshLoopState(payload = resultsPayload) {
   if (!payload?.attempt_id) {
     setLoopState(EMPTY_LOOP_STATE);
+    return;
+  }
+
+  if (forceServer) {
+    void (async () => {
+      const ranked = Array.isArray(payload?.category_priority) ? payload.category_priority : [];
+      const highRiskPriority = ranked.filter((c) => c.is_high_risk && c.level !== "Strong");
+      const weakPriority = ranked.filter((c) => !c.is_high_risk && c.level === "Weak");
+      const developingPriority = ranked.filter((c) => !c.is_high_risk && c.level === "Developing");
+      const selectedCats = (highRiskPriority.length > 0 ? highRiskPriority : [...weakPriority, ...developingPriority])
+        .slice(0, 2)
+        .map((c) => c.category_id);
+      const catSetKey = (selectedCats || []).slice().sort().join("|");
+      const all = await loadAllRemediationSessionRecords(null, { forceServer, serverUser }) || [];
+      const sameLoop = all.filter((s) => {
+        if (!s) return false;
+        if (s.results_attempt_id !== payload.attempt_id) return false;
+        const k = (s.selectedCategories || []).slice().sort().join("|");
+        return k === catSetKey;
+      });
+      const completedSorted = sameLoop
+        .filter((s) => s.status === "completed")
+        .slice()
+        .sort((a, b) => {
+          const at = Number(a.completed_at || a.completion_ts || a.created_at || 0);
+          const bt = Number(b.completed_at || b.completion_ts || b.created_at || 0);
+          return at - bt;
+        });
+      const completedCount = completedSorted.length;
+      const lastCompleted = completedCount > 0 ? completedSorted[completedCount - 1] : null;
+      const lastOutcome = lastCompleted ? (lastCompleted.microOutcome || "") : "";
+      const active = sameLoop.find((s) => s.status === "active") || null;
+      setLoopState({ selectedCats, catSetKey, activeSession: active, lastCompleted, completedSorted, completedCount, lastOutcome });
+    })();
     return;
   }
 
@@ -160,20 +262,24 @@ useEffect(() => {
   if (session.status === "completed") return;
 
   try {
-    finalizeRemediationSessionCompletion({
+    void finalizeRemediationSessionCompletion({
       session_id: session.session_id,
       results_attempt_id: session.results_attempt_id,
       selectedCategories: session.selectedCategories,
+      forceServer,
+      serverUser,
     });
 
     // Refresh local state from storage (so session.status/microOutcome/etc are reflected)
-    const fresh = loadRemediationSession(session.session_id);
-    if (fresh) {
-      setSession(fresh);
-      setLoopStateVersion((v) => v + 1);
-    }
+    void (async () => {
+      const fresh = await loadRemediationSessionRecord(session.session_id, { forceServer, serverUser });
+      if (fresh) {
+        setSession(fresh);
+        setLoopStateVersion((v) => v + 1);
+      }
+    })();
   } catch (e) {}
-}, [view, session]);
+}, [forceServer, serverUser, view, session]);
 
 useEffect(() => {
   if (!sessionId) {
@@ -659,17 +765,19 @@ useEffect(() => {
   if (!sessionId) return;
   if (view === "intro" && sessionId === skipSessionReloadIdRef.current) return;
 
-  const s = loadRemediationSession(sessionId);
-  if (!s) {
-    setError("Remediation session not found.");
-    return;
-  }
+  void (async () => {
+    const s = await loadRemediationSessionRecord(sessionId, { forceServer, serverUser });
+    if (!s) {
+      setError("Remediation session not found.");
+      return;
+    }
 
-  setSession(reviewMode ? { ...s, currentIndex: 0 } : s);
-  if (view === "intro") {
-    setView("session"); // IMPORTANT: never show the “second intro page”
-  }
-}, [sessionId, reviewMode, view]);
+    setSession(reviewMode ? { ...s, currentIndex: 0 } : s);
+    if (view === "intro") {
+      setView("session");
+    }
+  })();
+}, [forceServer, reviewMode, serverUser, sessionId, view]);
 
 
   const questionId = useMemo(() => {
@@ -706,24 +814,24 @@ const variantPrimary = useMemo(() => {
 }, [q, lang, isBilingualSupport]);
 
 
-    function persistSessionPatch(patch) {
+  function persistSessionPatch(patch) {
     const next = { ...session, ...patch };
     setSession(next);
 
     // Review mode is view-only: do not persist changes (including currentIndex).
     if (reviewMode) return;
 
-    saveRemediationSession(next);
+    void saveRemediationSessionRecord(next, { forceServer, serverUser });
   }
 
 
-  function handleSelect(answerId) {
+  async function handleSelect(answerId) {
   if (!sessionId || !questionId) return;
   if (reviewMode) return; // view-only
 
   try {
-    const updated = applyRemediationAnswerAndPersist({
-      session_id: sessionId,
+    const updated = recordRemediationAnswer({
+      session,
       questionId,
       selectedAnswerId: answerId,
       bankById: session.questionsById,
@@ -731,6 +839,7 @@ const variantPrimary = useMemo(() => {
     });
 
     setSession(updated);
+    await saveRemediationSessionRecord(updated, { forceServer, serverUser });
   } catch (e) {
     setError(String(e?.message || e));
   }
@@ -761,21 +870,21 @@ function goToHub() {
   // otherwise "Continue remediation" can push the same URL and do nothing.
   if (resultsPayload?.attempt_id) {
     router.replace(
-      `/remediation?attemptId=${encodeURIComponent(resultsPayload.attempt_id)}&lang=${lang}`
+      `/remediation?attemptId=${encodeURIComponent(resultsPayload.attempt_id)}&lang=${lang}${forceServer ? "&storage=server" : ""}`
     );
   } else if (attemptIdParam) {
-    router.replace(`/remediation?attemptId=${encodeURIComponent(attemptIdParam)}&lang=${lang}`);
+    router.replace(`/remediation?attemptId=${encodeURIComponent(attemptIdParam)}&lang=${lang}${forceServer ? "&storage=server" : ""}`);
   } else {
-    router.replace(`/remediation?lang=${lang}`);
+    router.replace(`/remediation?lang=${lang}${forceServer ? "&storage=server" : ""}`);
   }
 }
 
 function goBackToResults() {
-  router.push(`/exam?lang=${lang}`);
+  router.push(examReturnUrl);
 }
 
   function exitRemediation() {
-    router.push(`/exam?lang=${lang}`);
+    router.push(examReturnUrl);
   }
 
 function countUnanswered(s) {
@@ -940,7 +1049,7 @@ if (view === "intro") {
         <div style={{ color: "crimson" }}>
           Missing attemptId. Return to results and open remediation again.
         </div>
-        <button onClick={() => router.push(`/exam?lang=${lang}`)} style={{ ...btnSecondary, marginTop: 12 }}>
+        <button onClick={() => router.push(examReturnUrl)} style={{ ...btnSecondary, marginTop: 12 }}>
           {T.btnBackToResults}
         </button>
       </div>
@@ -1022,7 +1131,7 @@ if (view === "intro") {
       >
         <span>{T.remediationTitle}</span>
         <button
-          onClick={() => router.push(`/exam?lang=${lang}`)}
+          onClick={() => router.push(examReturnUrl)}
           style={{
             ...btnSecondary,
             minWidth: "130px",
@@ -1139,7 +1248,7 @@ if (view === "intro") {
     <button
       onClick={() => {
         router.push(
-          `/remediation?attemptId=${encodeURIComponent(attemptIdParam)}&session_id=${loopState.lastCompleted.session_id}&lang=${lang}&review=1`
+          `/remediation?attemptId=${encodeURIComponent(attemptIdParam)}&session_id=${loopState.lastCompleted.session_id}&lang=${lang}&review=1${forceServer ? "&storage=server" : ""}`
         );
       }}
       style={{ ...btnSecondary, ...actionButtonStyle }}
@@ -1150,7 +1259,7 @@ if (view === "intro") {
 
   {!reachedMaxAttempts && (
   <button
-    onClick={() => {
+    onClick={async () => {
       // Continue if an active session exists
       if (loopState.activeSession?.session_id) {
   const targetId = loopState.activeSession.session_id;
@@ -1163,7 +1272,7 @@ if (view === "intro") {
   }
 
   router.push(
-    `/remediation?attemptId=${encodeURIComponent(attemptIdParam)}&session_id=${targetId}&lang=${lang}`
+    `/remediation?attemptId=${encodeURIComponent(attemptIdParam)}&session_id=${targetId}&lang=${lang}${forceServer ? "&storage=server" : ""}`
   );
   return;
 }
@@ -1185,7 +1294,7 @@ try {
     // Completed sessions only count as attempts.
   // For question variety, we also avoid repeats across DIFFERENT exam attempts
   // for the same category set (global exposure).
-  const allSessions = loadAllRemediationSessions() || [];
+  const allSessions = await loadAllRemediationSessionRecords(null, { forceServer, serverUser }) || [];
 
   const catSetKey = (loopState.selectedCats || []).slice().sort().join("|");
 
@@ -1209,15 +1318,23 @@ try {
   };
 
 
-  const sessionNew = buildRemediationSession({
+  const sessionNew = forceServer
+    ? await buildRemediationSessionRecord({
+        mode: "targeted",
+        resultsPayload,
+        questionBankSnapshot,
+        priorRemediationState,
+        lang,
+        forceServer,
+        serverUser,
+      })
+    : buildRemediationSession({
     mode: "targeted",
     resultsPayload,
     questionBankSnapshot,
     priorRemediationState,
     lang,
   });
-
-  saveRemediationSession(sessionNew);
 
   // Start immediately (no second home page)
   setReviewMode(false);
@@ -1227,7 +1344,7 @@ try {
 
   // Keep URL in sync for refresh
   router.replace(
-    `/remediation?attemptId=${encodeURIComponent(resultsPayload.attempt_id)}&session_id=${sessionNew.session_id}&lang=${lang}`
+    `/remediation?attemptId=${encodeURIComponent(resultsPayload.attempt_id)}&session_id=${sessionNew.session_id}&lang=${lang}${forceServer ? "&storage=server" : ""}`
   );
 } catch (e) {
   setError(String(e?.message || e));
@@ -1268,7 +1385,7 @@ if (!questionId) {
       <button onClick={() => setView("intro")} style={btnSecondary}>
         {T.btnBackToOverview}
       </button>
-      <button onClick={() => router.push(`/exam?lang=${lang}`)} style={{ ...btnSecondary, marginLeft: 10 }}>
+      <button onClick={() => router.push(examReturnUrl)} style={{ ...btnSecondary, marginLeft: 10 }}>
         {T.btnBackToResults}
       </button>
     </div>
@@ -1285,7 +1402,7 @@ if (!q) {
       <button onClick={() => setView("intro")} style={btnSecondary}>
         {T.btnBackToOverview}
       </button>
-      <button onClick={() => router.push(`/exam?lang=${lang}`)} style={{ ...btnSecondary, marginLeft: 10 }}>
+      <button onClick={() => router.push(examReturnUrl)} style={{ ...btnSecondary, marginLeft: 10 }}>
         {T.btnBackToResults}
       </button>
     </div>
@@ -1303,7 +1420,7 @@ if (!variantEn) {
         {T.btnBackToOverview}
       </button>
       <button
-        onClick={() => router.push(`/exam?lang=${lang}`)}
+        onClick={() => router.push(examReturnUrl)}
         style={{ ...btnSecondary, marginLeft: 10 }}
       >
         {T.btnBackToResults}
@@ -1455,10 +1572,8 @@ if (view === "complete" && session) {
 
 
                 {(() => {
-          const all = loadAllRemediationSessions() || [];
-
           const loop = computeRemediationLoopState({
-            allSessions: all,
+            allSessions: loopState.completedSorted || [],
             currentSession: session,
           });
 

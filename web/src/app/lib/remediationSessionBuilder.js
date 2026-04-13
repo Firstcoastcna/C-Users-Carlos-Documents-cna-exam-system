@@ -1,5 +1,6 @@
 import { selectRemediationQuestions } from "./remediationQuestionSelector";
 import { saveRemediationSession } from "./remediationSessionStorage";
+import { saveRemediationSessionRecord } from "./remediationSessionPersistence";
 
 const CATEGORY_TO_CHAPTERS = {
   "Scope of Practice & Reporting": {
@@ -104,6 +105,7 @@ export function buildRemediationSession({
   questionBankSnapshot,
   priorRemediationState,
   lang = null,
+  persist = true,
 }) {
   if (!resultsPayload) {
     throw new Error("buildRemediationSession: resultsPayload is required (read-only)");
@@ -175,6 +177,30 @@ export function buildRemediationSession({
     status: "active",
   };
 
-  saveRemediationSession(session);
+  if (persist) {
+    saveRemediationSession(session);
+  }
+  return session;
+}
+
+export async function buildRemediationSessionRecord({
+  mode,
+  resultsPayload,
+  questionBankSnapshot,
+  priorRemediationState,
+  lang = null,
+  forceServer = false,
+  serverUser = null,
+}) {
+  const session = buildRemediationSession({
+    mode,
+    resultsPayload,
+    questionBankSnapshot,
+    priorRemediationState,
+    lang,
+    persist: false,
+  });
+
+  await saveRemediationSessionRecord(session, { forceServer, serverUser });
   return session;
 }

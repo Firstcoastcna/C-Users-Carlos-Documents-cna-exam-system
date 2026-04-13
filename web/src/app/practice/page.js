@@ -2,7 +2,8 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { loadAllPracticeSessions, loadPracticeSession } from "../lib/practiceSessionStorage";
+import { loadAllPracticeSessionRecords, loadPracticeSessionRecord } from "../lib/practiceSessionPersistence";
+import { resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
 
 function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   return (
@@ -125,6 +126,9 @@ function PracticeInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
+  const storageMode = sp.get("storage") === "server" ? "server" : "local";
+  const forceServer = storageMode === "server";
+  const serverUser = forceServer ? "dev-practice-server-user" : null;
   const [isNarrow, setIsNarrow] = useState(false);
   const [mode, setMode] = useState("chapter");
   const [count, setCount] = useState(5);
@@ -132,22 +136,25 @@ function PracticeInner() {
   const [selectedCategory, setSelectedCategory] = useState("Change in Condition");
   const [activeSession, setActiveSession] = useState(null);
   const [practiceHistory, setPracticeHistory] = useState([]);
+  const [authReady, setAuthReady] = useState(false);
 
-  function refreshActiveSession() {
+  async function refreshActiveSession() {
     try {
-      const all = loadAllPracticeSessions();
-      const filtered = all.filter((item) => !item?.lang || item.lang === lang);
+      const filtered = await loadAllPracticeSessionRecords(lang, { forceServer, serverUser });
       queueMicrotask(() => {
         setPracticeHistory([...filtered].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0)));
       });
       const latestOverall =
         [...filtered].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0))[0] || null;
+      const full =
+        latestOverall?.status === "active" && latestOverall?.session_id
+          ? await loadPracticeSessionRecord(latestOverall.session_id, { forceServer, serverUser })
+          : null;
       queueMicrotask(() => {
         if (latestOverall?.status !== "active" || !latestOverall?.session_id) {
           setActiveSession(null);
           return;
         }
-        const full = loadPracticeSession(latestOverall.session_id);
         if (full?.lang && full.lang !== lang) {
           setActiveSession(null);
           return;
@@ -163,17 +170,36 @@ function PracticeInner() {
   }
 
   useEffect(() => {
-    let granted = false;
-    try {
-      granted = localStorage.getItem("cna_access_granted") === "1";
-    } catch {}
-    if (!granted) {
-      router.replace(`/access?lang=${lang}`);
-      return;
-    }
-    try {
-      localStorage.setItem("cna_pilot_lang", lang);
-    } catch {}
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const state = await resolveStudentEntryState();
+        if (cancelled) return;
+
+        if (state.status === "signin") {
+          router.replace("/signin");
+          return;
+        }
+
+        if (state.status === "access") {
+          router.replace(`/access?lang=${lang}`);
+          return;
+        }
+
+        try {
+          localStorage.setItem("cna_access_granted", "1");
+          localStorage.setItem("cna_pilot_lang", lang);
+        } catch {}
+        setAuthReady(true);
+      } catch {
+        router.replace("/signin");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, lang]);
 
   useEffect(() => {
@@ -189,14 +215,17 @@ function PracticeInner() {
 
   useEffect(() => {
     function syncActive() {
-      refreshActiveSession();
+      if (!authReady) return;
+      void refreshActiveSession();
     }
 
     function onVisible() {
-      if (document.visibilityState === "visible") refreshActiveSession();
+      if (document.visibilityState === "visible" && authReady) void refreshActiveSession();
     }
 
-    refreshActiveSession();
+    if (authReady) {
+      void refreshActiveSession();
+    }
     window.addEventListener("focus", syncActive);
     window.addEventListener("storage", syncActive);
     document.addEventListener("visibilitychange", onVisible);
@@ -205,7 +234,7 @@ function PracticeInner() {
       window.removeEventListener("storage", syncActive);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [lang]);
+  }, [authReady, lang]);
 
   const theme = useMemo(
     () => ({
@@ -225,6 +254,13 @@ function PracticeInner() {
     if (lang === "fr") return fr;
     if (lang === "ht") return ht;
     return en;
+  }
+
+  async function handleSignOut() {
+    try {
+      await signOutStudent();
+    } catch {}
+    router.replace("/signin");
   }
 
   function categoryLabel(cat) {
@@ -672,7 +708,7 @@ function PracticeInner() {
   };
 
   function startPractice() {
-    const base = `/practice-session?lang=${lang}&mode=${encodeURIComponent(mode)}&count=${encodeURIComponent(count)}`;
+    const base = `/practice-session?lang=${lang}&mode=${encodeURIComponent(mode)}&count=${encodeURIComponent(count)}${forceServer ? "&storage=server" : ""}`;
     if (mode === "chapter") {
       router.push(`${base}&chapter=${encodeURIComponent(selectedChapter)}`);
       return;
@@ -695,6 +731,18 @@ function PracticeInner() {
           {(isNarrow
             ? [
                 {
+                  key: "sign-out",
+                  onClick: () => void handleSignOut(),
+                  label:
+                    lang === "es"
+                      ? "Cerrar sesion"
+                      : lang === "fr"
+                        ? "Deconnexion"
+                        : lang === "ht"
+                          ? "Dekonekte"
+                          : "Sign out",
+                },
+                {
                   key: "back",
                   onClick: () => router.push(`/start?lang=${lang}`),
                   label: TEXT.backToWelcome,
@@ -713,6 +761,18 @@ function PracticeInner() {
                 },
               ]
             : [
+                {
+                  key: "sign-out",
+                  onClick: () => void handleSignOut(),
+                  label:
+                    lang === "es"
+                      ? "Cerrar sesion"
+                      : lang === "fr"
+                        ? "Deconnexion"
+                        : lang === "ht"
+                          ? "Dekonekte"
+                          : "Sign out",
+                },
                 {
                   key: "instructions",
                   onClick: () => router.push(`/practice-instructions?lang=${lang}`),
@@ -872,7 +932,7 @@ function PracticeInner() {
             action={
               <button
                 style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }}
-                onClick={() => router.push(`/practice-session?lang=${lang}&session_id=${activeSession.session_id}`)}
+                onClick={() => router.push(`/practice-session?lang=${lang}&session_id=${activeSession.session_id}${forceServer ? "&storage=server" : ""}`)}
               >
                 {TEXT.resumeButton}
               </button>

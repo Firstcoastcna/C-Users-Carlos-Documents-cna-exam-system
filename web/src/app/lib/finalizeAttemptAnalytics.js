@@ -63,7 +63,7 @@ export function finalizeAttemptAnalytics({
     });
 
     persistResultsPayloadWriteOnce(resultsPayload);
-    return { ok: true };
+    return { ok: true, resultsPayload };
   } catch (e) {
     return { ok: false, reason: "exception", error: String(e?.message || e) };
   }

@@ -1,4 +1,8 @@
 import { loadAllPracticeSessions, savePracticeSession } from "./practiceSessionStorage";
+import {
+  loadAllPracticeSessionRecords,
+  savePracticeSessionRecord,
+} from "./practiceSessionPersistence";
 
 function shuffle(list, rng = Math.random) {
   const arr = [...list];
@@ -92,6 +96,16 @@ function buildSeenQuestionIds(lang = null) {
   return seen;
 }
 
+async function buildSeenQuestionIdsRecord(lang = null, options = {}) {
+  const allSessions = await loadAllPracticeSessionRecords(lang, options);
+  const seen = new Set();
+  allSessions.forEach((session) => {
+    if (lang && session?.lang && session.lang !== lang) return;
+    (session?.questionIds || []).forEach((qid) => seen.add(qid));
+  });
+  return seen;
+}
+
 export function buildPracticeSession({
   mode,
   questionCount,
@@ -160,5 +174,78 @@ export function buildPracticeSession({
   };
 
   savePracticeSession(session);
+  return session;
+}
+
+export async function buildPracticeSessionRecord({
+  mode,
+  questionCount,
+  selectedChapter = null,
+  selectedCategory = null,
+  questionBankSnapshot,
+  lang = null,
+  forceServer = false,
+  serverUser = null,
+}) {
+  if (!questionBankSnapshot) {
+    throw new Error("buildPracticeSessionRecord: questionBankSnapshot is required");
+  }
+
+  if (!["chapter", "category", "mixed"].includes(mode)) {
+    throw new Error("buildPracticeSessionRecord: invalid mode");
+  }
+
+  if (mode === "chapter" && !selectedChapter) {
+    throw new Error("buildPracticeSessionRecord: selectedChapter is required for chapter mode");
+  }
+
+  if (mode === "category" && !selectedCategory) {
+    throw new Error("buildPracticeSessionRecord: selectedCategory is required for category mode");
+  }
+
+  const normalizedBank = normalizeQuestionBank(questionBankSnapshot).filter((question) =>
+    matchesMode(question, mode, selectedChapter, selectedCategory)
+  );
+
+  if (!normalizedBank.length) {
+    throw new Error("buildPracticeSessionRecord: no questions available for this practice setup");
+  }
+
+  const seenQuestionIds = await buildSeenQuestionIdsRecord(lang, { forceServer, serverUser });
+  const unseen = [];
+  const seen = [];
+
+  normalizedBank.forEach((question) => {
+    if (seenQuestionIds.has(question.question_id)) seen.push(question);
+    else unseen.push(question);
+  });
+
+  const picked = pickPracticeQuestions(unseen, seen, questionCount);
+
+  if (!picked.length) {
+    throw new Error("buildPracticeSessionRecord: unable to select questions for practice");
+  }
+
+  const questionIds = picked.map((question) => question.question_id);
+  const questionsById = Object.fromEntries(picked.map((question) => [question.question_id, question]));
+
+  const session = {
+    session_id: `practice_${Date.now()}`,
+    created_at: Date.now(),
+    lang: lang || null,
+    status: "active",
+    mode,
+    selectedChapter: selectedChapter ? Number(selectedChapter) : null,
+    selectedCategory: selectedCategory || null,
+    totalQuestions: questionIds.length,
+    questionIds,
+    questionsById,
+    currentIndex: 0,
+    answers: {},
+    submitted_correct: 0,
+    submitted_total: 0,
+  };
+
+  await savePracticeSessionRecord(session, { forceServer, serverUser });
   return session;
 }

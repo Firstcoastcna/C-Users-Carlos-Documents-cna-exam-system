@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { fetchUserPreferences } from "../lib/backend/auth/browserAuth";
 
 function Frame({ title, children, footer, theme }) {
   return (
@@ -84,13 +85,36 @@ function FoundationInner() {
   const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => {
-    let granted = false;
-    try {
-      granted = localStorage.getItem("cna_access_granted") === "1";
-    } catch {}
-    if (!granted) {
-      router.replace(`/access?lang=${lang}`);
-    }
+    let cancelled = false;
+
+    void (async () => {
+      let granted = false;
+      try {
+        granted = localStorage.getItem("cna_access_granted") === "1";
+      } catch {}
+
+      if (!granted) {
+        try {
+          const payload = await fetchUserPreferences();
+          granted = !!payload?.preferences?.accessGranted;
+          if (granted) {
+            try {
+              localStorage.setItem("cna_access_granted", "1");
+            } catch {}
+          }
+        } catch {
+          // Fall back to local-only gate.
+        }
+      }
+
+      if (!granted && !cancelled) {
+        router.replace(`/access?lang=${lang}`);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, lang]);
 
   useEffect(() => {

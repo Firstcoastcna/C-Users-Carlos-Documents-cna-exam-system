@@ -2,6 +2,10 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  resolveStudentEntryState,
+  updateUserPreferences,
+} from "../lib/backend/auth/browserAuth";
 
 function Frame({ title, children, footer, theme }) {
   return (
@@ -58,6 +62,29 @@ function AccessInner() {
   const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const state = await resolveStudentEntryState();
+        if (cancelled) return;
+
+        if (state.status === "signin") {
+          router.replace("/signin");
+          return;
+        }
+
+        if (state.status === "ready") {
+          try {
+            localStorage.setItem("cna_access_granted", "1");
+          } catch {}
+          router.replace("/");
+        }
+      } catch {
+        // Keep activation page available if no signed-in student is present yet.
+      }
+    })();
+
     function syncWidth() {
       if (typeof window === "undefined") return;
       setIsNarrow(window.innerWidth < 760);
@@ -65,8 +92,11 @@ function AccessInner() {
 
     syncWidth();
     window.addEventListener("resize", syncWidth);
-    return () => window.removeEventListener("resize", syncWidth);
-  }, []);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("resize", syncWidth);
+    };
+  }, [router]);
 
   const theme = useMemo(
     () => ({
@@ -105,7 +135,7 @@ function AccessInner() {
     return en;
   }
 
-  function submit() {
+  async function submit() {
     setErr("");
 
     const MASTER_CODE = "FCCNA2026";
@@ -127,7 +157,16 @@ function AccessInner() {
       localStorage.setItem("cna_access_granted", "1");
     } catch {}
 
-    router.push(`/foundation?lang=${lang}`);
+    try {
+      await updateUserPreferences({
+        accessGranted: true,
+        preferredLanguage: lang,
+      });
+    } catch {
+      // Keep browser-only entry working for unsigned users.
+    }
+
+    router.push("/");
   }
 
   return (

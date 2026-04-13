@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { buildPracticeSession } from "../lib/practiceSessionBuilder";
-import { loadPracticeSession, savePracticeSession } from "../lib/practiceSessionStorage";
+import { buildPracticeSessionRecord } from "../lib/practiceSessionBuilder";
+import { loadPracticeSessionRecord, savePracticeSessionRecord } from "../lib/practiceSessionPersistence";
+import { resolveStudentEntryState } from "../lib/backend/auth/browserAuth";
 
 function getDisplayBlocks(question, lang) {
   const blocks = [];
@@ -110,6 +111,9 @@ export default function PracticeSessionClient({ bankById }) {
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const sessionId = sp.get("session_id");
+  const storageMode = sp.get("storage") === "server" ? "server" : "local";
+  const forceServer = storageMode === "server";
+  const serverUser = forceServer ? "dev-practice-server-user" : null;
   const mode = sp.get("mode") || "mixed";
   const count = Number(sp.get("count") || 10);
   const chapter = sp.get("chapter");
@@ -118,6 +122,7 @@ export default function PracticeSessionClient({ bankById }) {
   const [view, setView] = useState(sessionId ? "session" : "boot");
   const [isNarrow, setIsNarrow] = useState(false);
   const [error, setError] = useState("");
+  const bootAttemptedRef = useRef(false);
 
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
@@ -157,52 +162,62 @@ export default function PracticeSessionClient({ bankById }) {
   }, []);
 
   useEffect(() => {
-    let granted = false;
-    try {
-      granted = localStorage.getItem("cna_access_granted") === "1";
-    } catch {}
-    if (!granted) {
-      router.replace(`/access?lang=${lang}`);
-      return;
-    }
+    if (bootAttemptedRef.current) return;
+    bootAttemptedRef.current = true;
 
-    try {
-      if (sessionId) {
-        const loaded = loadPracticeSession(sessionId);
-        if (!loaded) {
-          router.replace(`/practice?lang=${lang}`);
-          return;
-        }
-        queueMicrotask(() => {
-          setSession(loaded);
-          setView(loaded.status === "completed" ? "complete" : "session");
-        });
+    async function bootPracticeSession() {
+      const state = await resolveStudentEntryState().catch(() => null);
+      if (state?.status === "signin") {
+        router.replace("/signin");
+        return;
+      }
+      if (state?.status === "access") {
+        router.replace(`/access?lang=${lang}`);
         return;
       }
 
-      const built = buildPracticeSession({
-        mode,
-        questionCount: count,
-        selectedChapter: chapter ? Number(chapter) : null,
-        selectedCategory: category || null,
-        questionBankSnapshot: Object.values(bankById || {}),
-        lang,
-      });
-      queueMicrotask(() => {
-        setSession(built);
-        setView("session");
-      });
-      router.replace(`/practice-session?lang=${lang}&session_id=${built.session_id}`);
-    } catch (e) {
-      queueMicrotask(() => {
-        setError(String(e?.message || e));
-      });
+      try {
+        if (sessionId) {
+          const loaded = await loadPracticeSessionRecord(sessionId, { forceServer, serverUser });
+          if (!loaded) {
+            router.replace(`/practice?lang=${lang}${forceServer ? "&storage=server" : ""}`);
+            return;
+          }
+          queueMicrotask(() => {
+            setSession(loaded);
+            setView(loaded.status === "completed" ? "complete" : "session");
+          });
+          return;
+        }
+
+        const built = await buildPracticeSessionRecord({
+          mode,
+          questionCount: count,
+          selectedChapter: chapter ? Number(chapter) : null,
+          selectedCategory: category || null,
+          questionBankSnapshot: Object.values(bankById || {}),
+          lang,
+          forceServer,
+          serverUser,
+        });
+        queueMicrotask(() => {
+          setSession(built);
+          setView("session");
+        });
+        router.replace(`/practice-session?lang=${lang}&session_id=${built.session_id}${forceServer ? "&storage=server" : ""}`);
+      } catch (e) {
+        queueMicrotask(() => {
+          setError(String(e?.message || e));
+        });
+      }
     }
-  }, [bankById, category, chapter, count, lang, mode, router, sessionId]);
+
+    void bootPracticeSession();
+  }, [bankById, category, chapter, count, forceServer, lang, mode, router, serverUser, sessionId]);
 
   function persist(next) {
     setSession(next);
-    savePracticeSession(next);
+    void savePracticeSessionRecord(next, { forceServer, serverUser });
   }
 
   function handleSelect(answerId) {
@@ -252,7 +267,7 @@ export default function PracticeSessionClient({ bankById }) {
   }
 
   function exitToHub() {
-    router.push(`/practice?lang=${lang}`);
+    router.push(`/practice?lang=${lang}${forceServer ? "&storage=server" : ""}`);
   }
 
   if (error) {
@@ -322,6 +337,7 @@ export default function PracticeSessionClient({ bankById }) {
     const next = new URLSearchParams({ lang });
     next.set("mode", session.mode || "mixed");
     next.set("count", String(session.totalQuestions || 10));
+    if (forceServer) next.set("storage", "server");
     if (session.mode === "chapter" && session.selectedChapter) next.set("chapter", String(session.selectedChapter));
     if (session.mode === "category" && session.selectedCategory) next.set("category", session.selectedCategory);
     return `/practice-session?${next.toString()}`;
@@ -366,7 +382,7 @@ export default function PracticeSessionClient({ bankById }) {
             </div>
           </div>
           <div style={{ padding: "14px 20px", background: "var(--surface-soft)", borderTop: "1px solid var(--chrome-border)", display: "flex", gap: 12, justifyContent: "flex-end", flexDirection: isNarrow ? "column" : "row" }}>
-            <button style={{ ...btnSecondary, width: isNarrow ? "100%" : 220 }} onClick={() => router.push(`/practice?lang=${lang}`)}>{t("Back to Practice Hub", "Volver al Centro de Practica", "Retour au hub de pratique", "Retounen nan Hub Pratik la")}</button>
+            <button style={{ ...btnSecondary, width: isNarrow ? "100%" : 220 }} onClick={() => router.push(`/practice?lang=${lang}${forceServer ? "&storage=server" : ""}`)}>{t("Back to Practice Hub", "Volver al Centro de Practica", "Retour au hub de pratique", "Retounen nan Hub Pratik la")}</button>
             <button style={{ ...btnPrimary, width: isNarrow ? "100%" : 220 }} onClick={() => router.push(buildPracticeAgainHref())}>{t("Practice Again", "Practicar otra vez", "Pratiquer encore", "Pratike anko")}</button>
           </div>
         </div>

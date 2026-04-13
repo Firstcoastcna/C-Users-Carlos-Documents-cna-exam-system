@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { scoreExam } from "../lib/scoring";
 import { finalizeAttemptAnalytics } from "../lib/finalizeAttemptAnalytics";
 import { assembleExamQuestionIds } from "../lib/examAssembly";
@@ -10,10 +10,48 @@ import {
   loadExamQuestionHistory,
   recordExamQuestionUsage,
 } from "../lib/examQuestionHistory";
+import {
+  loadAllExamAttemptRecords,
+  loadExamAttemptRecord,
+  saveExamAttemptRecord,
+} from "../lib/examAttemptPersistence";
+import { isServerPersistenceEnabled } from "../lib/backend/config";
 
 export default function ExamClient({ form, bankById, lang }) {
   const router = useRouter();
+  const sp = useSearchParams();
   const [isNarrow, setIsNarrow] = useState(false);
+  const storageMode = sp.get("storage") === "server" ? "server" : "local";
+  const forceServer = storageMode === "server";
+  const useServer = forceServer || isServerPersistenceEnabled();
+  const serverUser = forceServer ? "dev-exam-server-user" : null;
+  const queryAttemptId = sp.get("attempt_id");
+  const queryTestId = Number(sp.get("test_id") || 0) || null;
+  const bootAttemptedRef = useRef(false);
+
+  function buildQuestionUsageCountsFromAttempts(attempts) {
+    const counts = {};
+    (attempts || []).forEach((attempt) => {
+      const ids = Array.isArray(attempt?.question_ids) ? attempt.question_ids : [];
+      ids.forEach((qid) => {
+        if (!qid) return;
+        counts[qid] = (counts[qid] || 0) + 1;
+      });
+    });
+    return counts;
+  }
+
+  function collectOtherExamQuestionIdsFromAttempts(attempts, currentTestId) {
+    const ids = new Set();
+    (attempts || []).forEach((attempt) => {
+      if (Number(attempt?.test_id) === Number(currentTestId)) return;
+      const questionIds = Array.isArray(attempt?.question_ids) ? attempt.question_ids : [];
+      questionIds.forEach((qid) => {
+        if (qid) ids.add(qid);
+      });
+    });
+    return Array.from(ids);
+  }
   
 function generateAttemptId() {
     return `att_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -419,6 +457,7 @@ if (picked.length < targetTotal) {
   }
 
 const [testId, setTestId] = useState(() => {
+  if (Number.isFinite(queryTestId) && queryTestId >= 1 && queryTestId <= 4) return queryTestId;
   try {
     const raw = localStorage.getItem("cna_pilot_test_id");
     const n = Number(raw);
@@ -435,7 +474,13 @@ const [testId, setTestId] = useState(() => {
     return `cna_exam_state::${form.exam_form_id}::test_${testId}::${lang}`;
   }, [form.exam_form_id, testId, lang]);
 
+  const hubUrl = useMemo(
+    () => `/pilot?lang=${lang}${useServer ? "&storage=server" : ""}`,
+    [lang, useServer]
+  );
+
   function safeReadState() {
+    if (useServer) return null;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
@@ -446,11 +491,32 @@ const [testId, setTestId] = useState(() => {
   }
 
   function safeWriteState(next) {
+    if (useServer) {
+      void saveExamAttemptRecord(
+        {
+          ...next,
+          test_id: testId,
+          lang,
+          score: computeCurrentPercent(),
+          resultsPayload,
+        },
+        { forceServer: useServer, serverUser }
+      );
+      return;
+    }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
       // ignore
     }
+  }
+
+  function computeCurrentPercent() {
+    if (!deliveredQuestionIds.length) return null;
+    const formForScoring = { ...form, question_ids: deliveredQuestionIds };
+    const result = scoreExam({ form: formForScoring, bankById, answersByQid });
+    if (!result?.total) return null;
+    return Math.round((result.correct / result.total) * 100);
   }
 
 function pauseAndPersist() {
@@ -615,6 +681,100 @@ function pauseAndPersist() {
   // Load saved state on first mount
   // ----------------------------
   useEffect(() => {
+  if (bootAttemptedRef.current) return;
+  bootAttemptedRef.current = true;
+
+  if (useServer) {
+    void (async () => {
+      const now = Date.now();
+
+      if (queryAttemptId) {
+        const saved = await loadExamAttemptRecord(queryAttemptId, { forceServer: useServer, serverUser });
+        if (!saved) {
+          router.replace(hubUrl);
+          return;
+        }
+
+        if (saved.attempt_id) setAttemptId(saved.attempt_id);
+        if (Number(saved.test_id)) setTestId(Number(saved.test_id));
+        setDeliveredQuestionIds(saved.question_ids || []);
+        if (typeof saved.index === "number") setIndex(saved.index);
+        if (saved.answersByQid && typeof saved.answersByQid === "object") setAnswersByQid(saved.answersByQid);
+        if (saved.reviewByQid && typeof saved.reviewByQid === "object") setReviewByQid(saved.reviewByQid);
+        if (saved.resultsPayload) setResultsPayload(saved.resultsPayload);
+        if (typeof saved.mode === "string") setMode(saved.mode === "confirm_exit" ? "exam" : saved.mode);
+        if (typeof saved.summaryPage === "number") setSummaryPage(saved.summaryPage);
+        if (typeof saved.summaryFilter === "string") setSummaryFilter(saved.summaryFilter);
+
+        if (typeof saved.pausedRemainingSec === "number") {
+          const sec = Math.max(0, Math.floor(saved.pausedRemainingSec));
+          const computedEndAt = now + sec * 1000;
+          setEndAtMs(computedEndAt);
+          setRemainingSec(sec);
+        } else if (typeof saved.endAtMs === "number") {
+          setEndAtMs(saved.endAtMs);
+          const sec = Math.max(0, Math.ceil((saved.endAtMs - now) / 1000));
+          setRemainingSec(sec);
+          if (
+            sec === 0 &&
+            saved.mode !== "finished" &&
+            saved.mode !== "time_expired" &&
+            saved.mode !== "rationales" &&
+            saved.mode !== "analytics"
+          ) {
+            setMode("time_expired");
+          }
+        } else {
+          const computedEndAt = now + START_SEC * 1000;
+          setEndAtMs(computedEndAt);
+          setRemainingSec(START_SEC);
+        }
+        return;
+      }
+
+      const newAttemptId = generateAttemptId();
+      setAttemptId(newAttemptId);
+
+      const questionBankSnapshot = Object.values(bankById);
+      const priorAttempts = await loadAllExamAttemptRecords(lang, { forceServer: useServer, serverUser });
+      const questionUsageCounts = buildQuestionUsageCountsFromAttempts(priorAttempts);
+      const otherExamQuestionIds = collectOtherExamQuestionIdsFromAttempts(
+        priorAttempts,
+        queryTestId || testId
+      );
+
+      let picked = null;
+      try {
+        picked = assembleExamQuestionIds({
+          questionBankSnapshot,
+          excludedQuestionIds: Array.from(new Set([...otherExamQuestionIds, ...Object.keys(questionUsageCounts)])),
+          questionUsageCounts,
+        });
+      } catch {
+        picked = assembleExamQuestionIds({
+          questionBankSnapshot,
+          excludedQuestionIds: otherExamQuestionIds,
+          questionUsageCounts,
+          });
+      }
+
+      setDeliveredQuestionIds(picked);
+
+      const computedEndAt = now + START_SEC * 1000;
+      setEndAtMs(computedEndAt);
+      setRemainingSec(START_SEC);
+
+      const params = new URLSearchParams({
+        lang,
+        test_id: String(queryTestId || testId),
+        attempt_id: newAttemptId,
+      });
+      if (useServer) params.set("storage", "server");
+      router.replace(`/exam?${params.toString()}`);
+    })();
+    return;
+  }
+
   const saved = safeReadState();
   const now = Date.now();
 
@@ -727,7 +887,7 @@ if (typeof saved.pausedRemainingSec === "number") {
   setRemainingSec(START_SEC);
 }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [STORAGE_KEY, form.exam_form_id, lang]);
+}, [STORAGE_KEY, bankById, form.exam_form_id, hubUrl, lang, queryAttemptId, queryTestId, router, serverUser, testId, useServer]);
 
   // ----------------------------
   // Tick countdown (based on endAtMs)
@@ -795,6 +955,7 @@ useEffect(() => {
   mode,
   summaryPage,
   summaryFilter,
+  resultsPayload,
 ]);
 
 // ----------------------------
@@ -862,6 +1023,22 @@ useEffect(() => {
   // Only try to load when user is on Results/Time Expired/Analytics screens.
   if (mode !== "finished" && mode !== "time_expired" && mode !== "analytics") return;
 
+  if (useServer) {
+    if (resultsPayload) return;
+
+    let cancelled = false;
+    void (async () => {
+      const saved = await loadExamAttemptRecord(attemptId, { forceServer: useServer, serverUser });
+      if (!cancelled && saved?.resultsPayload) {
+        setResultsPayload(saved.resultsPayload);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }
+
   let cancelled = false;
 
   function tryLoadOnce() {
@@ -894,7 +1071,7 @@ useEffect(() => {
     clearInterval(id);
     clearTimeout(stopId);
   };
-}, [attemptId, mode]);
+}, [attemptId, mode, resultsPayload, serverUser, useServer]);
 
 // ----------------------------
 // Analytics: compute + write-once (post-exam only)
@@ -915,6 +1092,8 @@ useEffect(() => {
 
   if (!res.ok) {
     console.error("Analytics finalize failed:", res);
+  } else if (res.resultsPayload) {
+    setResultsPayload(res.resultsPayload);
   }
 
 }, [
@@ -1199,7 +1378,7 @@ deliveredQuestionIds.forEach((qid) => {
             <span>{T.resultsPage}</span>
             <button
               onClick={() => {
-                router.push("/pilot");
+                router.push(hubUrl);
               }}
               style={{
                 ...btnSecondary,
@@ -2189,7 +2368,7 @@ let resultsPayload = null;
           <span>{T.analytics}</span>
           <button
             onClick={() => {
-              router.push("/pilot");
+              router.push(hubUrl);
             }}
             style={{
               ...btnSecondary,
@@ -2246,6 +2425,15 @@ let resultsPayload = null;
 </div>
 
     {(() => {
+  const analyticsScoreResult = scoreExam({
+    form: { ...form, question_ids: deliveredQuestionIds },
+    bankById,
+    answersByQid,
+  });
+  const analyticsPercent =
+    analyticsScoreResult.total === 0
+      ? 0
+      : Math.round((analyticsScoreResult.correct / analyticsScoreResult.total) * 100);
   const statusLabel =
     resultsPayload.overall_status === "On Track"
       ? T.statusOnTrack
@@ -2276,6 +2464,22 @@ let resultsPayload = null;
         }}
       >
         {statusLabel}
+      </div>
+
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight: "700",
+          marginBottom: "8px",
+          color:
+            resultsPayload.overall_status === "On Track"
+              ? "#1f6f3d"
+              : resultsPayload.overall_status === "High Risk"
+                ? "var(--brand-red)"
+                : "#7a5a00",
+        }}
+      >
+        {T.scoreLine(analyticsPercent, analyticsPercent >= 80)}
       </div>
 
       <div style={{ fontSize: "14px", color: "#333", lineHeight: "1.6" }}>
@@ -2553,15 +2757,12 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
                   return;
                 }
 
-                const key = `cna:results:${attemptId}`;
-                const raw = localStorage.getItem(key);
-
-                if (!raw) {
+                if (!resultsPayload) {
                   alert("Remediation is unavailable because the results payload was not found.");
                   return;
                 }
 
-                router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}`);
+                router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}${useServer ? "&storage=server" : ""}`);
               }}
               style={{ ...btnPrimary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
             >
@@ -2694,7 +2895,7 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
 
             <button
               onClick={() => {
-                router.push("/pilot");
+                router.push(hubUrl);
               }}
               style={{ ...btnPrimary, ...(isNarrow ? { width: "100%" } : { minWidth: "220px" }) }}
             >

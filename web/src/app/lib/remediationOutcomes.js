@@ -3,6 +3,7 @@
 // IMPORTANT: No analytics recomputation, no exam scoring, no persistence here.
 
 import { loadRemediationSession, saveRemediationSession } from "./remediationSessionStorage";
+import { loadRemediationSessionRecord, saveRemediationSessionRecord } from "./remediationSessionPersistence";
 
 export function recordRemediationAnswer({
   session,
@@ -78,14 +79,16 @@ export function recordRemediationAnswer({
   };
 }
 
-export function applyRemediationAnswerAndPersist({
+export async function applyRemediationAnswerAndPersist({
   session_id,
   questionId,
   selectedAnswerId,
   bankById,
   mode = "select",
+  forceServer = false,
+  serverUser = null,
 }) {
-  const session = loadRemediationSession(session_id);
+  const session = await loadRemediationSessionRecord(session_id, { forceServer, serverUser });
   if (!session) {
     throw new Error(`applyRemediationAnswerAndPersist: session not found for ${session_id}`);
   }
@@ -98,7 +101,7 @@ export function applyRemediationAnswerAndPersist({
     mode,
   });
 
-  saveRemediationSession(updated);
+  await saveRemediationSessionRecord(updated, { forceServer, serverUser });
   return updated;
 }
 
@@ -140,12 +143,14 @@ export function computeRemediationMicroOutcome(session) {
  * - No exam analytics recompute
  * - No resultsPayload mutation
  */
-export function finalizeRemediationSessionCompletion({
+export async function finalizeRemediationSessionCompletion({
   session_id,
   results_attempt_id,
   selectedCategories,
+  forceServer = false,
+  serverUser = null,
 }) {
-  const session = loadRemediationSession(session_id);
+  const session = await loadRemediationSessionRecord(session_id, { forceServer, serverUser });
   if (!session) {
     throw new Error(`finalizeRemediationSessionCompletion: session not found for ${session_id}`);
   }
@@ -167,12 +172,12 @@ export function finalizeRemediationSessionCompletion({
     microOutcome,
   };
 
-  saveRemediationSession(next);
+  await saveRemediationSessionRecord(next, { forceServer, serverUser });
   return next;
 }
 
-export function markRemediationSessionExited({ session_id }) {
-  const session = loadRemediationSession(session_id);
+export async function markRemediationSessionExited({ session_id, forceServer = false, serverUser = null }) {
+  const session = await loadRemediationSessionRecord(session_id, { forceServer, serverUser });
   if (!session) return null;
 
   // Do not overwrite completion
@@ -184,7 +189,7 @@ export function markRemediationSessionExited({ session_id }) {
     exited_at: Date.now(),
   };
 
-  saveRemediationSession(next);
+  await saveRemediationSessionRecord(next, { forceServer, serverUser });
   return next;
 }
 

@@ -1,0 +1,124 @@
+-- Initial backend schema draft
+-- This is a planning scaffold only. It is not applied automatically yet.
+
+create table if not exists app_users (
+  id text primary key,
+  email text unique not null,
+  full_name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists user_preferences (
+  user_id text primary key references app_users(id) on delete cascade,
+  preferred_language text,
+  access_granted boolean not null default false,
+  skip_practice_welcome boolean not null default false,
+  skip_exam_welcome boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists schools (
+  id text primary key,
+  name text not null,
+  slug text unique,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists school_staff (
+  id text primary key,
+  school_id text not null references schools(id) on delete cascade,
+  user_id text not null references app_users(id) on delete cascade,
+  role text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (school_id, user_id)
+);
+
+create table if not exists class_groups (
+  id text primary key,
+  school_id text not null references schools(id) on delete cascade,
+  name text not null,
+  code text,
+  status text not null default 'active',
+  starts_on date,
+  ends_on date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists class_groups_school_idx on class_groups(school_id, created_at desc);
+
+create table if not exists class_group_enrollments (
+  id text primary key,
+  class_group_id text not null references class_groups(id) on delete cascade,
+  user_id text not null references app_users(id) on delete cascade,
+  role text not null default 'student',
+  status text not null default 'active',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (class_group_id, user_id)
+);
+
+create index if not exists class_group_enrollments_class_idx on class_group_enrollments(class_group_id, created_at desc);
+create index if not exists class_group_enrollments_user_idx on class_group_enrollments(user_id, created_at desc);
+
+create table if not exists exam_attempts (
+  id text primary key,
+  user_id text not null references app_users(id) on delete cascade,
+  test_id integer not null,
+  lang text not null,
+  mode text not null,
+  score integer,
+  delivered_question_ids jsonb not null default '[]'::jsonb,
+  answers_by_qid jsonb not null default '{}'::jsonb,
+  review_by_qid jsonb not null default '{}'::jsonb,
+  results_payload jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists exam_attempts_user_idx on exam_attempts(user_id, created_at desc);
+
+create table if not exists practice_sessions (
+  id text primary key,
+  user_id text not null references app_users(id) on delete cascade,
+  lang text not null,
+  mode text not null,
+  question_count integer not null,
+  status text not null,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists practice_sessions_user_idx on practice_sessions(user_id, created_at desc);
+
+create table if not exists remediation_sessions (
+  id text primary key,
+  user_id text not null references app_users(id) on delete cascade,
+  lang text not null,
+  status text not null,
+  categories jsonb not null default '[]'::jsonb,
+  question_count integer not null,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists remediation_sessions_user_idx on remediation_sessions(user_id, created_at desc);
+
+create table if not exists question_history (
+  id text primary key,
+  user_id text not null references app_users(id) on delete cascade,
+  question_id text not null,
+  source_type text not null,
+  source_id text not null,
+  lang text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists question_history_user_idx on question_history(user_id, created_at desc);
+create index if not exists question_history_lookup_idx on question_history(user_id, question_id);

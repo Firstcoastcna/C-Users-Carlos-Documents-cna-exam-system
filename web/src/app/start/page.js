@@ -2,6 +2,11 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  fetchUserPreferences,
+  signOutStudent,
+  updateUserPreferences,
+} from "../lib/backend/auth/browserAuth";
 
 function Frame({ title, children, footer, theme, headerAction }) {
   return (
@@ -118,13 +123,36 @@ function StartInner() {
   });
 
   useEffect(() => {
-    let granted = false;
-    try {
-      granted = localStorage.getItem("cna_access_granted") === "1";
-    } catch {}
-    if (!granted) {
-      router.replace(`/access?lang=${lang}`);
-    }
+    let cancelled = false;
+
+    void (async () => {
+      let granted = false;
+      try {
+        granted = localStorage.getItem("cna_access_granted") === "1";
+      } catch {}
+
+      if (!granted) {
+        try {
+          const payload = await fetchUserPreferences();
+          granted = !!payload?.preferences?.accessGranted;
+          if (granted) {
+            try {
+              localStorage.setItem("cna_access_granted", "1");
+            } catch {}
+          }
+        } catch {
+          // Signed-out users continue through local mode.
+        }
+      }
+
+      if (!granted && !cancelled) {
+        router.replace(`/access?lang=${lang}`);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, lang]);
 
   useEffect(() => {
@@ -152,6 +180,32 @@ function StartInner() {
     return () => window.clearTimeout(id);
   }, [lang]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const payload = await fetchUserPreferences();
+        const prefs = payload?.preferences;
+        if (!prefs || cancelled) return;
+
+        setSkipPracticeWelcome(!!prefs.skipPracticeWelcome);
+        setSkipExamWelcome(!!prefs.skipExamWelcome);
+
+        try {
+          localStorage.setItem(getSkipWelcomeKey("practice", lang), prefs.skipPracticeWelcome ? "1" : "0");
+          localStorage.setItem(getSkipWelcomeKey("exam", lang), prefs.skipExamWelcome ? "1" : "0");
+        } catch {}
+      } catch {
+        // Local fallback stays in place when no auth session exists.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lang]);
+
   const theme = useMemo(
     () => ({
       frameBorder: "var(--frame-border)",
@@ -177,6 +231,13 @@ function StartInner() {
     cursor: "pointer",
   };
 
+  async function handleSignOut() {
+    try {
+      await signOutStudent();
+    } catch {}
+    router.replace("/signin");
+  }
+
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
     if (lang === "fr") return fr;
@@ -186,6 +247,11 @@ function StartInner() {
 
   const headerButtons = isNarrow
     ? [
+        {
+          key: "sign-out",
+          label: t("Sign out", "Cerrar sesion", "Deconnexion", "Dekonekte"),
+          onClick: () => void handleSignOut(),
+        },
         {
           key: "change-language",
           label: t("Change language", "Cambiar idioma", "Changer de langue", "Chanje lang"),
@@ -203,6 +269,11 @@ function StartInner() {
         },
       ]
     : [
+        {
+          key: "sign-out",
+          label: t("Sign out", "Cerrar sesion", "Deconnexion", "Dekonekte"),
+          onClick: () => void handleSignOut(),
+        },
         {
           key: "categories",
           label: t(
@@ -293,6 +364,10 @@ function StartInner() {
                     try {
                       localStorage.setItem(getSkipWelcomeKey("practice", lang), next ? "1" : "0");
                     } catch {}
+                    void updateUserPreferences({
+                      preferredLanguage: lang,
+                      skipPracticeWelcome: next,
+                    }).catch(() => {});
                   }}
                 />
                 <span>
@@ -339,6 +414,10 @@ function StartInner() {
                     try {
                       localStorage.setItem(getSkipWelcomeKey("exam", lang), next ? "1" : "0");
                     } catch {}
+                    void updateUserPreferences({
+                      preferredLanguage: lang,
+                      skipExamWelcome: next,
+                    }).catch(() => {});
                   }}
                 />
                 <span>

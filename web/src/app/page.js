@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  fetchUserPreferences,
+  getStudentSessionSnapshot,
+  updateUserPreferences,
+} from "./lib/backend/auth/browserAuth";
 
 export default function HomePage() {
   const router = useRouter();
@@ -11,6 +16,9 @@ export default function HomePage() {
   // UI state
   const [lang, setLang] = useState("en");
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
+  const [prefsReady, setPrefsReady] = useState(false);
+  const [resumeReady, setResumeReady] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
 
   // Resume detection
@@ -25,6 +33,55 @@ export default function HomePage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const session = await getStudentSessionSnapshot().catch(() => null);
+      if (!session?.access_token) {
+        if (!cancelled) {
+          router.replace("/signin");
+          setAuthReady(true);
+          setPrefsReady(true);
+        }
+        return;
+      }
+
+      try {
+        const payload = await fetchUserPreferences();
+        const prefs = payload?.preferences;
+        if (!prefs || cancelled) return;
+
+        if (prefs.preferredLanguage) {
+          setLang(prefs.preferredLanguage);
+          try {
+            localStorage.setItem("cna_pilot_lang", prefs.preferredLanguage);
+          } catch {}
+        }
+
+        if (prefs.accessGranted) {
+          try {
+            localStorage.setItem("cna_access_granted", "1");
+          } catch {}
+        } else if (!forceLang && !cancelled) {
+          router.replace("/access");
+          return;
+        }
+      } catch {
+        // Signed-out users and local-only flows still fall back to browser state.
+      } finally {
+        if (!cancelled) {
+          setAuthReady(true);
+          setPrefsReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [forceLang, router]);
 
   // Styling aligned with your current look
   const theme = useMemo(
@@ -139,9 +196,15 @@ if (pausedRemainingSec === null) {
     } catch {
       setResumeInfo(null);
     } finally {
-      setLoading(false);
+      setResumeReady(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (authReady && prefsReady && resumeReady) {
+      setLoading(false);
+    }
+  }, [authReady, prefsReady, resumeReady]);
 
   function langLabel(l) {
     if (l === "en") return "English";
@@ -195,6 +258,28 @@ if (pausedRemainingSec === null) {
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Frame
+        title="WELCOME"
+        footer={<div style={{ fontSize: "12px", color: "#555" }}>Loading...</div>}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            color: "#456173",
+            fontWeight: 700,
+          }}
+        >
+          Loading...
+        </div>
+      </Frame>
     );
   }
 
@@ -277,20 +362,19 @@ if (pausedRemainingSec === null) {
         <div style={{ display: "flex", justifyContent: isNarrow ? "stretch" : "flex-end" }}>
           <button
             style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", fontWeight: 700 }}
-            onClick={() => {
-  try {
-    localStorage.setItem("cna_pilot_lang", lang);
-  } catch {}
+            onClick={async () => {
+              try {
+                localStorage.setItem("cna_pilot_lang", lang);
+              } catch {}
 
-  let granted = false;
-  try {
-    granted = localStorage.getItem("cna_access_granted") === "1";
-  } catch {}
+              try {
+                await updateUserPreferences({ preferredLanguage: lang });
+              } catch {
+                // If the preference write fails, still continue with the current browser choice.
+              }
 
-  router.push(granted ? `/foundation?lang=${lang}` : `/access?lang=${lang}`);
-}}
-
-
+              router.push(`/foundation?lang=${lang}`);
+            }}
           >
             {lang === "es"
   ? "Comenzar"
