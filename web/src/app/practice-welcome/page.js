@@ -177,18 +177,6 @@ function PracticeWelcomeInner() {
           }}
         >
           <button
-            style={{ ...btnSecondary, width: isNarrow ? "100%" : "220px" }}
-            onClick={() => router.push(`/practice-instructions?lang=${lang}`)}
-          >
-            {t(
-              "Practice Instructions",
-              "Instrucciones de la practica",
-              "Instructions de pratique",
-              "Enstriksyon pou pratik"
-            )}
-          </button>
-
-          <button
             style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }}
             onClick={() => router.push(`/practice?lang=${lang}`)}
           >

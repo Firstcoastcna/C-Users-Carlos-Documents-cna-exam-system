@@ -179,20 +179,6 @@ function WelcomeInner() {
           }}
         >
           <button
-            style={{ ...btnSecondary, width: isNarrow ? "100%" : "220px" }}
-            onClick={() => {
-              router.push(`/instructions?lang=${lang}`);
-            }}
-          >
-            {t(
-              "Exam Instructions",
-              "Instrucciones del examen",
-              "Instructions de l'examen",
-              "Enstriksyon egzamen"
-            )}
-          </button>
-
-          <button
             style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px" }}
             onClick={() => {
               router.push(`/exam-hub?lang=${lang}`);

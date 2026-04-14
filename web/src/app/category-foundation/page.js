@@ -492,55 +492,20 @@ function DraftInner() {
       theme={theme}
       headerAction={
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {(isNarrow
+          {(showMainMenu
             ? [
-                showMainMenu
-                  ? {
-                      key: "main",
-                      label: t(
-                        "Back to Main Menu",
-                        "Volver al menu principal",
-                        "Retour au menu principal",
-                        "Retounen nan meni prensipal la"
-                      ),
-                      onClick: () => router.push(`/start?lang=${lang}`),
-                    }
-                  : null,
                 {
-                  key: "orientation",
+                  key: "main",
                   label: t(
-                    "Back to orientation",
-                    "Volver a la orientacion",
-                    "Retour a l'orientation",
-                    "Retounen nan oryantasyon an"
+                    "Continue to Main Menu",
+                    "Continuar al menu principal",
+                    "Continuer vers le menu principal",
+                    "Kontinye nan meni prensipal la"
                   ),
-                  onClick: () => router.push(`/foundation?lang=${lang}`),
+                  onClick: () => router.push(`/start?lang=${lang}`),
                 },
               ]
-            : [
-                {
-                  key: "orientation",
-                  label: t(
-                    "Back to orientation",
-                    "Volver a la orientacion",
-                    "Retour a l'orientation",
-                    "Retounen nan oryantasyon an"
-                  ),
-                  onClick: () => router.push(`/foundation?lang=${lang}`),
-                },
-                showMainMenu
-                  ? {
-                      key: "main",
-                      label: t(
-                        "Back to Main Menu",
-                        "Volver al menu principal",
-                        "Retour au menu principal",
-                        "Retounen nan meni prensipal la"
-                      ),
-                      onClick: () => router.push(`/start?lang=${lang}`),
-                    }
-                  : null,
-              ])
+            : [])
             .filter(Boolean)
             .map((item) => (
               <button key={item.key} style={btnUtility} onClick={item.onClick}>

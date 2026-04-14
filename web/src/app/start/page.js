@@ -52,6 +52,7 @@ function Frame({ title, children, footer, theme, headerAction, headerSize }) {
             borderTop: `1px solid ${theme.chromeBorder}`,
             padding: "16px 20px",
             background: "var(--surface-soft)",
+            minHeight: 64,
           }}
         >
           {footer}
@@ -279,53 +280,19 @@ function StartInner() {
     return en;
   }
 
-  const headerButtons = isNarrow
-    ? [
-        {
-          key: "sign-out",
-          label: t("Sign out", "Cerrar sesion", "Deconnexion", "Dekonekte"),
-          onClick: () => void handleSignOut(),
-          isSignOut: true,
-        },
-        {
-          key: "change-language",
-          label: t("Change language", "Cambiar idioma", "Changer de langue", "Chanje lang"),
-          onClick: () => router.push("/?force_lang=1"),
-        },
-        {
-          key: "categories",
-          label: t(
-            "Understanding Categories",
-            "Entender las categorias",
-            "Comprendre les categories",
-            "Konprann kategori yo"
-          ),
-          onClick: () => router.push(`/category-foundation?lang=${lang}`),
-        },
-      ]
-    : [
-        {
-          key: "sign-out",
-          label: t("Sign out", "Cerrar sesion", "Deconnexion", "Dekonekte"),
-          onClick: () => void handleSignOut(),
-          isSignOut: true,
-        },
-        {
-          key: "categories",
-          label: t(
-            "Understanding Categories",
-            "Entender las categorias",
-            "Comprendre les categories",
-            "Konprann kategori yo"
-          ),
-          onClick: () => router.push(`/category-foundation?lang=${lang}`),
-        },
-        {
-          key: "change-language",
-          label: t("Change language", "Cambiar idioma", "Changer de langue", "Chanje lang"),
-          onClick: () => router.push("/?force_lang=1"),
-        },
-      ];
+  const headerButtons = [
+    {
+      key: "sign-out",
+      label: t("Sign out", "Cerrar sesion", "Deconnexion", "Dekonekte"),
+      onClick: () => void handleSignOut(),
+      isSignOut: true,
+    },
+    {
+      key: "orientation",
+      label: t("Back to orientation", "Volver a la orientacion", "Retour a l'orientation", "Retounen nan oryantasyon an"),
+      onClick: () => router.push(`/foundation?lang=${lang}`),
+    },
+  ];
 
   return (
     <Frame
@@ -526,6 +493,45 @@ function StartInner() {
               </label>
             }
           />
+        </div>
+        <div
+          style={{
+            border: `1px solid ${theme.chromeBorder}`,
+            borderRadius: "14px",
+            background: "linear-gradient(180deg, #ffffff 0%, #f3fbfd 100%)",
+            padding: "14px 16px",
+            display: "flex",
+            alignItems: isNarrow ? "stretch" : "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            marginTop: 16,
+          }}
+        >
+          <div style={{ flex: "1 1 300px", display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+              {t("Category Definitions", "Definiciones de categorias", "Definitions des categories", "Definisyon kategori yo")}
+            </div>
+            <div style={{ color: "#456173", lineHeight: 1.6, fontSize: 14 }}>
+              {t(
+                "Review the 9 decision categories the platform uses and how they connect to analytics and remediation.",
+                "Revise las 9 categorias de decision que usa la plataforma y como se conectan con analitica y remediacion.",
+                "Revoyez les 9 categories de decision utilisees par la plateforme et leur lien avec l'analyse et la remediation.",
+                "Revize 9 kategori desizyon platfom nan itilize yo ak kijan yo konekte ak analiz ak remedyasyon."
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => router.push(`/category-foundation?lang=${lang}`)}
+            style={{
+              ...btnSecondary,
+              width: isNarrow ? "100%" : "220px",
+              background: "white",
+              border: "2px solid #7aa6c5",
+            }}
+          >
+            {t("Open Category Guide", "Abrir guia de categorias", "Ouvrir le guide des categories", "Louvri gid kategori yo")}
+          </button>
         </div>
 
       </div>

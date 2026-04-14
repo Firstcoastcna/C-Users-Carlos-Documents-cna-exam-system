@@ -212,11 +212,21 @@ function FoundationInner() {
         "CHAPIT AK KATEGORI"
       )}
       headerAction={
-        showMainMenu ? (
-          <button style={btnUtility} onClick={() => router.push(`/start?lang=${lang}`)}>
-            {t("Back to Main Menu", "Volver al menu principal", "Retour au menu principal", "Retounen nan meni prensipal la")}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button style={btnUtility} onClick={() => router.push("/?force_lang=1")}>
+            {t("Change language", "Cambiar idioma", "Changer de langue", "Chanje lang")}
           </button>
-        ) : null
+          {showMainMenu ? (
+            <button style={btnUtility} onClick={() => router.push(`/start?lang=${lang}`)}>
+              {t(
+                "Back to Main Menu",
+                "Volver al menu principal",
+                "Retour au menu principal",
+                "Retounen nan meni prensipal la"
+              )}
+            </button>
+          ) : null}
+        </div>
       }
       theme={theme}
       footer={

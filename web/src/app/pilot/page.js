@@ -59,7 +59,7 @@ function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   );
 }
 
-function SectionCard({ title, body, action, theme, tone = "default" }) {
+function SectionCard({ title, body, action, theme, tone = "default", inlineAction = false, alignAction = "end", stretchAction = false }) {
   const tones = {
     default: {
       background: "#fbfdff",
@@ -93,8 +93,33 @@ function SectionCard({ title, body, action, theme, tone = "default" }) {
       }}
     >
       <div style={{ fontWeight: 800, fontSize: 16, color: palette.title, marginBottom: 6 }}>{title}</div>
-      <div style={{ color: palette.body, lineHeight: 1.6, fontSize: 14 }}>{body}</div>
-      {action ? <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>{action}</div> : null}
+      {inlineAction && action ? (
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ color: palette.body, lineHeight: 1.6, fontSize: 14, flex: "1 1 320px" }}>{body}</div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: alignAction === "start" ? "flex-start" : "flex-end",
+              marginTop: alignAction === "start" ? 0 : -6,
+              width: stretchAction ? "100%" : "auto",
+            }}
+          >
+            {action}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ color: palette.body, lineHeight: 1.6, fontSize: 14 }}>{body}</div>
+          {action ? <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>{action}</div> : null}
+        </>
+      )}
     </div>
   );
 }
@@ -297,13 +322,23 @@ function PilotInner() {
     fontWeight: 700,
     minWidth: "unset",
   };
+  const btnGhost = {
+    padding: "8px 12px",
+    fontSize: "13px",
+    borderRadius: "10px",
+    border: `1px solid ${theme.buttonBorder}`,
+    background: "white",
+    color: theme.secondaryText,
+    cursor: "pointer",
+    fontWeight: 700,
+  };
 
   const TEXT = useMemo(() => {
     const t = {
       en: {
         title: "CNA Exam Practice Tests",
         subtitle:
-          "Choose one of the four full practice exams below. You can return to an unfinished test on the same device, review completed tests, and reset the full set after all four are done.",
+          "Each card below opens one full 60-question practice exam. You can return to an unfinished test on the same device, review completed tests, and reset the full set after all four are done.",
         language: "Language",
         returnToStart: "Back to main menu",
         studyTitle: "Chapter Review",
@@ -320,9 +355,10 @@ function PilotInner() {
         categoryHint:
           "This guide helps explain what each category means and why categories are used in analytics and remediation.",
         categoryButton: "Open Category Review",
-        testsTitle: "Available Practice Exams",
+        testsTitle: "Exam Instructions",
         testsIntro:
-          "Each card below opens one full 60-question practice exam. Unfinished tests can be resumed on this device, and completed tests reopen in review mode.",
+          "Before you start, you can review the exam instructions to understand timing, navigation, and how review and remediation work.",
+        testsAction: "Exam Instructions",
         testMeta: "60 Questions",
         progressTitle: "Your Exam Progress",
         progressText: "Track how many exams you have completed, how you are scoring, and how often you have used remediation support.",
@@ -357,7 +393,7 @@ function PilotInner() {
       es: {
         title: "Examenes de Practica CNA",
         subtitle:
-          "Elija uno de los cuatro examenes completos de practica. Puede volver a un examen sin terminar en este dispositivo, revisar examenes completados y reiniciar el conjunto cuando termine los cuatro.",
+          "Cada tarjeta de abajo abre un examen completo de practica de 60 preguntas. Puede volver a un examen sin terminar en este dispositivo, revisar examenes completados y reiniciar el conjunto cuando termine los cuatro.",
         returnToStart: "Volver al menu principal",
         studyTitle: "Repaso por capitulos",
         refreshTitle: "Refresque sus conocimientos",
@@ -373,9 +409,10 @@ function PilotInner() {
         categoryHint:
           "Esta guia le ayuda a entender que significa cada categoria y por que se utiliza en el analisis y la remediacion.",
         categoryButton: "Abrir repaso de categorias",
-        testsTitle: "Examenes de practica disponibles",
+        testsTitle: "Instrucciones del examen",
         testsIntro:
-          "Cada tarjeta de abajo abre un examen completo de practica de 60 preguntas. Los examenes sin terminar se pueden reanudar en este dispositivo, y los examenes completados se vuelven a abrir en modo de revision.",
+          "Antes de comenzar, puede revisar las instrucciones del examen para entender el tiempo, la navegacion y como funcionan la revision y la remediacion.",
+        testsAction: "Instrucciones del examen",
         testMeta: "60 Preguntas",
         progressTitle: "Su progreso en examenes",
         progressText: "Siga cuantos examenes ha completado, como han sido sus puntajes y cuantas veces ha usado el apoyo de remediacion.",
@@ -410,7 +447,7 @@ function PilotInner() {
       fr: {
         title: "Tests de Pratique de l'Examen CNA",
         subtitle:
-          "Choisissez l'un des quatre examens blancs complets. Vous pouvez reprendre un test non termine sur cet appareil, revoir les tests termines et reinitialiser l'ensemble une fois les quatre termines.",
+          "Chaque carte ci-dessous ouvre un examen de pratique complet de 60 questions. Vous pouvez reprendre un test non termine sur cet appareil, revoir les tests termines et reinitialiser l'ensemble une fois les quatre termines.",
         returnToStart: "Retour au menu principal",
         studyTitle: "Revision des chapitres",
         refreshTitle: "Rafraichissez vos connaissances",
@@ -426,9 +463,10 @@ function PilotInner() {
         categoryHint:
           "Ce guide vous aide a comprendre ce que signifie chaque categorie et pourquoi elle est utilisee dans l'analyse et la remediation.",
         categoryButton: "Ouvrir la revision des categories",
-        testsTitle: "Examens de pratique disponibles",
+        testsTitle: "Instructions de l'examen",
         testsIntro:
-          "Chaque carte ci-dessous ouvre un examen de pratique complet de 60 questions. Les tests non termines peuvent etre repris sur cet appareil, et les tests termines se rouvrent en mode revision.",
+          "Avant de commencer, vous pouvez consulter les instructions de l'examen pour comprendre le temps, la navigation et le fonctionnement de la revision et de la remediation.",
+        testsAction: "Instructions de l'examen",
         testMeta: "60 Questions",
         progressTitle: "Votre progression aux examens",
         progressText: "Suivez le nombre d'examens termines, vos scores et la frequence d'utilisation du soutien de remediation.",
@@ -463,7 +501,7 @@ function PilotInner() {
       ht: {
         title: "Tes Pratik Egzamen CNA",
         subtitle:
-          "Chwazi youn nan kat egzamen pratik konple yo. Ou ka retounen nan yon tes ou poko fini sou menm aparey la, revize tes ou fin fe yo, epi rafrechi tout ansanm apre ou fin fe kat la.",
+          "Chak kat ki anba a louvri yon egzamen pratik konple ak 60 kestyon. Ou ka retounen nan yon tes ou poko fini sou menm aparey la, revize tes ou fin fe yo, epi rafrechi tout ansanm apre ou fin fe kat la.",
         returnToStart: "Retounen nan meni prensipal la",
         studyTitle: "Revizyon chapit yo",
         refreshTitle: "Rafrechi konesans ou",
@@ -479,9 +517,10 @@ function PilotInner() {
         categoryHint:
           "Gid sa a ede ou konprann sa chak kategori vle di ak poukisa yo itilize li nan analiz ak remedyasyon.",
         categoryButton: "Louvri revizyon kategori yo",
-        testsTitle: "Egzamen pratik ki disponib",
+        testsTitle: "Enstriksyon egzamen",
         testsIntro:
-          "Chak kat ki anba a louvri yon egzamen pratik konple ak 60 kestyon. Ou ka reprann tes ou poko fini yo sou aparey sa a, epi tes ou deja fini yo ap relouvri nan mod revizyon.",
+          "Anvan ou komanse, ou ka li enstriksyon egzamen yo pou konprann tan an, kijan pou navige, ak kijan revizyon ak remedyasyon mache.",
+        testsAction: "Enstriksyon egzamen",
         testMeta: "60 Kesyon",
         progressTitle: "Pwogre egzamen ou",
         progressText: "Swiv konbyen egzamen ou fini, kijan nòt ou yo ap mache, ak konbyen fwa ou itilize sipò remedyasyon.",
@@ -895,57 +934,19 @@ function PilotInner() {
       theme={theme}
       headerAction={
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {(isNarrow
-            ? [
-                {
-                  key: "signout",
-                  onClick: handleSignOut,
-                  label: lang === "es" ? "Cerrar sesion" : lang === "fr" ? "Deconnexion" : lang === "ht" ? "Dekonekte" : "Sign out",
-                  isSignOut: true,
-                },
-                {
-                  key: "back",
-                  onClick: () => router.push(`/start?lang=${lang}`),
-                  label: TEXT.returnToStart,
-                },
-                {
-                  key: "instructions",
-                  onClick: () => router.push(`/instructions?lang=${lang}`),
-                  label:
-                    lang === "es"
-                      ? "Instrucciones del examen"
-                      : lang === "fr"
-                        ? "Instructions de l'examen"
-                        : lang === "ht"
-                          ? "Enstriksyon egzamen"
-                          : "Exam Instructions",
-                },
-              ]
-            : [
-                {
-                  key: "instructions",
-                  onClick: () => router.push(`/instructions?lang=${lang}`),
-                  label:
-                    lang === "es"
-                      ? "Instrucciones del examen"
-                      : lang === "fr"
-                        ? "Instructions de l'examen"
-                        : lang === "ht"
-                          ? "Enstriksyon egzamen"
-                          : "Exam Instructions",
-                },
-                {
-                  key: "back",
-                  onClick: () => router.push(`/start?lang=${lang}`),
-                  label: TEXT.returnToStart,
-                },
-                {
-                  key: "signout",
-                  onClick: handleSignOut,
-                  label: lang === "es" ? "Cerrar sesion" : lang === "fr" ? "Deconnexion" : lang === "ht" ? "Dekonekte" : "Sign out",
-                  isSignOut: true,
-                },
-              ]).map((item) => (
+          {[
+            {
+              key: "signout",
+              onClick: handleSignOut,
+              label: lang === "es" ? "Cerrar sesion" : lang === "fr" ? "Deconnexion" : lang === "ht" ? "Dekonekte" : "Sign out",
+              isSignOut: true,
+            },
+            {
+              key: "back",
+              onClick: () => router.push(`/start?lang=${lang}`),
+              label: TEXT.returnToStart,
+            },
+          ].map((item) => (
             <button
               key={item.key}
               onClick={item.onClick}
@@ -985,6 +986,14 @@ function PilotInner() {
           tone="accent"
           title={TEXT.testsTitle}
           body={TEXT.testsIntro}
+          action={
+            <button style={btnGhost} onClick={() => router.push(`/instructions?lang=${lang}`)}>
+              {TEXT.testsAction}
+            </button>
+          }
+          inlineAction
+          alignAction="end"
+          stretchAction={isNarrow}
         />
 
         <div

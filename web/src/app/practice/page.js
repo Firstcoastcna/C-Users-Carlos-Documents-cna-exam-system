@@ -57,7 +57,7 @@ function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   );
 }
 
-function SectionCard({ title, body, action, theme, tone = "default" }) {
+function SectionCard({ title, body, action, theme, tone = "default", inlineAction = false, alignAction = "end", stretchAction = false }) {
   const tones = {
     default: {
       background: "#fbfdff",
@@ -91,8 +91,33 @@ function SectionCard({ title, body, action, theme, tone = "default" }) {
       }}
     >
       <div style={{ fontWeight: 800, fontSize: 16, color: palette.title, marginBottom: 6 }}>{title}</div>
-      <div style={{ color: palette.body, lineHeight: 1.6, fontSize: 14 }}>{body}</div>
-      {action ? <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>{action}</div> : null}
+      {inlineAction && action ? (
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ color: palette.body, lineHeight: 1.6, fontSize: 14, flex: "1 1 320px" }}>{body}</div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: alignAction === "start" ? "flex-start" : "flex-end",
+              marginTop: alignAction === "start" ? 0 : -6,
+              width: stretchAction ? "100%" : "auto",
+            }}
+          >
+            {action}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ color: palette.body, lineHeight: 1.6, fontSize: 14 }}>{body}</div>
+          {action ? <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>{action}</div> : null}
+        </>
+      )}
     </div>
   );
 }
@@ -248,6 +273,16 @@ function PracticeInner() {
     }),
     []
   );
+  const btnGhost = {
+    padding: "8px 12px",
+    fontSize: "13px",
+    borderRadius: "10px",
+    border: `1px solid ${theme.buttonBorder}`,
+    background: "white",
+    color: theme.secondaryText,
+    cursor: "pointer",
+    fontWeight: 700,
+  };
 
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
@@ -420,10 +455,22 @@ function PracticeInner() {
   const TEXT = {
     title: t("CNA Practice Hub", "Centro de Practica CNA", "Hub de pratique CNA", "Hub Pratik CNA"),
     subtitle: t(
-      "Choose how you want to practice. Practice is untimed, uses shorter guided sessions, and is designed to build understanding and confidence.",
-      "Elija como desea practicar. La practica no tiene limite de tiempo, utiliza sesiones guiadas mas cortas y esta disenada para fortalecer la comprension y la confianza.",
-      "Choisissez la facon dont vous souhaitez pratiquer. La pratique n'est pas chronometree, utilise des sessions guidees plus courtes et vise a renforcer la comprehension et la confiance.",
-      "Chwazi kijan ou vle pratike. Pratik la pa gen limit tan, li itilize sesyon gide ki pi kout, epi li fet pou bati konpreyansyon ak konfyans."
+      "Choose how you want to practice below: by chapter, by category, or mixed practice. Sessions are untimed, range from 5 to 15 questions, and focus on building understanding and confidence.",
+      "Elija como quiere practicar abajo: por capitulo, por categoria o practica mixta. Las sesiones no tienen limite de tiempo, van de 5 a 15 preguntas y se enfocan en desarrollar comprension y confianza.",
+      "Choisissez comment vous voulez pratiquer ci-dessous : par chapitre, par categorie ou pratique mixte. Les sessions ne sont pas chronometrees, vont de 5 a 15 questions et visent a developper la comprehension et la confiance.",
+      "Chwazi kijan ou vle pratike anba a: pa chapit, pa kategori, oswa pratik melanje. Sesyon yo pa gen limit tan, yo genyen 5 a 15 kestyon, epi yo konsantre sou bati konpreyansyon ak konfyans."
+    ),
+    practiceInstructionsTitle: t(
+      "Practice Instructions",
+      "Instrucciones de la practica",
+      "Instructions de pratique",
+      "Enstriksyon pou pratik"
+    ),
+    practiceInstructionsBody: t(
+      "Before you start, you can review the practice instructions to understand how feedback works and how to use chapter, category, and mixed practice.",
+      "Antes de comenzar, puede revisar las instrucciones de practica para entender como funciona la retroalimentacion y como usar practica por capitulo, categoria y mixta.",
+      "Avant de commencer, vous pouvez consulter les instructions de pratique pour comprendre le retour et comment utiliser les pratiques par chapitre, categorie et mixte.",
+      "Anvan ou komanse, ou ka li enstriksyon pratik yo pou konprann kijan fidbak mache ak kijan pou itilize pratik pa chapit, kategori, ak melanje."
     ),
     openHint: isNarrow
       ? t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")
@@ -758,18 +805,6 @@ function PracticeInner() {
                   onClick: () => router.push(`/start?lang=${lang}`),
                   label: TEXT.backToWelcome,
                 },
-                {
-                  key: "instructions",
-                  onClick: () => router.push(`/practice-instructions?lang=${lang}`),
-                  label:
-                    lang === "es"
-                      ? "Instrucciones de la practica"
-                      : lang === "fr"
-                        ? "Instructions de pratique"
-                        : lang === "ht"
-                          ? "Enstriksyon pou pratik"
-                          : "Practice Instructions",
-                },
               ]
             : [
                 {
@@ -784,18 +819,6 @@ function PracticeInner() {
                           ? "Dekonekte"
                           : "Sign out",
                   isSignOut: true,
-                },
-                {
-                  key: "instructions",
-                  onClick: () => router.push(`/practice-instructions?lang=${lang}`),
-                  label:
-                    lang === "es"
-                      ? "Instrucciones de la practica"
-                      : lang === "fr"
-                        ? "Instructions de pratique"
-                        : lang === "ht"
-                          ? "Enstriksyon pou pratik"
-                          : "Practice Instructions",
                 },
                 {
                   key: "back",
@@ -829,6 +852,20 @@ function PracticeInner() {
       footer={<div />}
     >
       <div style={{ display: "grid", gap: 14 }}>
+        <SectionCard
+          theme={theme}
+          tone="accent"
+          title={TEXT.practiceInstructionsTitle}
+          body={TEXT.practiceInstructionsBody}
+          action={
+            <button style={btnGhost} onClick={() => router.push(`/practice-instructions?lang=${lang}`)}>
+              {TEXT.practiceInstructionsTitle}
+            </button>
+          }
+          inlineAction
+          alignAction="end"
+          stretchAction={isNarrow}
+        />
         <CollapsibleSection key={`study-${isNarrow ? "narrow" : "wide"}`} title={TEXT.studySupportTitle} hint={TEXT.studySupportHint} openHint={TEXT.openHint} closeHint={TEXT.closeHint}>
             <div
               style={{

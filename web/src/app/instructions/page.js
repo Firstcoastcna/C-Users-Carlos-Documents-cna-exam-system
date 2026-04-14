@@ -129,24 +129,7 @@ function InstructionsInner() {
     <Frame
       title={t("INSTRUCTIONS", "INSTRUCCIONES", "INSTRUCTIONS", "ENSTRIKSYON")}
       theme={theme}
-      headerAction={
-        <button
-          style={{
-            ...btnSecondary,
-            width: "auto",
-            minWidth: "130px",
-            padding: "8px 12px",
-            fontSize: "13px",
-            opacity: 0.92,
-            background: "white",
-            color: "#536779",
-            border: "1px solid #cfdde6",
-          }}
-          onClick={() => router.push(`/welcome?lang=${lang}`)}
-        >
-          {t("Back to welcome", "Volver a la bienvenida", "Retour a l'accueil", "Retounen nan byenvini")}
-        </button>
-      }
+      headerAction={null}
       footer={
         <div
           style={{
