@@ -29,9 +29,12 @@ const header = {
   padding: "18px 20px",
   borderBottom: "1px solid var(--chrome-border)",
   background: "linear-gradient(180deg, var(--surface-tint) 0%, var(--chrome-bg) 100%)",
-  fontSize: 26,
+  fontSize: 22,
   fontWeight: 800,
   color: "var(--heading)",
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
 };
 
 const body = {
@@ -82,7 +85,33 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("info");
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [cooldownSec, setCooldownSec] = useState(0);
   const [busy, setBusy] = useState(false);
+  const messageTheme = {
+    error: {
+      bg: "#ffe2e0",
+      border: "#f07b74",
+      text: "#8a1111",
+      accent: "#c72222",
+      title: "Action needed",
+    },
+    success: {
+      bg: "#e2f6ea",
+      border: "#74c89b",
+      text: "#135b3f",
+      accent: "#1f7a4f",
+      title: "Success",
+    },
+    info: {
+      bg: "#e9f2fb",
+      border: "#9cc4e4",
+      text: "#244b67",
+      accent: "#2f6c9c",
+      title: "Heads up",
+    },
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -110,43 +139,82 @@ export default function SignInPage() {
   async function runAction(action) {
     setBusy(true);
     setMessage("");
+    setMessageType("info");
     try {
       await action();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to continue.");
+      setMessageType("error");
     } finally {
       setBusy(false);
     }
   }
 
+  useEffect(() => {
+    if (!cooldownSec) return;
+    const id = window.setInterval(() => {
+      setCooldownSec((value) => (value > 0 ? value - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [cooldownSec]);
+
   return (
     <main style={shell}>
       <div style={card}>
-        <div style={header}>Student Sign In</div>
+        <div style={header}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>First Coast CNA Exam Prep Platform</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#3f5564", marginTop: 2 }}>
+              Student Sign In
+            </div>
+          </div>
+          <img
+            src="/FCCNA%20Logo%20n%20name.png"
+            alt="First Coast CNA"
+            style={{ height: "clamp(52px, 5vw, 72px)", width: "auto", display: "block" }}
+          />
+        </div>
         <div style={body}>
           <div style={{ color: "#4a6272", lineHeight: 1.6 }}>
-            Sign in to continue into the CNA study platform. Once your account is active, your
-            language, progress, and reports can follow you across devices.
+            <div style={{ fontSize: 18, fontWeight: 600, color: "var(--heading)" }}>
+              Welcome to our CNA exam prep platform.
+            </div>
+            <div style={{ marginTop: 8, fontWeight: 800, color: "var(--brand-red)" }}>
+              New here? Use Create Account to get started.
+            </div>
+            <div style={{ marginTop: 8 }}>
+              Sign in to keep your study progress in one place. Your language, practice, exam
+              results, and reports will follow you across devices.
+            </div>
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
             <input
               style={inputStyle}
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) => {
+                setFullName(e.target.value);
+                if (message) setMessage("");
+              }}
               placeholder="Full name (required for new accounts)"
             />
             <input
               style={inputStyle}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (message) setMessage("");
+              }}
               placeholder="Email"
               autoComplete="email"
             />
             <input
               style={inputStyle}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (message) setMessage("");
+              }}
               placeholder="Password"
               type="password"
               autoComplete="current-password"
@@ -170,12 +238,13 @@ export default function SignInPage() {
             </button>
 
             <button
-              style={btnSecondary}
-              disabled={busy}
+              style={{ ...btnSecondary, border: "2px solid var(--brand-red)", color: "var(--brand-red)" }}
+              disabled={busy || signUpSuccess || cooldownSec > 0}
               onClick={() =>
                 runAction(async () => {
                   if (!fullName.trim()) {
                     setMessage("Please enter your full name to create a new account.");
+                    setMessageType("error");
                     return;
                   }
                   const data = await signUpStudent({ email, password, fullName });
@@ -187,13 +256,16 @@ export default function SignInPage() {
                     return;
                   }
 
+                  setSignUpSuccess(true);
+                  setCooldownSec(60);
                   setMessage(
-                    "Account created. If email confirmation is required, confirm your email first and then sign in."
+                    "Account created. Check your email to confirm, then return here to sign in. If you don't see the email, check Spam or Promotions."
                   );
+                  setMessageType("success");
                 })
               }
             >
-              Create Account
+              {signUpSuccess ? "Check your email" : "Create Account"}
             </button>
           </div>
 
@@ -212,10 +284,12 @@ export default function SignInPage() {
                 runAction(async () => {
                   if (!email.trim()) {
                     setMessage("Enter your email first so we can send the reset link.");
+                    setMessageType("error");
                     return;
                   }
                   await requestPasswordReset(email.trim());
                   setMessage("Reset link sent. Check your email to continue.");
+                  setMessageType("success");
                 })
               }
             >
@@ -223,17 +297,41 @@ export default function SignInPage() {
             </button>
           </div>
 
-          {message ? (
+          {message ? (() => {
+            const theme = messageTheme[messageType] || messageTheme.info;
+            return (
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 12,
+                  background: theme.bg,
+                  border: `2px solid ${theme.border}`,
+                  color: theme.text,
+                  fontWeight: 600,
+                  boxShadow: "0 10px 18px rgba(20, 35, 52, 0.08)",
+                  borderLeft: `6px solid ${theme.accent}`,
+                }}
+              >
+                <div style={{ fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: 12 }}>
+                  {theme.title}
+                </div>
+                <div style={{ marginTop: 6 }}>{message}</div>
+              </div>
+            );
+          })() : null}
+
+          {signUpSuccess ? (
             <div
               style={{
                 padding: "12px 14px",
                 borderRadius: 12,
-                background: "#fff8eb",
-                border: "1px solid #f0d59b",
-                color: "#755200",
+                background: "#f3fbfd",
+                border: "1px solid #cfe3ee",
+                color: "#33566d",
               }}
             >
-              {message}
+              You can close this tab after confirming. The link will bring you back to this sign-in page.
+              {cooldownSec > 0 ? ` You can try again in ${cooldownSec}s.` : ""}
             </div>
           ) : null}
         </div>

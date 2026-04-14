@@ -9,8 +9,37 @@ function getClient() {
   return supabase;
 }
 
+function normalizeAuthError(actionLabel, error) {
+  const raw = error?.message || "Unable to continue.";
+  const normalized = raw.toLowerCase();
+
+  if (
+    normalized.includes("missing email") ||
+    normalized.includes("missing email or phone") ||
+    normalized.includes("missing password")
+  ) {
+    return "Please enter your email and password to continue.";
+  }
+  if (normalized.includes("invalid login credentials")) {
+    return "Account not found or password incorrect. If you are new here, tap Create Account.";
+  }
+  if (normalized.includes("email not confirmed")) {
+    return "Please confirm your email before signing in.";
+  }
+  if (normalized.includes("user already registered") || normalized.includes("already registered")) {
+    return "An account with this email already exists. Try signing in instead.";
+  }
+
+  return `${actionLabel} failed. ${raw}`;
+}
+
 export async function signUpStudent({ email, password, fullName = "" }) {
   const supabase = getClient();
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : getPublicAppUrl();
+  const emailRedirectTo = `${origin}/signin`;
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -18,11 +47,12 @@ export async function signUpStudent({ email, password, fullName = "" }) {
       data: {
         full_name: fullName || undefined,
       },
+      emailRedirectTo,
     },
   });
 
   if (error) {
-    throw new Error(`Supabase sign-up failed: ${error.message}`);
+    throw new Error(normalizeAuthError("Account creation", error));
   }
 
   return data;
@@ -36,7 +66,7 @@ export async function signInStudent({ email, password }) {
   });
 
   if (error) {
-    throw new Error(`Supabase sign-in failed: ${error.message}`);
+    throw new Error(normalizeAuthError("Sign in", error));
   }
 
   return data;
@@ -46,7 +76,7 @@ export async function signOutStudent() {
   const supabase = getClient();
   const { error } = await supabase.auth.signOut();
   if (error) {
-    throw new Error(`Supabase sign-out failed: ${error.message}`);
+    throw new Error(normalizeAuthError("Sign out", error));
   }
   return { ok: true };
 }
@@ -59,7 +89,7 @@ export async function getStudentSessionSnapshot() {
   } = await supabase.auth.getSession();
 
   if (error) {
-    throw new Error(`Supabase auth session check failed: ${error.message}`);
+    throw new Error(normalizeAuthError("Session check", error));
   }
 
   return session;
@@ -96,7 +126,7 @@ export async function requestPasswordReset(email) {
   const redirectTo = `${origin}/reset-password`;
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
   if (error) {
-    throw new Error(`Password reset failed: ${error.message}`);
+    throw new Error(normalizeAuthError("Password reset", error));
   }
   return { ok: true };
 }
