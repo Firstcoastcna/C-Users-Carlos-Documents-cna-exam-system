@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
 import { resolveBackendRequestUser } from "@/app/lib/backend/auth/requestUser";
 import {
+  loadAppUser,
   loadExamAttemptRecords,
   loadPracticeSessionRecords,
   loadQuestionHistoryRecords,
@@ -185,9 +187,32 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const lang = searchParams.get("lang");
+    const requestedUserId = searchParams.get("user_id");
 
-    const resolved = await resolveBackendRequestUser(request, null, "Student");
-    const userId = resolved.userId;
+    let resolved = await resolveBackendRequestUser(request, null, "Student");
+    let userId = resolved.userId;
+
+    if (requestedUserId && requestedUserId !== resolved.userId) {
+      const owner = await requireOwnerRequestUser(request);
+      const targetUser = await loadAppUser(requestedUserId);
+      if (!targetUser) {
+        return NextResponse.json(
+          {
+            ok: false,
+            service: "student-overview-report",
+            error: "The requested student was not found.",
+          },
+          { status: 404 }
+        );
+      }
+
+      userId = requestedUserId;
+      resolved = {
+        ...owner,
+        source: "owner-report",
+        appUser: targetUser,
+      };
+    }
 
     const [examAttempts, practiceSessions, remediationSessions, questionHistory] = await Promise.all([
       loadExamAttemptRecords(userId, lang),

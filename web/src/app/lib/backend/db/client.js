@@ -210,6 +210,350 @@ export async function upsertClassGroup(record) {
   return data;
 }
 
+export async function listAccessGrantedPreferences() {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("user_preferences")
+    .select(
+      "user_id, preferred_language, access_granted, skip_practice_welcome, skip_exam_welcome, has_seen_foundation, has_seen_category_intro, created_at, updated_at"
+    )
+    .eq("access_granted", true)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Supabase list access-granted preferences failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function listClassGroupRecords(schoolId = null) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  let query = supabase
+    .from("class_groups")
+    .select("id, school_id, name, code, status, starts_on, ends_on, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (schoolId) {
+    query = query.eq("school_id", schoolId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`Supabase list class groups failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function deleteClassGroupRecord(classGroupId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const [enrollmentCountResult, codeCountResult] = await Promise.all([
+    supabase
+      .from("class_group_enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("class_group_id", classGroupId),
+    supabase.from("access_codes").select("id", { count: "exact", head: true }).eq("class_group_id", classGroupId),
+  ]);
+
+  if (enrollmentCountResult.error) {
+    throw new Error(`Supabase class enrollment check failed: ${enrollmentCountResult.error.message}`);
+  }
+  if (codeCountResult.error) {
+    throw new Error(`Supabase class code check failed: ${codeCountResult.error.message}`);
+  }
+
+  if ((enrollmentCountResult.count || 0) > 0) {
+    throw new Error("This class already has enrolled students. Remove enrollments first.");
+  }
+  if ((codeCountResult.count || 0) > 0) {
+    throw new Error("This class still has access codes tied to it. Delete or deactivate those codes first.");
+  }
+
+  const { error } = await supabase.from("class_groups").delete().eq("id", classGroupId);
+  if (error) {
+    throw new Error(`Supabase delete class failed: ${error.message}`);
+  }
+
+  return { ok: true, classGroupId };
+}
+
+export async function listSchoolRecords() {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("schools")
+    .select("id, name, slug, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Supabase list schools failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function deleteSchoolRecord(schoolId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const [classCountResult, codeCountResult, staffCountResult] = await Promise.all([
+    supabase.from("class_groups").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
+    supabase.from("access_codes").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
+    supabase.from("school_staff").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
+  ]);
+
+  if (classCountResult.error) {
+    throw new Error(`Supabase school dependency check failed: ${classCountResult.error.message}`);
+  }
+  if (codeCountResult.error) {
+    throw new Error(`Supabase school code check failed: ${codeCountResult.error.message}`);
+  }
+  if (staffCountResult.error) {
+    throw new Error(`Supabase school staff check failed: ${staffCountResult.error.message}`);
+  }
+
+  if ((classCountResult.count || 0) > 0) {
+    throw new Error("This school still has classes. Delete or move those classes first.");
+  }
+  if ((codeCountResult.count || 0) > 0) {
+    throw new Error("This school still has access codes. Delete or deactivate those codes first.");
+  }
+  if ((staffCountResult.count || 0) > 0) {
+    throw new Error("This school still has staff assignments.");
+  }
+
+  const { error } = await supabase.from("schools").delete().eq("id", schoolId);
+  if (error) {
+    throw new Error(`Supabase delete school failed: ${error.message}`);
+  }
+
+  return { ok: true, schoolId };
+}
+
+export async function upsertAccessCode(record) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const payload = {
+    id: record.id,
+    code: String(record.code || "").trim().toUpperCase(),
+    code_type: record.codeType,
+    label: record.label || null,
+    status: record.status || "active",
+    school_id: record.schoolId || null,
+    class_group_id: record.classGroupId || null,
+    grants_access: record.grantsAccess !== false,
+    max_redemptions: Number.isFinite(record.maxRedemptions) ? Number(record.maxRedemptions) : null,
+    expires_at: record.expiresAt || null,
+    metadata: record.metadata || {},
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("access_codes")
+    .upsert(payload, { onConflict: "id" })
+    .select("id, code, code_type, label, status, school_id, class_group_id, grants_access, max_redemptions, expires_at, metadata, created_at, updated_at")
+    .single();
+
+  if (error) {
+    throw new Error(`Supabase upsert access code failed: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function listAccessCodeRecords() {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("access_codes")
+    .select("id, code, code_type, label, status, school_id, class_group_id, grants_access, max_redemptions, expires_at, metadata, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Supabase list access codes failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function updateAccessCodeStatus(accessCodeId, status) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("access_codes")
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", accessCodeId)
+    .select("id, code, status, updated_at")
+    .single();
+
+  if (error) {
+    throw new Error(`Supabase update access code status failed: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function loadAccessCodeByCode(code) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedCode = String(code || "").trim().toUpperCase();
+  const { data, error } = await supabase
+    .from("access_codes")
+    .select("id, code, code_type, label, status, school_id, class_group_id, grants_access, max_redemptions, expires_at, metadata, created_at, updated_at")
+    .eq("code", normalizedCode)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase load access code failed: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function loadAccessCodeRedemptionCount(accessCodeId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { count, error } = await supabase
+    .from("access_code_redemptions")
+    .select("id", { count: "exact", head: true })
+    .eq("access_code_id", accessCodeId);
+
+  if (error) {
+    throw new Error(`Supabase load access code redemption count failed: ${error.message}`);
+  }
+
+  return Number(count || 0);
+}
+
+export async function loadAccessCodeRedemptionForUser(accessCodeId, userId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("access_code_redemptions")
+    .select("id, access_code_id, user_id, redeemed_at, created_at, updated_at")
+    .eq("access_code_id", accessCodeId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase load access code redemption failed: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function createAccessCodeRedemption(record) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const payload = {
+    id: record.id,
+    access_code_id: record.accessCodeId,
+    user_id: record.userId,
+    redeemed_at: record.redeemedAt || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("access_code_redemptions")
+    .upsert(payload, { onConflict: "access_code_id,user_id" })
+    .select("id, access_code_id, user_id, redeemed_at, created_at, updated_at")
+    .single();
+
+  if (error) {
+    throw new Error(`Supabase create access code redemption failed: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function listAccessCodeRedemptionRecords() {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("access_code_redemptions")
+    .select("id, access_code_id, user_id, redeemed_at, created_at, updated_at")
+    .order("redeemed_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Supabase list access code redemptions failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function deleteAccessCodeRecord(accessCodeId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { count, error: countError } = await supabase
+    .from("access_code_redemptions")
+    .select("id", { count: "exact", head: true })
+    .eq("access_code_id", accessCodeId);
+
+  if (countError) {
+    throw new Error(`Supabase access code delete check failed: ${countError.message}`);
+  }
+
+  if ((count || 0) > 0) {
+    throw new Error("This code has already been redeemed. Deactivate it instead of deleting it.");
+  }
+
+  const { error } = await supabase.from("access_codes").delete().eq("id", accessCodeId);
+  if (error) {
+    throw new Error(`Supabase delete access code failed: ${error.message}`);
+  }
+
+  return { ok: true, accessCodeId };
+}
+
 export async function upsertClassGroupEnrollment(record) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -338,6 +682,42 @@ export async function loadClassGroupRoster(classGroupId) {
     ...row,
     user: usersById[row.user_id] || null,
   }));
+}
+
+export async function listClassGroupEnrollments() {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("class_group_enrollments")
+    .select("id, class_group_id, user_id, role, status, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Supabase list class enrollments failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function deleteClassGroupEnrollments(classGroupId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { error } = await supabase
+    .from("class_group_enrollments")
+    .delete()
+    .eq("class_group_id", classGroupId);
+
+  if (error) {
+    throw new Error(`Supabase delete class enrollments failed: ${error.message}`);
+  }
+
+  return { ok: true, classGroupId };
 }
 
 function normalizeQuestionIds(questionIds) {

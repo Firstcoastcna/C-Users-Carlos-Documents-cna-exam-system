@@ -3,8 +3,8 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  redeemAccessCode,
   resolveStudentEntryState,
-  updateUserPreferences,
 } from "../lib/backend/auth/browserAuth";
 
 function Frame({ title, children, footer, theme }) {
@@ -138,35 +138,35 @@ function AccessInner() {
   async function submit() {
     setErr("");
 
-    const MASTER_CODE = "FCCNA2026";
-    const typed = code.trim().toUpperCase();
-
-    if (typed !== MASTER_CODE) {
-      setErr(
-        t(
-          "Invalid access code.",
-          "Codigo de acceso invalido.",
-          "Code dacces invalide.",
-          "Kod akse a pa valab."
-        )
-      );
-      return;
-    }
-
     try {
+      const typed = code.trim().toUpperCase();
+      if (!typed) {
+        setErr(
+          t(
+            "Please enter an access code.",
+            "Ingrese un codigo de acceso.",
+            "Entrez un code dacces.",
+            "Tanpri antre yon kod akse."
+          )
+        );
+        return;
+      }
+
+      await redeemAccessCode(typed, lang);
       localStorage.setItem("cna_access_granted", "1");
-    } catch {}
-
-    try {
-      await updateUserPreferences({
-        accessGranted: true,
-        preferredLanguage: lang,
-      });
-    } catch {
-      // Keep browser-only entry working for unsigned users.
+      router.push("/");
+    } catch (error) {
+      setErr(
+        error instanceof Error
+          ? error.message
+          : t(
+              "Invalid access code.",
+              "Codigo de acceso invalido.",
+              "Code dacces invalide.",
+              "Kod akse a pa valab."
+            )
+      );
     }
-
-    router.push("/");
   }
 
   return (

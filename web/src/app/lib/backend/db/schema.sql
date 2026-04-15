@@ -53,6 +53,38 @@ create table if not exists class_groups (
 
 create index if not exists class_groups_school_idx on class_groups(school_id, created_at desc);
 
+create table if not exists access_codes (
+  id text primary key,
+  code text unique not null,
+  code_type text not null,
+  label text,
+  status text not null default 'active',
+  school_id text references schools(id) on delete set null,
+  class_group_id text references class_groups(id) on delete set null,
+  grants_access boolean not null default true,
+  max_redemptions integer,
+  expires_at timestamptz,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists access_codes_code_idx on access_codes(code);
+create index if not exists access_codes_type_idx on access_codes(code_type, created_at desc);
+
+create table if not exists access_code_redemptions (
+  id text primary key,
+  access_code_id text not null references access_codes(id) on delete cascade,
+  user_id text not null references app_users(id) on delete cascade,
+  redeemed_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (access_code_id, user_id)
+);
+
+create index if not exists access_code_redemptions_code_idx on access_code_redemptions(access_code_id, redeemed_at desc);
+create index if not exists access_code_redemptions_user_idx on access_code_redemptions(user_id, redeemed_at desc);
+
 create table if not exists class_group_enrollments (
   id text primary key,
   class_group_id text not null references class_groups(id) on delete cascade,

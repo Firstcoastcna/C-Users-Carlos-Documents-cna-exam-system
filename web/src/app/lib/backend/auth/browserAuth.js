@@ -270,6 +270,33 @@ export async function updateUserPreferences(patch) {
   return payload;
 }
 
+export async function redeemAccessCode(code, lang = "en") {
+  const session = await getStudentSessionSnapshot().catch(() => null);
+  if (!session?.access_token) {
+    throw new Error("Please sign in before entering an access code.");
+  }
+
+  const response = await fetch("/api/backend/access-codes/redeem", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      code,
+      preferredLanguage: lang,
+    }),
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || "Unable to redeem access code.");
+  }
+
+  return payload;
+}
+
 async function fetchAuthenticatedJson(pathname) {
   const headers = await getAuthenticatedRequestHeaders();
   const response = await fetch(pathname, {
@@ -300,4 +327,109 @@ export async function bootstrapDemoClassData() {
 
 export async function fetchClassOverviewReport(lang = "en") {
   return fetchAuthenticatedJson(`/api/backend/reports/class-overview?lang=${encodeURIComponent(lang)}`);
+}
+
+export async function fetchOwnerOverview() {
+  return fetchAuthenticatedJson("/api/backend/admin/overview");
+}
+
+export async function fetchOwnerStudentOverviewReport(userId, lang = "en") {
+  return fetchAuthenticatedJson(
+    `/api/backend/reports/student-overview?lang=${encodeURIComponent(lang)}&user_id=${encodeURIComponent(userId)}`
+  );
+}
+
+export async function fetchOwnerClassOverviewReport(classGroupId, lang = "en") {
+  return fetchAuthenticatedJson(
+    `/api/backend/reports/class-overview?lang=${encodeURIComponent(lang)}&class_group_id=${encodeURIComponent(classGroupId)}`
+  );
+}
+
+async function postAuthenticatedJson(pathname, body) {
+  const headers = await getAuthenticatedRequestHeaders({
+    "Content-Type": "application/json",
+  });
+  const response = await fetch(pathname, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body || {}),
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || `Unable to post to ${pathname}.`);
+  }
+
+  return payload;
+}
+
+async function patchAuthenticatedJson(pathname, body) {
+  const headers = await getAuthenticatedRequestHeaders({
+    "Content-Type": "application/json",
+  });
+  const response = await fetch(pathname, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(body || {}),
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || `Unable to update ${pathname}.`);
+  }
+
+  return payload;
+}
+
+async function deleteAuthenticatedJson(pathname) {
+  const headers = await getAuthenticatedRequestHeaders();
+  const response = await fetch(pathname, {
+    method: "DELETE",
+    headers,
+    cache: "no-store",
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.error || `Unable to delete ${pathname}.`);
+  }
+
+  return payload;
+}
+
+export async function createOwnerSchool(input) {
+  return postAuthenticatedJson("/api/backend/admin/schools", input);
+}
+
+export async function createOwnerClassGroup(input) {
+  return postAuthenticatedJson("/api/backend/admin/class-groups", input);
+}
+
+export async function createOwnerAccessCode(input) {
+  return postAuthenticatedJson("/api/backend/admin/access-codes", input);
+}
+
+export async function deleteOwnerSchool(id) {
+  return deleteAuthenticatedJson(`/api/backend/admin/schools?id=${encodeURIComponent(id)}`);
+}
+
+export async function deleteOwnerClassGroup(id) {
+  return deleteAuthenticatedJson(`/api/backend/admin/class-groups?id=${encodeURIComponent(id)}`);
+}
+
+export async function clearOwnerClassEnrollments(id) {
+  return patchAuthenticatedJson("/api/backend/admin/class-groups", {
+    id,
+    action: "clear-enrollments",
+  });
+}
+
+export async function deleteOwnerAccessCode(id) {
+  return deleteAuthenticatedJson(`/api/backend/admin/access-codes?id=${encodeURIComponent(id)}`);
+}
+
+export async function updateOwnerAccessCodeStatus(id, status) {
+  return patchAuthenticatedJson("/api/backend/admin/access-codes", { id, status });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   fetchUserPreferences,
@@ -269,7 +270,15 @@ export default function SignInPage() {
             </button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
             <button
               style={{
                 border: "none",
@@ -295,6 +304,17 @@ export default function SignInPage() {
             >
               Forgot password?
             </button>
+            <Link
+              href="/owner-access"
+              style={{
+                color: "#6a7f90",
+                fontWeight: 700,
+                textDecoration: "none",
+                fontSize: 13,
+              }}
+            >
+              Admin Access
+            </Link>
           </div>
 
           {message ? (() => {
