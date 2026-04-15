@@ -3,6 +3,9 @@
    ========================================================= */
 
 :root {
+  --font-app-sans: "Source Sans 3", "Segoe UI", Tahoma, sans-serif;
+  --font-geist-sans: "Source Sans 3", "Segoe UI", Tahoma, sans-serif;
+  --font-geist-mono: "Courier New", "SFMono-Regular", Consolas, monospace;
   --background: #ffffff;
   --foreground: #171717;
   --brand-red: #cc0000;
