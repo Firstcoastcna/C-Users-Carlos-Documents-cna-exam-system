@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getSupabaseBrowserClient } from "../lib/backend/supabase/browserClient";
 
 const shell = {
@@ -61,11 +61,13 @@ function getHashParams() {
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const nextPath = searchParams.get("next") || "/signin";
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +160,7 @@ export default function ResetPasswordPage() {
                       return;
                     }
                     setMessage("Password updated. You can now sign in.");
-                    router.replace("/signin");
+                    router.replace(nextPath);
                   })
                   .catch(() => {
                     setMessage("Unable to reset password.");

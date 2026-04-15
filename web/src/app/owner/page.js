@@ -6,6 +6,7 @@ import {
   createOwnerAccessCode,
   createOwnerClassGroup,
   createOwnerSchool,
+  createOwnerUser,
   fetchOwnerOverview,
   signOutStudent,
 } from "../lib/backend/auth/browserAuth";
@@ -269,6 +270,13 @@ export default function OwnerPage() {
     classGroupId: "",
     maxRedemptions: "",
   });
+  const [userForm, setUserForm] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    role: "student",
+    schoolId: "",
+  });
 
   async function loadOverview() {
     setLoading(true);
@@ -284,6 +292,10 @@ export default function OwnerPage() {
         ...prev,
         schoolId: prev.schoolId || payload.schools?.[0]?.id || "",
         classGroupId: prev.classGroupId || payload.classGroups?.[0]?.id || "",
+      }));
+      setUserForm((prev) => ({
+        ...prev,
+        schoolId: prev.schoolId || payload.schools?.[0]?.id || "",
       }));
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Unable to load control center.");
@@ -624,6 +636,94 @@ export default function OwnerPage() {
                       }
                     >
                       Save code
+                    </button>
+                  </div>
+                </div>
+
+                <div style={sectionCard}>
+                  <div style={sectionTitle}>Create user</div>
+                  <div style={subText}>
+                    Create a real login through Supabase for a student or school admin. School admins can then use the admin lane with their own credentials.
+                  </div>
+                  <LabeledField label="Role">
+                    <select
+                      style={input}
+                      value={userForm.role}
+                      onChange={(e) =>
+                        setUserForm((prev) => ({
+                          ...prev,
+                          role: e.target.value,
+                          schoolId: e.target.value === "school_admin" ? prev.schoolId || schools[0]?.id || "" : "",
+                        }))
+                      }
+                    >
+                      <option value="student">Student</option>
+                      <option value="school_admin">School admin</option>
+                    </select>
+                  </LabeledField>
+                  {userForm.role === "school_admin" ? (
+                    <LabeledField label="School">
+                      <select
+                        style={input}
+                        value={userForm.schoolId}
+                        onChange={(e) => setUserForm((prev) => ({ ...prev, schoolId: e.target.value }))}
+                      >
+                        <option value="">Select school</option>
+                        {schools.map((school) => (
+                          <option key={school.id} value={school.id}>
+                            {school.name}
+                          </option>
+                        ))}
+                      </select>
+                    </LabeledField>
+                  ) : null}
+                  <LabeledField label="Full name">
+                    <input
+                      style={input}
+                      value={userForm.fullName}
+                      onChange={(e) => setUserForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                      placeholder={userForm.role === "school_admin" ? "Carlos Chavez" : "Ana Gomez"}
+                    />
+                  </LabeledField>
+                  <LabeledField label="Email">
+                    <input
+                      style={input}
+                      type="email"
+                      value={userForm.email}
+                      onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder={userForm.role === "school_admin" ? "admin@gatorcna.com" : "student@example.com"}
+                    />
+                  </LabeledField>
+                  <LabeledField label="Temporary password">
+                    <input
+                      style={input}
+                      type="text"
+                      value={userForm.password}
+                      onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))}
+                      placeholder="TempPass2026!"
+                    />
+                  </LabeledField>
+                  <HelperText>
+                    Students can use the regular sign-in page. School admins can use Admin Access once their account is created here.
+                  </HelperText>
+                  <div style={actionsRow}>
+                    <button
+                      style={buttonPrimary}
+                      disabled={busy}
+                      onClick={() =>
+                        runAction(async () => {
+                          await createOwnerUser(userForm);
+                          setUserForm({
+                            fullName: "",
+                            email: "",
+                            password: "",
+                            role: "student",
+                            schoolId: schools[0]?.id || "",
+                          });
+                        }, "User created.")
+                      }
+                    >
+                      Save user
                     </button>
                   </div>
                 </div>

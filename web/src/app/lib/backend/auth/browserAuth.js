@@ -117,13 +117,16 @@ export async function syncStudentProfile() {
   return payload;
 }
 
-export async function requestPasswordReset(email) {
+export async function requestPasswordReset(email, redirectPath = "/reset-password") {
   const supabase = getClient();
   const origin =
     typeof window !== "undefined" && window.location?.origin
       ? window.location.origin
       : getPublicAppUrl();
-  const redirectTo = `${origin}/reset-password`;
+  const normalizedRedirectPath = String(redirectPath || "/reset-password").startsWith("/")
+    ? String(redirectPath || "/reset-password")
+    : `/${String(redirectPath || "reset-password")}`;
+  const redirectTo = `${origin}${normalizedRedirectPath}`;
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
   if (error) {
     throw new Error(normalizeAuthError("Password reset", error));
@@ -409,6 +412,10 @@ export async function createOwnerClassGroup(input) {
 
 export async function createOwnerAccessCode(input) {
   return postAuthenticatedJson("/api/backend/admin/access-codes", input);
+}
+
+export async function createOwnerUser(input) {
+  return postAuthenticatedJson("/api/backend/admin/users", input);
 }
 
 export async function deleteOwnerSchool(id) {

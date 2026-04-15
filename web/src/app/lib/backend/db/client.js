@@ -55,6 +55,56 @@ export async function upsertAppUser(user) {
   return data;
 }
 
+export async function createManagedAuthUser({
+  email,
+  password,
+  fullName = "",
+  emailConfirmed = true,
+}) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedPassword = String(password || "");
+  const normalizedFullName = String(fullName || "").trim();
+
+  if (!normalizedEmail) {
+    throw new Error("Email is required.");
+  }
+  if (!normalizedPassword) {
+    throw new Error("Password is required.");
+  }
+
+  const { data, error } = await supabase.auth.admin.createUser({
+    email: normalizedEmail,
+    password: normalizedPassword,
+    email_confirm: !!emailConfirmed,
+    user_metadata: normalizedFullName ? { full_name: normalizedFullName } : {},
+  });
+
+  if (error) {
+    throw new Error(`Supabase create auth user failed: ${error.message}`);
+  }
+
+  const authUser = data?.user;
+  if (!authUser?.id) {
+    throw new Error("Supabase create auth user failed: Missing user record.");
+  }
+
+  const appUser = await upsertAppUser({
+    id: authUser.id,
+    email: authUser.email || normalizedEmail,
+    fullName: normalizedFullName || authUser.user_metadata?.full_name || "",
+  });
+
+  return {
+    authUser,
+    appUser,
+  };
+}
+
 export async function loadAppUser(userId) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {

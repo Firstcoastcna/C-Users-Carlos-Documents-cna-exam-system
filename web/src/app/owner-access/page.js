@@ -238,7 +238,7 @@ export default function OwnerAccessPage() {
                 }
 
                 try {
-                  await requestPasswordReset(email.trim());
+                  await requestPasswordReset(email.trim(), "/reset-password?next=/owner-access");
                   setMessage("Reset link sent. Check your email to continue.");
                   setMessageType("success");
                 } catch (error) {
