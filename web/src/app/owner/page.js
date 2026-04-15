@@ -134,6 +134,23 @@ const formGrid = {
   alignItems: "start",
 };
 
+const tabsRow = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+};
+
+const tabButtonBase = {
+  padding: "8px 12px",
+  borderRadius: 999,
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
+  border: "1px solid #cfdde6",
+  background: "white",
+  color: "#536779",
+};
+
 const sectionCard = {
   border: "1px solid var(--chrome-border)",
   borderRadius: 16,
@@ -261,6 +278,7 @@ export default function OwnerPage() {
   const [success, setSuccess] = useState("");
   const [overview, setOverview] = useState(null);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [setupTab, setSetupTab] = useState("school");
   const [schoolForm, setSchoolForm] = useState({ name: "", slug: "" });
   const [classForm, setClassForm] = useState({ schoolId: "", name: "" });
   const [codeForm, setCodeForm] = useState({
@@ -460,8 +478,35 @@ export default function OwnerPage() {
             </summary>
 
             <div style={setupBody}>
+              <div style={tabsRow}>
+                {[
+                  ["school", "School"],
+                  ["class", "Class"],
+                  ["code", "Access code"],
+                  ["user", "User"],
+                ].map(([key, label]) => {
+                  const active = setupTab === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSetupTab(key)}
+                      style={{
+                        ...tabButtonBase,
+                        background: active ? "var(--heading)" : "white",
+                        color: active ? "white" : "#536779",
+                        border: active ? "1px solid var(--heading)" : "1px solid #cfdde6",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
               <div style={formGrid}>
-                <div style={sectionCard}>
+                {setupTab === "school" ? (
+                  <div style={sectionCard}>
                   <div style={sectionTitle}>Create school</div>
                   <LabeledField label="School name">
                     <input
@@ -494,8 +539,10 @@ export default function OwnerPage() {
                     </button>
                   </div>
                 </div>
+                ) : null}
 
-                <div style={sectionCard}>
+                {setupTab === "class" ? (
+                  <div style={sectionCard}>
                   <div style={sectionTitle}>Create class</div>
                   <div style={subText}>
                     Create the actual teaching group here. Keep the class name fully descriptive, like &quot;May 2026 Day.&quot;
@@ -537,8 +584,10 @@ export default function OwnerPage() {
                     </button>
                   </div>
                 </div>
+                ) : null}
 
-                <div style={sectionCard}>
+                {setupTab === "code" ? (
+                  <div style={sectionCard}>
                   <div style={sectionTitle}>Create access code</div>
                   <LabeledField label="Type">
                     <select
@@ -639,8 +688,10 @@ export default function OwnerPage() {
                     </button>
                   </div>
                 </div>
+                ) : null}
 
-                <div style={sectionCard}>
+                {setupTab === "user" ? (
+                  <div style={sectionCard}>
                   <div style={sectionTitle}>Create user</div>
                   <div style={subText}>
                     Create a real login through Supabase for a student or school admin. School admins can then use the admin lane with their own credentials.
@@ -727,6 +778,7 @@ export default function OwnerPage() {
                     </button>
                   </div>
                 </div>
+                ) : null}
               </div>
             </div>
           </details>
