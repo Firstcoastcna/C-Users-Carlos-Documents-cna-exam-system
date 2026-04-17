@@ -69,18 +69,17 @@ export default function HomePage() {
           return;
         }
 
-        if (!forceLang && prefs.accessGranted) {
+        if (!forceLang && prefs.accessGranted && prefs.preferredLanguage) {
           if (!prefs.hasSeenFoundation) {
+            router.replace(`/foundation?lang=${prefs.preferredLanguage}`);
             return;
           }
-          if (prefs.preferredLanguage) {
           if (!prefs.hasSeenCategoryIntro) {
             router.replace(`/category-foundation?lang=${prefs.preferredLanguage}`);
             return;
           }
           router.replace(`/foundation?lang=${prefs.preferredLanguage}`);
           return;
-          }
         }
       } catch {
         // Signed-out users and local-only flows still fall back to browser state.

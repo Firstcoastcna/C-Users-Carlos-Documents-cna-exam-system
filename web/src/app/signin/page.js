@@ -74,8 +74,8 @@ async function resolveLandingRoute() {
   const prefsPayload = await fetchUserPreferences().catch(() => null);
   const prefs = prefsPayload?.preferences || null;
   if (!prefs?.accessGranted) return "/access";
-  if (!prefs.hasSeenFoundation) return "/?force_lang=1";
-  if (!prefs.preferredLanguage) return "/";
+  if (!prefs.preferredLanguage) return "/?force_lang=1";
+  if (!prefs.hasSeenFoundation) return `/foundation?lang=${prefs.preferredLanguage}`;
   if (!prefs.hasSeenCategoryIntro) return `/category-foundation?lang=${prefs.preferredLanguage}`;
   return `/foundation?lang=${prefs.preferredLanguage}`;
 }
