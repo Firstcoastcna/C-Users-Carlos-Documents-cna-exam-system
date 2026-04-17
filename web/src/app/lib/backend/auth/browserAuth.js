@@ -75,6 +75,17 @@ export async function signUpStudent({ email, password, fullName = "" }) {
     throw new Error(normalizeAuthError("Account creation", error));
   }
 
+  const identities = Array.isArray(data?.user?.identities) ? data.user.identities : null;
+  const likelyExistingAccount =
+    !data?.session &&
+    data?.user &&
+    identities &&
+    identities.length === 0;
+
+  if (likelyExistingAccount) {
+    throw new Error("This email is already in use. Try signing in instead.");
+  }
+
   return data;
 }
 
