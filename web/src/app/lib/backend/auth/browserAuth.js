@@ -9,6 +9,29 @@ function getClient() {
   return supabase;
 }
 
+function isLocalOrigin(value) {
+  const normalized = String(value || "").toLowerCase();
+  return normalized.includes("localhost") || normalized.includes("127.0.0.1");
+}
+
+function getPreferredPublicOrigin() {
+  const configured = String(getPublicAppUrl() || "").trim().replace(/\/+$/, "");
+  const browserOrigin =
+    typeof window !== "undefined" && window.location?.origin
+      ? String(window.location.origin).trim().replace(/\/+$/, "")
+      : "";
+
+  if (configured && !isLocalOrigin(configured)) {
+    return configured;
+  }
+
+  if (browserOrigin) {
+    return browserOrigin;
+  }
+
+  return configured || "http://localhost:3000";
+}
+
 function normalizeAuthError(actionLabel, error) {
   const raw = error?.message || "Unable to continue.";
   const normalized = raw.toLowerCase();
@@ -35,10 +58,7 @@ function normalizeAuthError(actionLabel, error) {
 
 export async function signUpStudent({ email, password, fullName = "" }) {
   const supabase = getClient();
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : getPublicAppUrl();
+  const origin = getPreferredPublicOrigin();
   const emailRedirectTo = `${origin}/signin`;
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -119,10 +139,7 @@ export async function syncStudentProfile() {
 
 export async function requestPasswordReset(email, redirectPath = "/reset-password") {
   const supabase = getClient();
-  const origin =
-    typeof window !== "undefined" && window.location?.origin
-      ? window.location.origin
-      : getPublicAppUrl();
+  const origin = getPreferredPublicOrigin();
   const normalizedRedirectPath = String(redirectPath || "/reset-password").startsWith("/")
     ? String(redirectPath || "/reset-password")
     : `/${String(redirectPath || "reset-password")}`;
