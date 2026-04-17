@@ -79,7 +79,7 @@ function AccessInner() {
           try {
             localStorage.setItem("cna_access_granted", "1");
           } catch {}
-          router.replace("/");
+          router.replace(selectedLang ? "/" : "/?force_lang=1");
         }
       } catch {
         // Keep activation page available if no signed-in student is present yet.
@@ -97,7 +97,7 @@ function AccessInner() {
       cancelled = true;
       window.removeEventListener("resize", syncWidth);
     };
-  }, [router]);
+  }, [router, selectedLang]);
 
   const theme = useMemo(
     () => ({
@@ -155,7 +155,7 @@ function AccessInner() {
 
       await redeemAccessCode(typed, selectedLang || undefined);
       localStorage.setItem("cna_access_granted", "1");
-      router.push("/");
+      router.push(selectedLang ? "/" : "/?force_lang=1");
     } catch (error) {
       setErr(
         error instanceof Error
