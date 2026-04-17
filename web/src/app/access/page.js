@@ -55,7 +55,8 @@ function Frame({ title, children, footer, theme }) {
 function AccessInner() {
   const router = useRouter();
   const sp = useSearchParams();
-  const lang = sp.get("lang") || "en";
+  const selectedLang = sp.get("lang");
+  const lang = selectedLang || "en";
 
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
@@ -152,7 +153,7 @@ function AccessInner() {
         return;
       }
 
-      await redeemAccessCode(typed, lang);
+      await redeemAccessCode(typed, selectedLang || undefined);
       localStorage.setItem("cna_access_granted", "1");
       router.push("/");
     } catch (error) {
