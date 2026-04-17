@@ -35,10 +35,142 @@ export async function upsertAppUser(user) {
     throw new Error("Supabase server config is not configured.");
   }
 
+  const normalizedId = String(user.id || "").trim();
+  const normalizedEmail = String(user.email || "").trim().toLowerCase();
+  const normalizedFullName = user.fullName || null;
+
+  if (!normalizedId) {
+    throw new Error("User id is required.");
+  }
+
+  if (!normalizedEmail) {
+    throw new Error("User email is required.");
+  }
+
+  async function loadAppUserByEmail(email) {
+    const { data, error } = await supabase
+      .from("app_users")
+      .select("id, email, full_name, created_at, updated_at")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Supabase load user by email failed: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async function migrateUserReferences(fromUserId, toUserId) {
+    const [{ data: existingPrefs }, { data: existingSchoolStaff }, { data: existingEnrollments }, { data: existingRedemptions }] =
+      await Promise.all([
+        supabase
+          .from("user_preferences")
+          .select(
+            "user_id, preferred_language, access_granted, skip_practice_welcome, skip_exam_welcome, has_seen_foundation, has_seen_category_intro, created_at, updated_at"
+          )
+          .eq("user_id", fromUserId)
+          .maybeSingle(),
+        supabase
+          .from("school_staff")
+          .select("id, school_id, user_id, role, created_at, updated_at")
+          .eq("user_id", fromUserId),
+        supabase
+          .from("class_group_enrollments")
+          .select("id, class_group_id, user_id, role, status, created_at, updated_at")
+          .eq("user_id", fromUserId),
+        supabase
+          .from("access_code_redemptions")
+          .select("id, access_code_id, user_id, redeemed_at, created_at, updated_at")
+          .eq("user_id", fromUserId),
+      ]);
+
+    if (existingPrefs) {
+      await upsertUserPreferences({
+        userId: toUserId,
+        preferredLanguage: existingPrefs.preferred_language ?? null,
+        accessGranted: !!existingPrefs.access_granted,
+        skipPracticeWelcome: !!existingPrefs.skip_practice_welcome,
+        skipExamWelcome: !!existingPrefs.skip_exam_welcome,
+        hasSeenFoundation: !!existingPrefs.has_seen_foundation,
+        hasSeenCategoryIntro: !!existingPrefs.has_seen_category_intro,
+      });
+      await supabase.from("user_preferences").delete().eq("user_id", fromUserId);
+    }
+
+    if (Array.isArray(existingSchoolStaff) && existingSchoolStaff.length) {
+      for (const row of existingSchoolStaff) {
+        await upsertSchoolStaff({
+          id: `schoolstaff:${row.school_id}:${toUserId}`,
+          schoolId: row.school_id,
+          userId: toUserId,
+          role: row.role,
+        });
+      }
+      await supabase.from("school_staff").delete().eq("user_id", fromUserId);
+    }
+
+    if (Array.isArray(existingEnrollments) && existingEnrollments.length) {
+      for (const row of existingEnrollments) {
+        await upsertClassGroupEnrollment({
+          id: `enrollment:${row.class_group_id}:${toUserId}`,
+          classGroupId: row.class_group_id,
+          userId: toUserId,
+          role: row.role,
+          status: row.status,
+        });
+      }
+      await supabase.from("class_group_enrollments").delete().eq("user_id", fromUserId);
+    }
+
+    if (Array.isArray(existingRedemptions) && existingRedemptions.length) {
+      for (const row of existingRedemptions) {
+        await createAccessCodeRedemption({
+          id: `redemption:${row.access_code_id}:${toUserId}`,
+          accessCodeId: row.access_code_id,
+          userId: toUserId,
+          redeemedAt: row.redeemed_at,
+        });
+      }
+      await supabase.from("access_code_redemptions").delete().eq("user_id", fromUserId);
+    }
+
+    for (const table of ["exam_attempts", "practice_sessions", "remediation_sessions", "question_history"]) {
+      const { error } = await supabase.from(table).update({ user_id: toUserId }).eq("user_id", fromUserId);
+      if (error) {
+        throw new Error(`Supabase migrate ${table} failed: ${error.message}`);
+      }
+    }
+  }
+
+  const existingById = await loadAppUser(normalizedId).catch(() => null);
+  const existingByEmail = await loadAppUserByEmail(normalizedEmail);
+
+  if (existingByEmail?.id && existingByEmail.id !== normalizedId) {
+    const tempEmail = `${normalizedId}@migration.firstcoastcna.local`;
+    const { error: createNewError } = await supabase.from("app_users").insert({
+      id: normalizedId,
+      email: tempEmail,
+      full_name: normalizedFullName,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (createNewError && !existingById) {
+      throw new Error(`Supabase create migrated user failed: ${createNewError.message}`);
+    }
+
+    await migrateUserReferences(existingByEmail.id, normalizedId);
+
+    const { error: deleteOldError } = await supabase.from("app_users").delete().eq("id", existingByEmail.id);
+    if (deleteOldError) {
+      throw new Error(`Supabase delete old user failed: ${deleteOldError.message}`);
+    }
+  }
+
   const payload = {
-    id: user.id,
-    email: user.email,
-    full_name: user.fullName || null,
+    id: normalizedId,
+    email: normalizedEmail,
+    full_name: normalizedFullName,
     updated_at: new Date().toISOString(),
   };
 
