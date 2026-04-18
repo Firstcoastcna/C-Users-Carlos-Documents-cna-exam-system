@@ -82,7 +82,10 @@ export async function POST(request) {
     }
 
     const publicUrl = String(getPublicAppUrl() || "").trim().replace(/\/+$/, "");
-    const redirectPath = role === "school_admin" ? "/owner-access" : "/signin";
+    const redirectPath =
+      role === "school_admin"
+        ? "/reset-password?next=/owner-access"
+        : "/reset-password?next=/signin";
     const redirectTo = `${publicUrl}${redirectPath}`;
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
