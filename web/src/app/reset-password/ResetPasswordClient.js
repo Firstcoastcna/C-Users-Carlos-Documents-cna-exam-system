@@ -158,6 +158,7 @@ export default function ResetPasswordClient() {
                   if (!supabase) throw new Error("Password reset is not configured.");
                   const { error } = await supabase.auth.updateUser({ password });
                   if (error) throw error;
+                  await supabase.auth.signOut().catch(() => null);
                   setMessage("Password updated. Redirecting...");
                   setTimeout(() => router.replace(nextPath), 700);
                 } catch (error) {
