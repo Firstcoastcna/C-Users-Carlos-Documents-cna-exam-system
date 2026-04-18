@@ -215,6 +215,19 @@ export default function PracticeSessionClient({ bankById }) {
     void bootPracticeSession();
   }, [bankById, category, chapter, count, forceServer, lang, mode, router, serverUser, sessionId]);
 
+  useEffect(() => {
+    if (view === "complete" || view === "boot") return;
+
+    function onPopState() {
+      setView("confirm_exit");
+      window.history.pushState(null, "", window.location.href);
+    }
+
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [view]);
+
   function persist(next) {
     setSession(next);
     void savePracticeSessionRecord(next, { forceServer, serverUser });

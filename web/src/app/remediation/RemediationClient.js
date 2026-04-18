@@ -287,6 +287,19 @@ useEffect(() => {
   }
 }, [sessionId]);
 
+useEffect(() => {
+  if (view !== "session" && view !== "confirm_exit") return;
+
+  function onPopState() {
+    setView("confirm_exit");
+    window.history.pushState(null, "", window.location.href);
+  }
+
+  window.history.pushState(null, "", window.location.href);
+  window.addEventListener("popstate", onPopState);
+  return () => window.removeEventListener("popstate", onPopState);
+}, [view]);
+
 
 const UI_TEXT = {
   en: {

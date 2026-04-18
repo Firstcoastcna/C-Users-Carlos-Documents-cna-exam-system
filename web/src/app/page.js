@@ -7,9 +7,13 @@ import {
   getStudentSessionSnapshot,
   updateUserPreferences,
 } from "./lib/backend/auth/browserAuth";
+import { useDisableBrowserNavigation } from "./lib/backend/auth/useDisableBrowserNavigation";
+import { useProtectedPlatformPage } from "./lib/backend/auth/useProtectedPlatformPage";
 
 export default function HomePage() {
   const router = useRouter();
+  useProtectedPlatformPage();
+  useDisableBrowserNavigation();
   const forceLang = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("force_lang") === "1";
 
 

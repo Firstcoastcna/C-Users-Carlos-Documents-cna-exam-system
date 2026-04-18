@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   clearOwnerClassEnrollments,
   createOwnerClassGroup,
@@ -193,6 +194,7 @@ function HintText({ isOpen }) {
 }
 
 export default function OwnerSchoolsPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [showLoadingNotice, setShowLoadingNotice] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -276,6 +278,37 @@ export default function OwnerSchoolsPage() {
       }, {}),
     [redemptions, accessCodesById]
   );
+
+  useEffect(() => {
+    const schoolId = searchParams.get("school_id");
+    const classId = searchParams.get("class_group_id");
+    if (!schoolId && !classId) {
+      return;
+    }
+
+    if (schoolId) {
+      setOpenSchoolPanels((prev) => ({ ...prev, [schoolId]: true }));
+    }
+
+    if (classId) {
+      const matchedClass = classGroups.find((item) => item.id === classId);
+      if (matchedClass?.school_id) {
+        setOpenSchoolPanels((prev) => ({ ...prev, [matchedClass.school_id]: true }));
+      }
+      setOpenClassPanels((prev) => ({ ...prev, [classId]: true }));
+    }
+
+    const targetId = classId ? `owner-class-${classId}` : schoolId ? `owner-school-${schoolId}` : "";
+    if (!targetId) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 50);
+
+    return () => window.clearTimeout(timer);
+  }, [searchParams, classGroups]);
 
   function resetSchoolForm() {
     setSchoolForm({ id: "", name: "", slug: "" });
@@ -447,7 +480,12 @@ export default function OwnerSchoolsPage() {
           <div style={{ display: "grid", gap: 14 }}>
             {schools.length ? (
               schools.map((school) => (
-                <details key={school.id} style={listCard} open={!!openSchoolPanels[school.id]}>
+                <details
+                  key={school.id}
+                  id={`owner-school-${school.id}`}
+                  style={listCard}
+                  open={!!openSchoolPanels[school.id]}
+                >
                   <summary
                     style={{ cursor: "pointer", listStyle: "none" }}
                     onClick={(e) => {
@@ -496,7 +534,12 @@ export default function OwnerSchoolsPage() {
 
                     {(classGroupsBySchool[school.id] || []).length ? (
                       (classGroupsBySchool[school.id] || []).map((item) => (
-                        <details key={item.id} style={{ ...listCard, background: "white" }} open={!!openClassPanels[item.id]}>
+                        <details
+                          key={item.id}
+                          id={`owner-class-${item.id}`}
+                          style={{ ...listCard, background: "white" }}
+                          open={!!openClassPanels[item.id]}
+                        >
                           <summary
                             style={{ cursor: "pointer", listStyle: "none" }}
                             onClick={(e) => {
@@ -536,7 +579,11 @@ export default function OwnerSchoolsPage() {
                                 Edit class
                               </button>
                               <Link
-                                href={`/owner/reports?scope=class&class_group_id=${encodeURIComponent(item.id)}&lang=en`}
+                                href={`/owner/reports?scope=class&class_group_id=${encodeURIComponent(
+                                  item.id
+                                )}&school_id=${encodeURIComponent(school.id)}&class_name=${encodeURIComponent(
+                                  item.name || ""
+                                )}&lang=en&from=schools`}
                                 style={buttonSecondary}
                               >
                                 View class report
@@ -603,7 +650,13 @@ export default function OwnerSchoolsPage() {
                                     </div>
                                     <div style={actionsRow}>
                                       <Link
-                                        href={`/owner/reports?scope=student&user_id=${encodeURIComponent(row.user_id)}&lang=en`}
+                                        href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
+                                          row.user_id
+                                        )}&school_id=${encodeURIComponent(school.id)}&class_group_id=${encodeURIComponent(
+                                          item.id
+                                        )}&class_name=${encodeURIComponent(
+                                          item.name || ""
+                                        )}&lang=en&from=schools`}
                                         style={buttonSecondary}
                                       >
                                         View student report

@@ -5,10 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   fetchUserPreferences,
   fetchStudentProfile,
+  redirectToSignIn,
   signOutStudent,
   updateStudentProfile,
   updateUserPreferences,
 } from "../lib/backend/auth/browserAuth";
+import { useDisableBrowserNavigation } from "../lib/backend/auth/useDisableBrowserNavigation";
+import { useProtectedPlatformPage } from "../lib/backend/auth/useProtectedPlatformPage";
 
 function Frame({ title, children, footer, theme, headerAction, headerSize }) {
   return (
@@ -103,6 +106,8 @@ function PathCard({ title, body, onClick, buttonLabel, theme, extraContent = nul
 
 function StartInner() {
   const router = useRouter();
+  useProtectedPlatformPage();
+  useDisableBrowserNavigation();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);
@@ -270,7 +275,7 @@ function StartInner() {
     try {
       await signOutStudent();
     } catch {}
-    router.replace("/signin");
+    redirectToSignIn();
   }
 
   function t(en, es, fr, ht) {

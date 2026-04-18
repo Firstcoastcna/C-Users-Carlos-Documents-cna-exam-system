@@ -5,6 +5,7 @@ create table if not exists app_users (
   id text primary key,
   email text unique not null,
   full_name text,
+  account_role text not null default 'student',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

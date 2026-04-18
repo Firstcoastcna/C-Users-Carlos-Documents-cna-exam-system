@@ -38,6 +38,7 @@ export async function requireOwnerRequestUser(request) {
         id: userId,
         email: `${userId}@study.firstcoastcna.com`,
         fullName: "Local Owner User",
+        accountRole: "owner",
       });
 
       return {
@@ -56,6 +57,7 @@ export async function requireOwnerRequestUser(request) {
     id: student.id,
     email: email || `${student.id}@study.firstcoastcna.com`,
     fullName: student.fullName || "Owner User",
+    accountRole: getOwnerEmails().includes(normalizeEmail(email)) ? "owner" : "school_admin",
   });
 
   const schoolContext = await loadSchoolContextForUser(student.id).catch(() => null);

@@ -4,8 +4,10 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadAllRemediationSessionRecords } from "../lib/remediationSessionPersistence";
 import { loadAllExamAttemptRecords } from "../lib/examAttemptPersistence";
-import { resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
+import { redirectToSignIn, resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
+import { useDisableBrowserNavigation } from "../lib/backend/auth/useDisableBrowserNavigation";
 import { isServerPersistenceEnabled } from "../lib/backend/config";
+import { useProtectedPlatformPage } from "../lib/backend/auth/useProtectedPlatformPage";
 
 function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   return (
@@ -243,6 +245,8 @@ function CollapsibleSection({ title, hint, openHint, closeHint, children, defaul
 
 function PilotInner() {
   const router = useRouter();
+  useProtectedPlatformPage();
+  useDisableBrowserNavigation();
   const sp = useSearchParams();
   const [lang, setLang] = useState("en");
   const storageMode = sp.get("storage") === "server" ? "server" : "local";
@@ -874,7 +878,7 @@ function PilotInner() {
     try {
       await signOutStudent();
     } catch {}
-    router.replace("/signin");
+    redirectToSignIn();
   }
 
   function resetAll() {

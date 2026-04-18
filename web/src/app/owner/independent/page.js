@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { fetchOwnerOverview } from "../../lib/backend/auth/browserAuth";
 
 const EMPTY_ITEMS = [];
@@ -176,6 +177,7 @@ function OpenHint({ isOpen }) {
 }
 
 export default function OwnerIndependentPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [showLoadingNotice, setShowLoadingNotice] = useState(false);
   const [error, setError] = useState("");
@@ -274,6 +276,21 @@ export default function OwnerIndependentPage() {
 
   const activeIndependentCodes = accessCodes.filter((item) => !item.class_group_id && item.status === "active").length;
 
+  useEffect(() => {
+    const studentId = searchParams.get("student_id");
+    if (!studentId) {
+      return;
+    }
+
+    setOpenStudents((prev) => ({ ...prev, [studentId]: true }));
+
+    const timer = window.setTimeout(() => {
+      document.getElementById(`owner-student-${studentId}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 50);
+
+    return () => window.clearTimeout(timer);
+  }, [searchParams, independentStudents.length]);
+
   return (
     <main style={shell}>
       <div style={card}>
@@ -313,7 +330,12 @@ export default function OwnerIndependentPage() {
             {independentStudents.length ? (
               <div style={listGrid}>
                 {independentStudents.map((student) => (
-                  <details key={student.userId} style={listCard} open={!!openStudents[student.userId]}>
+                  <details
+                    key={student.userId}
+                    id={`owner-student-${student.userId}`}
+                    style={listCard}
+                    open={!!openStudents[student.userId]}
+                  >
                     <summary
                       style={detailsSummary}
                       onClick={(e) => {
@@ -338,7 +360,9 @@ export default function OwnerIndependentPage() {
                       <div style={metaText}>Codes used: {student.codes.join(", ")}</div>
                       <div style={actionsRow}>
                         <Link
-                          href={`/owner/reports?scope=student&user_id=${encodeURIComponent(student.userId)}&lang=en`}
+                          href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
+                            student.userId
+                          )}&student_id=${encodeURIComponent(student.userId)}&lang=en&from=independent`}
                           style={buttonSecondary}
                         >
                           View student report

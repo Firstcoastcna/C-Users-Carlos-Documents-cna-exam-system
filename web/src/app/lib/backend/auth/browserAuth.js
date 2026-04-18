@@ -106,10 +106,28 @@ export async function signInStudent({ email, password }) {
 export async function signOutStudent() {
   const supabase = getClient();
   const { error } = await supabase.auth.signOut();
+  clearStudentBrowserState();
   if (error) {
     throw new Error(normalizeAuthError("Sign out", error));
   }
   return { ok: true };
+}
+
+export function clearStudentBrowserState() {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.removeItem("cna_access_granted");
+  } catch {}
+
+  try {
+    sessionStorage.setItem("cna_signed_out_at", String(Date.now()));
+  } catch {}
+}
+
+export function redirectToSignIn(pathname = "/signin") {
+  if (typeof window === "undefined") return;
+  window.location.replace(pathname);
 }
 
 export async function getStudentSessionSnapshot() {

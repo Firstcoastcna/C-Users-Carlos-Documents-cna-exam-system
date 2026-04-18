@@ -38,6 +38,11 @@ export async function upsertAppUser(user) {
   const normalizedId = String(user.id || "").trim();
   const normalizedEmail = String(user.email || "").trim().toLowerCase();
   const normalizedFullName = user.fullName || null;
+  const requestedRole = String(user.accountRole || "").trim().toLowerCase();
+  const normalizedAccountRole =
+    requestedRole === "owner" || requestedRole === "school_admin" || requestedRole === "student"
+      ? requestedRole
+      : null;
 
   if (!normalizedId) {
     throw new Error("User id is required.");
@@ -50,7 +55,7 @@ export async function upsertAppUser(user) {
   async function loadAppUserByEmail(email) {
     const { data, error } = await supabase
       .from("app_users")
-      .select("id, email, full_name, created_at, updated_at")
+      .select("id, email, full_name, account_role, created_at, updated_at")
       .eq("email", email)
       .maybeSingle();
 
@@ -152,6 +157,7 @@ export async function upsertAppUser(user) {
       id: normalizedId,
       email: tempEmail,
       full_name: normalizedFullName,
+      account_role: normalizedAccountRole || existingByEmail.account_role || "student",
       updated_at: new Date().toISOString(),
     });
 
@@ -171,13 +177,14 @@ export async function upsertAppUser(user) {
     id: normalizedId,
     email: normalizedEmail,
     full_name: normalizedFullName,
+    account_role: normalizedAccountRole || existingById?.account_role || existingByEmail?.account_role || "student",
     updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase
     .from("app_users")
     .upsert(payload, { onConflict: "id" })
-    .select("id, email, full_name, created_at, updated_at")
+    .select("id, email, full_name, account_role, created_at, updated_at")
     .single();
 
   if (error) {
@@ -192,6 +199,7 @@ export async function createManagedAuthUser({
   password,
   fullName = "",
   emailConfirmed = true,
+  accountRole = "student",
 }) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -229,6 +237,7 @@ export async function createManagedAuthUser({
     id: authUser.id,
     email: authUser.email || normalizedEmail,
     fullName: normalizedFullName || authUser.user_metadata?.full_name || "",
+    accountRole,
   });
 
   return {
@@ -245,7 +254,7 @@ export async function loadAppUser(userId) {
 
   const { data, error } = await supabase
     .from("app_users")
-    .select("id, email, full_name, created_at, updated_at")
+    .select("id, email, full_name, account_role, created_at, updated_at")
     .eq("id", userId)
     .maybeSingle();
 

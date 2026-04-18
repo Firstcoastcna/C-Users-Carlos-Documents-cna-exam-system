@@ -7,6 +7,8 @@ import {
   fetchStudentOverviewReport,
   resolveStudentEntryState,
 } from "../lib/backend/auth/browserAuth";
+import { useDisableBrowserNavigation } from "../lib/backend/auth/useDisableBrowserNavigation";
+import { useProtectedPlatformPage } from "../lib/backend/auth/useProtectedPlatformPage";
 
 const shell = {
   maxWidth: 920,
@@ -257,6 +259,8 @@ function ClassSummary({ report }) {
 
 export default function ReportsPage() {
   const router = useRouter();
+  useProtectedPlatformPage();
+  useDisableBrowserNavigation();
   const [lang, setLang] = useState("en");
   const [reportLang, setReportLang] = useState("en");
   const [studentReport, setStudentReport] = useState(null);

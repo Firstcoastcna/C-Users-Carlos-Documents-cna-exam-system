@@ -92,13 +92,14 @@ const listCard = {
 };
 
 const buttonSecondary = {
-  padding: "10px 14px",
-  borderRadius: 10,
+  padding: "8px 11px",
+  borderRadius: 9,
   border: "1px solid #cfdde6",
   background: "white",
   color: "#536779",
   cursor: "pointer",
   fontWeight: 700,
+  fontSize: 13,
   textDecoration: "none",
   display: "inline-flex",
   alignItems: "center",
@@ -119,7 +120,32 @@ export default function OwnerReportsClient() {
   const classGroupId = searchParams.get("class_group_id") || "";
   const userId = searchParams.get("user_id") || "";
   const lang = searchParams.get("lang") || "en";
+  const from = searchParams.get("from") || "";
+  const schoolId = searchParams.get("school_id") || "";
+  const studentId = searchParams.get("student_id") || "";
+  const className = searchParams.get("class_name") || "";
   const hasTarget = scope === "student" ? !!userId : !!classGroupId;
+  const schoolBackQuery = new URLSearchParams(
+    Object.fromEntries(
+      [
+        ["school_id", schoolId],
+        ["class_group_id", classGroupId],
+        ["class_name", className],
+      ].filter(([, value]) => value)
+    )
+  ).toString();
+  const backHref =
+    from === "independent"
+      ? `/owner/independent${studentId ? `?student_id=${encodeURIComponent(studentId)}` : ""}`
+      : from === "schools"
+        ? `/owner/schools${schoolBackQuery ? `?${schoolBackQuery}` : ""}`
+        : "/owner";
+  const backLabel =
+    from === "independent"
+      ? "Back"
+      : from === "schools"
+        ? "Back"
+        : "Return";
 
   const [loading, setLoading] = useState(true);
   const [showLoadingNotice, setShowLoadingNotice] = useState(false);
@@ -177,13 +203,20 @@ export default function OwnerReportsClient() {
   const classSummary = report?.summary?.aggregate || null;
   const students = report?.summary?.students || [];
   const studentSummary = report?.summary || null;
+  const studentName =
+    report?.user?.appUser?.full_name || report?.user?.appUser?.email || report?.user?.id || "";
+  const reportTitle = !hasTarget
+    ? "Reports"
+    : scope === "student"
+      ? `Student Report${studentName ? ` - ${studentName}` : ""}`
+      : `Class Report${className ? ` - ${className}` : ""}`;
 
   return (
     <main style={shell}>
       <div style={card}>
         <div style={header}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={title}>{hasTarget ? (scope === "student" ? "Student Report" : "Class Report") : "Reports"}</div>
+            <div style={title}>{reportTitle}</div>
             <div style={subText}>
               {!hasTarget
                 ? "Choose a school, class, or student from the management lanes first, then open the matching report from there."
@@ -192,8 +225,8 @@ export default function OwnerReportsClient() {
                   : "Owner view of one class, including roster activity and shared performance signals."}
             </div>
           </div>
-          <Link href="/owner" style={buttonSecondary}>
-            Control Center
+          <Link href={backHref} style={buttonSecondary}>
+            {backLabel}
           </Link>
         </div>
 
@@ -245,7 +278,13 @@ export default function OwnerReportsClient() {
                     </div>
                     <div>
                       <Link
-                        href={`/owner/reports?scope=student&user_id=${encodeURIComponent(student.user?.id || "")}&lang=${encodeURIComponent(lang)}`}
+                        href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
+                          student.user?.id || ""
+                        )}&lang=${encodeURIComponent(lang)}&from=${encodeURIComponent(
+                          from || "schools"
+                        )}&school_id=${encodeURIComponent(schoolId)}&class_group_id=${encodeURIComponent(
+                          classGroupId
+                        )}&class_name=${encodeURIComponent(className)}`}
                         style={buttonSecondary}
                       >
                         View student report

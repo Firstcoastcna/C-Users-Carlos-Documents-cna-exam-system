@@ -83,6 +83,7 @@ export async function POST(request) {
         id: authUser.id,
         email: authUser.email || email,
         fullName: fullName || authUser.user_metadata?.full_name || "",
+        accountRole: "school_admin",
       });
     } else {
       const created = await createManagedAuthUser({
@@ -90,6 +91,7 @@ export async function POST(request) {
         password,
         fullName,
         emailConfirmed: true,
+        accountRole: "student",
       });
       authUser = created.authUser;
       appUser = created.appUser;

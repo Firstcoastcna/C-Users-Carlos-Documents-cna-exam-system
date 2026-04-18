@@ -3,7 +3,9 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadAllPracticeSessionRecords, loadPracticeSessionRecord } from "../lib/practiceSessionPersistence";
-import { resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
+import { redirectToSignIn, resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
+import { useDisableBrowserNavigation } from "../lib/backend/auth/useDisableBrowserNavigation";
+import { useProtectedPlatformPage } from "../lib/backend/auth/useProtectedPlatformPage";
 
 function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   return (
@@ -149,6 +151,8 @@ function CollapsibleSection({ title, hint, openHint, closeHint, defaultOpen = fa
 
 function PracticeInner() {
   const router = useRouter();
+  useProtectedPlatformPage();
+  useDisableBrowserNavigation();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const storageMode = sp.get("storage") === "server" ? "server" : "local";
@@ -295,7 +299,7 @@ function PracticeInner() {
     try {
       await signOutStudent();
     } catch {}
-    router.replace("/signin");
+    redirectToSignIn();
   }
 
   function categoryLabel(cat) {

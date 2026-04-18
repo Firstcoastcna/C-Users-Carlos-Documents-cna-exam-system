@@ -3,6 +3,8 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchUserPreferences, updateUserPreferences } from "../lib/backend/auth/browserAuth";
+import { useDisableBrowserNavigation } from "../lib/backend/auth/useDisableBrowserNavigation";
+import { useProtectedPlatformPage } from "../lib/backend/auth/useProtectedPlatformPage";
 
 function Frame({ title, children, footer, theme, headerAction }) {
   return (
@@ -198,6 +200,8 @@ function CategoryTile({ name, meaning, clues, why, isNarrow, labels }) {
 
 function DraftInner() {
   const router = useRouter();
+  useProtectedPlatformPage();
+  useDisableBrowserNavigation();
   const sp = useSearchParams();
   const lang = sp.get("lang") || "en";
   const [isNarrow, setIsNarrow] = useState(false);

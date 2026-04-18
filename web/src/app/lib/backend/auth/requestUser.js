@@ -10,6 +10,7 @@ export async function resolveBackendRequestUser(request, body = null, fallbackLa
       id: student.id,
       email: student.email || `${student.id}@study.firstcoastcna.com`,
       fullName: student.fullName || fallbackLabel,
+      accountRole: "student",
     });
 
     return {
@@ -25,6 +26,7 @@ export async function resolveBackendRequestUser(request, body = null, fallbackLa
     id: userId,
     email: `${userId}@study.firstcoastcna.com`,
     fullName: userId === DEV_USER_ID ? "Local Dev User" : fallbackLabel,
+    accountRole: "student",
   });
 
   return {
