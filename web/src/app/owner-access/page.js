@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   fetchSchoolContext,
@@ -136,8 +135,7 @@ export default function OwnerAccessPage() {
 
         const schoolContext = await fetchSchoolContext().catch(() => null);
         if (!cancelled && hasSchoolAdminAccess(schoolContext)) {
-          setMessage("This school admin account is active, but the school admin dashboard is not live yet. For now, only owner accounts can open the Control Center.");
-          setMessageType("info");
+          router.replace("/owner");
         }
       } catch {
         // Stay on the admin access page if session lookup fails.
@@ -161,8 +159,7 @@ export default function OwnerAccessPage() {
       if (!isAllowedOwnerEmail(email)) {
         const schoolContext = await fetchSchoolContext().catch(() => null);
         if (hasSchoolAdminAccess(schoolContext)) {
-          setMessage("This school admin account is active, but the school admin dashboard is not live yet. For now, only owner accounts can open the Control Center.");
-          setMessageType("info");
+          router.push("/owner");
           return;
         }
 

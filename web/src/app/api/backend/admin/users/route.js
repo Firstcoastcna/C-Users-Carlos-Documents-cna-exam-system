@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { getPublicAppUrl } from "@/app/lib/backend/config";
+import { getSupabaseServerClient } from "@/app/lib/backend/supabase/serverClient";
 import {
   createManagedAuthUser,
   upsertSchoolStaff,
@@ -23,6 +25,7 @@ export async function POST(request) {
     const fullName = String(body?.fullName || "").trim();
     const role = normalizeRole(body?.role);
     const schoolId = String(body?.schoolId || "").trim();
+    const supabase = getSupabaseServerClient();
 
     if (!email) {
       return NextResponse.json({ ok: false, service: "admin-create-user", error: "Email is required." }, { status: 400 });
@@ -40,6 +43,13 @@ export async function POST(request) {
       return NextResponse.json(
         { ok: false, service: "admin-create-user", error: "Choose a school for the school admin." },
         { status: 400 }
+      );
+    }
+
+    if (!supabase) {
+      return NextResponse.json(
+        { ok: false, service: "admin-create-user", error: "Supabase server config is not configured." },
+        { status: 500 }
       );
     }
 
@@ -71,6 +81,17 @@ export async function POST(request) {
       });
     }
 
+    const publicUrl = String(getPublicAppUrl() || "").trim().replace(/\/+$/, "");
+    const redirectPath = role === "school_admin" ? "/owner-access" : "/signin";
+    const redirectTo = `${publicUrl}${redirectPath}`;
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+
+    if (resetError) {
+      throw new Error(`Setup email failed: ${resetError.message}`);
+    }
+
     return NextResponse.json({
       ok: true,
       service: "admin-create-user",
@@ -81,6 +102,7 @@ export async function POST(request) {
         role,
         schoolId: role === "school_admin" ? schoolId : null,
       },
+      setupEmailSent: true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown admin create-user error.";

@@ -1,5 +1,5 @@
 import { getServerStudentSession } from "./session";
-import { upsertAppUser } from "../db/client";
+import { loadSchoolContextForUser, upsertAppUser } from "../db/client";
 
 const DEFAULT_OWNER_EMAILS = [
   "cchaveztafur@gmail.com",
@@ -12,6 +12,11 @@ function isLocalDevOwnerBypassEnabled() {
 
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function hasSchoolAdminRole(context) {
+  const staff = context?.staff;
+  return Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "admin");
 }
 
 export function getOwnerEmails() {
@@ -47,23 +52,26 @@ export async function requireOwnerRequestUser(request) {
   }
 
   const email = student.email || "";
-  const isAllowedOwner =
-    isLocalDevOwnerBypassEnabled() || getOwnerEmails().includes(normalizeEmail(email));
-
-  if (!isAllowedOwner) {
-    throw new Error("This account is not authorized for the owner workspace.");
-  }
-
   const appUser = await upsertAppUser({
     id: student.id,
     email: email || `${student.id}@study.firstcoastcna.com`,
     fullName: student.fullName || "Owner User",
   });
 
+  const schoolContext = await loadSchoolContextForUser(student.id).catch(() => null);
+  const isAllowedControlCenterUser =
+    isLocalDevOwnerBypassEnabled() ||
+    getOwnerEmails().includes(normalizeEmail(email)) ||
+    hasSchoolAdminRole(schoolContext);
+
+  if (!isAllowedControlCenterUser) {
+    throw new Error("This account is not authorized for the owner workspace.");
+  }
+
   return {
     userId: student.id,
     email,
     appUser,
-    source: "auth-owner",
+    source: getOwnerEmails().includes(normalizeEmail(email)) ? "auth-owner" : "auth-school-admin",
   };
 }
