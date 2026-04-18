@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  fetchSchoolContext,
   getStudentSessionSnapshot,
   requestPasswordReset,
+  signOutStudent,
   signInStudent,
   syncStudentProfile,
 } from "../lib/backend/auth/browserAuth";
@@ -103,6 +105,11 @@ function isAllowedOwnerEmail(email) {
   return OWNER_EMAILS.includes(String(email || "").trim().toLowerCase());
 }
 
+function hasSchoolAdminAccess(payload) {
+  const staff = payload?.context?.staff;
+  return Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "admin");
+}
+
 export default function OwnerAccessPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -124,6 +131,13 @@ export default function OwnerAccessPage() {
           if (!cancelled) {
             router.replace("/owner");
           }
+          return;
+        }
+
+        const schoolContext = await fetchSchoolContext().catch(() => null);
+        if (!cancelled && hasSchoolAdminAccess(schoolContext)) {
+          setMessage("This school admin account is active, but the school admin dashboard is not live yet. For now, only owner accounts can open the Control Center.");
+          setMessageType("info");
         }
       } catch {
         // Stay on the admin access page if session lookup fails.
@@ -145,6 +159,13 @@ export default function OwnerAccessPage() {
       await syncStudentProfile().catch(() => null);
 
       if (!isAllowedOwnerEmail(email)) {
+        const schoolContext = await fetchSchoolContext().catch(() => null);
+        if (hasSchoolAdminAccess(schoolContext)) {
+          setMessage("This school admin account is active, but the school admin dashboard is not live yet. For now, only owner accounts can open the Control Center.");
+          setMessageType("info");
+          return;
+        }
+
         setMessage("This account can sign in, but it is not authorized for the Control Center.");
         setMessageType("error");
         return;
@@ -211,9 +232,19 @@ export default function OwnerAccessPage() {
             <button style={btnPrimary} disabled={busy} onClick={() => void handleSignIn()}>
               Open Control Center
             </button>
-            <Link href="/signin" style={btnSecondary}>
+            <button
+              type="button"
+              style={btnSecondary}
+              disabled={busy}
+              onClick={async () => {
+                try {
+                  await signOutStudent();
+                } catch {}
+                router.replace("/signin");
+              }}
+            >
               Back
-            </Link>
+            </button>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
