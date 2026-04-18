@@ -57,7 +57,7 @@ export async function POST(request) {
     const publicUrl = String(getPublicAppUrl() || "").trim().replace(/\/+$/, "");
     const redirectPath =
       role === "school_admin"
-        ? "/owner-access"
+        ? "/reset-password?next=/owner-access"
         : "/reset-password?next=/signin";
     const redirectTo = `${publicUrl}${redirectPath}`;
 

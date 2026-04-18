@@ -67,6 +67,7 @@ export default function ResetPasswordClient() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [flowType, setFlowType] = useState("recovery");
   const nextPath = searchParams.get("next") || "/signin";
 
   useEffect(() => {
@@ -81,7 +82,10 @@ export default function ResetPasswordClient() {
       }
 
       const { access_token, refresh_token, type } = getHashParams();
-      if (!access_token || !refresh_token || type !== "recovery") {
+      const normalizedType = String(type || "").trim().toLowerCase();
+      const isPasswordSetupFlow = normalizedType === "recovery" || normalizedType === "invite";
+
+      if (!access_token || !refresh_token || !isPasswordSetupFlow) {
         setMessage("Open the reset link from your email to continue.");
         setReady(true);
         return;
@@ -89,7 +93,10 @@ export default function ResetPasswordClient() {
 
       try {
         await supabase.auth.setSession({ access_token, refresh_token });
-        if (!cancelled) setReady(true);
+        if (!cancelled) {
+          setFlowType(normalizedType || "recovery");
+          setReady(true);
+        }
       } catch {
         if (!cancelled) {
           setMessage("Reset link is invalid or expired.");
@@ -111,7 +118,9 @@ export default function ResetPasswordClient() {
         <div style={header}>Reset Password</div>
         <div style={body}>
           <div style={{ color: "#4a6272", lineHeight: 1.6 }}>
-            Choose a new password for your account.
+            {flowType === "invite"
+              ? "Create a password to finish setting up your account."
+              : "Choose a new password for your account."}
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
