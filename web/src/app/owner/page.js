@@ -694,7 +694,7 @@ export default function OwnerPage() {
                   <div style={sectionCard}>
                   <div style={sectionTitle}>Create user</div>
                   <div style={subText}>
-                    Create a real login through Supabase for a student or school admin. School admins can then use the admin lane with their own credentials.
+                    Create a real login through Supabase for a student or school admin. School admins will receive an invite email to set their password and use Admin Access.
                   </div>
                   <LabeledField label="Role">
                     <select
@@ -745,17 +745,21 @@ export default function OwnerPage() {
                       placeholder={userForm.role === "school_admin" ? "admin@gatorcna.com" : "student@example.com"}
                     />
                   </LabeledField>
-                  <LabeledField label="Temporary password">
-                    <input
-                      style={input}
-                      type="text"
-                      value={userForm.password}
-                      onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))}
-                      placeholder="TempPass2026!"
-                    />
-                  </LabeledField>
+                  {userForm.role === "student" ? (
+                    <LabeledField label="Temporary password">
+                      <input
+                        style={input}
+                        type="text"
+                        value={userForm.password}
+                        onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))}
+                        placeholder="TempPass2026!"
+                      />
+                    </LabeledField>
+                  ) : null}
                   <HelperText>
-                    Students can use the regular sign-in page. School admins can use Admin Access once their account is created here.
+                    {userForm.role === "school_admin"
+                      ? "This school admin will receive an email invite to finish setup, then can use Admin Access."
+                      : "Students can use the regular sign-in page with the temporary password you set here."}
                   </HelperText>
                   <div style={actionsRow}>
                     <button

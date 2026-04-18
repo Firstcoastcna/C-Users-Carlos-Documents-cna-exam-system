@@ -4,6 +4,7 @@ import { getPublicAppUrl } from "@/app/lib/backend/config";
 import { getSupabaseServerClient } from "@/app/lib/backend/supabase/serverClient";
 import {
   createManagedAuthUser,
+  upsertAppUser,
   upsertSchoolStaff,
   upsertUserPreferences,
 } from "@/app/lib/backend/db/client";
@@ -31,7 +32,7 @@ export async function POST(request) {
       return NextResponse.json({ ok: false, service: "admin-create-user", error: "Email is required." }, { status: 400 });
     }
 
-    if (!password) {
+    if (role === "student" && !password) {
       return NextResponse.json({ ok: false, service: "admin-create-user", error: "Password is required." }, { status: 400 });
     }
 
@@ -53,12 +54,46 @@ export async function POST(request) {
       );
     }
 
-    const { authUser, appUser } = await createManagedAuthUser({
-      email,
-      password,
-      fullName,
-      emailConfirmed: true,
-    });
+    const publicUrl = String(getPublicAppUrl() || "").trim().replace(/\/+$/, "");
+    const redirectPath =
+      role === "school_admin"
+        ? "/owner-access"
+        : "/reset-password?next=/signin";
+    const redirectTo = `${publicUrl}${redirectPath}`;
+
+    let authUser;
+    let appUser;
+
+    if (role === "school_admin") {
+      const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+        redirectTo,
+        data: fullName ? { full_name: fullName } : {},
+      });
+
+      if (inviteError) {
+        throw new Error(`Admin invite failed: ${inviteError.message}`);
+      }
+
+      authUser = inviteData?.user;
+      if (!authUser?.id) {
+        throw new Error("Admin invite failed: Missing user record.");
+      }
+
+      appUser = await upsertAppUser({
+        id: authUser.id,
+        email: authUser.email || email,
+        fullName: fullName || authUser.user_metadata?.full_name || "",
+      });
+    } else {
+      const created = await createManagedAuthUser({
+        email,
+        password,
+        fullName,
+        emailConfirmed: true,
+      });
+      authUser = created.authUser;
+      appUser = created.appUser;
+    }
 
     if (role === "school_admin") {
       await upsertSchoolStaff({
@@ -79,20 +114,13 @@ export async function POST(request) {
         hasSeenFoundation: false,
         hasSeenCategoryIntro: false,
       });
-    }
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      });
 
-    const publicUrl = String(getPublicAppUrl() || "").trim().replace(/\/+$/, "");
-    const redirectPath =
-      role === "school_admin"
-        ? "/reset-password?next=/owner-access"
-        : "/reset-password?next=/signin";
-    const redirectTo = `${publicUrl}${redirectPath}`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
-    });
-
-    if (resetError) {
-      throw new Error(`Setup email failed: ${resetError.message}`);
+      if (resetError) {
+        throw new Error(`Setup email failed: ${resetError.message}`);
+      }
     }
 
     return NextResponse.json({
@@ -105,7 +133,7 @@ export async function POST(request) {
         role,
         schoolId: role === "school_admin" ? schoolId : null,
       },
-      setupEmailSent: true,
+      setupEmailSent: role === "school_admin" ? true : false,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown admin create-user error.";
