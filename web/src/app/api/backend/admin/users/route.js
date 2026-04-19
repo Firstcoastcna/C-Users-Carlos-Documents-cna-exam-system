@@ -15,6 +15,7 @@ import {
 function normalizeRole(value) {
   const normalized = String(value || "").trim().toLowerCase();
   if (normalized === "school_admin") return "school_admin";
+  if (normalized === "teacher") return "teacher";
   if (normalized === "student") return "student";
   return "";
 }
@@ -40,9 +41,9 @@ export async function POST(request) {
       return NextResponse.json({ ok: false, service: "admin-create-user", error: "Select a user role." }, { status: 400 });
     }
 
-    if (role === "school_admin" && !schoolId) {
+    if ((role === "school_admin" || role === "teacher") && !schoolId) {
       return NextResponse.json(
-        { ok: false, service: "admin-create-user", error: "Choose a school for the school admin." },
+        { ok: false, service: "admin-create-user", error: "Choose a school for this staff user." },
         { status: 400 }
       );
     }
@@ -66,13 +67,16 @@ export async function POST(request) {
     }
 
     const publicUrl = String(getPublicAppUrl() || "").trim().replace(/\/+$/, "");
-    const redirectPath = role === "school_admin" ? "/reset-password?next=/owner-access" : "/reset-password?next=/signin";
+    const redirectPath =
+      role === "school_admin" || role === "teacher"
+        ? "/reset-password?next=/owner-access"
+        : "/reset-password?next=/signin";
     const redirectTo = `${publicUrl}${redirectPath}`;
 
     let authUser;
     let appUser;
 
-    if (role === "school_admin" || role === "student") {
+    if (role === "school_admin" || role === "teacher" || role === "student") {
       const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
         redirectTo,
         data: fullName ? { full_name: fullName } : {},
@@ -91,16 +95,16 @@ export async function POST(request) {
         id: authUser.id,
         email: authUser.email || email,
         fullName: fullName || authUser.user_metadata?.full_name || "",
-        accountRole: role === "school_admin" ? "school_admin" : "student",
+        accountRole: role === "school_admin" ? "school_admin" : role === "teacher" ? "teacher" : "student",
       });
     }
 
-    if (role === "school_admin") {
+    if (role === "school_admin" || role === "teacher") {
       await upsertSchoolStaff({
         id: `schoolstaff:${schoolId}:${authUser.id}`,
         schoolId,
         userId: authUser.id,
-        role: "admin",
+        role: role === "school_admin" ? "admin" : "teacher",
       });
     }
 
@@ -163,7 +167,7 @@ export async function POST(request) {
         email: authUser.email,
         fullName: appUser.full_name,
         role,
-        schoolId: role === "school_admin" ? schoolId : null,
+        schoolId: role === "school_admin" || role === "teacher" ? schoolId : null,
         classGroupId: role === "student" ? classGroupId || null : null,
         accessCodeId: role === "student" ? accessCodeId || null : null,
       },

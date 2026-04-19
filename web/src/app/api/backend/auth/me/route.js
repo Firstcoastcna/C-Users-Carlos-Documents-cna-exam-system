@@ -20,7 +20,6 @@ export async function GET(request) {
       id: student.id,
       email: student.email || `${student.id}@study.firstcoastcna.com`,
       fullName: student.fullName,
-      accountRole: "student",
     });
 
     return NextResponse.json({
@@ -72,7 +71,6 @@ export async function PUT(request) {
       id: student.id,
       email: student.email || `${student.id}@study.firstcoastcna.com`,
       fullName,
-      accountRole: "student",
     });
 
     return NextResponse.json({

@@ -759,7 +759,7 @@ export default function OwnerPage() {
                   <div style={sectionCard}>
                   <div style={sectionTitle}>Create user</div>
                   <div style={subText}>
-                    Create a real login through Supabase for a student or school admin. School admins will receive an invite email to set their password and use Admin Access.
+                    Create a real login through Supabase for a student, school admin, or teacher. Staff users will receive an invite email to set their password and use Admin Access.
                   </div>
                   <LabeledField label="Role">
                     <select
@@ -769,7 +769,7 @@ export default function OwnerPage() {
                         setUserForm((prev) => ({
                           ...prev,
                           role: e.target.value,
-                          schoolId: e.target.value === "school_admin" ? "" : prev.schoolId,
+                          schoolId: e.target.value === "school_admin" || e.target.value === "teacher" ? "" : prev.schoolId,
                           classGroupId: "",
                           assignToClass: e.target.value === "student" ? prev.assignToClass : false,
                           accessCodeId: e.target.value === "student" ? prev.accessCodeId : "",
@@ -778,9 +778,10 @@ export default function OwnerPage() {
                     >
                       <option value="student">Student</option>
                       <option value="school_admin">School admin</option>
+                      <option value="teacher">Teacher</option>
                     </select>
                   </LabeledField>
-                  {userForm.role === "school_admin" ? (
+                  {userForm.role === "school_admin" || userForm.role === "teacher" ? (
                     <LabeledField label="School">
                       <select
                         style={input}
@@ -888,7 +889,13 @@ export default function OwnerPage() {
                       style={input}
                       value={userForm.fullName}
                       onChange={(e) => setUserForm((prev) => ({ ...prev, fullName: e.target.value }))}
-                      placeholder={userForm.role === "school_admin" ? "Admin Name" : "Student Name"}
+                      placeholder={
+                        userForm.role === "school_admin"
+                          ? "Admin Name"
+                          : userForm.role === "teacher"
+                            ? "Teacher Name"
+                            : "Student Name"
+                      }
                     />
                   </LabeledField>
                   <LabeledField label="Email">
@@ -897,13 +904,21 @@ export default function OwnerPage() {
                       type="email"
                       value={userForm.email}
                       onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
-                      placeholder={userForm.role === "school_admin" ? "admin@example.com" : "student@example.com"}
+                      placeholder={
+                        userForm.role === "school_admin"
+                          ? "admin@example.com"
+                          : userForm.role === "teacher"
+                            ? "teacher@example.com"
+                            : "student@example.com"
+                      }
                     />
                   </LabeledField>
                   <HelperText>
                     {userForm.role === "school_admin"
                       ? "This school admin will receive an email invite to finish setup, then can use Admin Access."
-                      : "This student will receive an email invite to set a password and then sign in normally."}
+                      : userForm.role === "teacher"
+                        ? "This teacher will receive an email invite to finish setup, then can use Admin Access once the teacher view is live."
+                        : "This student will receive an email invite to set a password and then sign in normally."}
                   </HelperText>
                   <div style={actionsRow}>
                     <button
@@ -944,15 +959,17 @@ export default function OwnerPage() {
               </Link>
             </div>
 
-            <div style={navCard}>
-              <div style={sectionTitle}>Independent students</div>
-              <div style={subText}>
-                Review independent student activity and open student reports.
+            {overview?.owner?.appUser?.account_role === "owner" ? (
+              <div style={navCard}>
+                <div style={sectionTitle}>Manage admins</div>
+                <div style={subText}>
+                  Review school admin assignments, move admins between schools, and remove admin access when needed.
+                </div>
+                <Link href="/owner/admins" style={buttonSecondary}>
+                  Open admins
+                </Link>
               </div>
-              <Link href="/owner/independent" style={buttonSecondary}>
-                Open independent students
-              </Link>
-            </div>
+            ) : null}
 
             <div style={navCard}>
               <div style={sectionTitle}>Manage codes</div>
@@ -961,6 +978,16 @@ export default function OwnerPage() {
               </div>
               <Link href="/owner/codes" style={buttonSecondary}>
                 Open codes
+              </Link>
+            </div>
+
+            <div style={navCard}>
+              <div style={sectionTitle}>Independent students</div>
+              <div style={subText}>
+                Review independent student activity and open student reports.
+              </div>
+              <Link href="/owner/independent" style={buttonSecondary}>
+                Open independent students
               </Link>
             </div>
           </div>

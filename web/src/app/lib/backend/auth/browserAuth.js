@@ -394,6 +394,12 @@ export async function fetchOwnerClassOverviewReport(classGroupId, lang = "en") {
   );
 }
 
+export async function fetchOwnerSchoolOverviewReport(schoolId, lang = "en") {
+  return fetchAuthenticatedJson(
+    `/api/backend/reports/school-overview?lang=${encodeURIComponent(lang)}&school_id=${encodeURIComponent(schoolId)}`
+  );
+}
+
 async function postAuthenticatedJson(pathname, body) {
   const headers = await getAuthenticatedRequestHeaders({
     "Content-Type": "application/json",
@@ -496,4 +502,20 @@ export async function deleteOwnerAccessCode(id) {
 
 export async function updateOwnerAccessCodeStatus(id, status) {
   return patchAuthenticatedJson("/api/backend/admin/access-codes", { id, status });
+}
+
+export async function updateOwnerSchoolAdmin(input) {
+  return patchAuthenticatedJson("/api/backend/admin/school-admins", input);
+}
+
+export async function deleteOwnerSchoolAdmin(id) {
+  return deleteAuthenticatedJson(`/api/backend/admin/school-admins?id=${encodeURIComponent(id)}`);
+}
+
+export async function assignOwnerTeacherToClass(input) {
+  return patchAuthenticatedJson("/api/backend/admin/teacher-assignments", input);
+}
+
+export async function deleteOwnerTeacherAssignment(id) {
+  return deleteAuthenticatedJson(`/api/backend/admin/teacher-assignments?id=${encodeURIComponent(id)}`);
 }

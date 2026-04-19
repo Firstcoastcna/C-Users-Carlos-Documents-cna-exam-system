@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  assignOwnerTeacherToClass,
   clearOwnerClassEnrollments,
   createOwnerClassGroup,
   createOwnerSchool,
+  deleteOwnerTeacherAssignment,
   deleteOwnerClassGroup,
   deleteOwnerSchool,
   fetchOwnerOverview,
@@ -232,8 +234,11 @@ export default function OwnerSchoolsClient() {
   const [openClassPanels, setOpenClassPanels] = useState({});
   const [openRosterPanels, setOpenRosterPanels] = useState({});
   const [openCodePanels, setOpenCodePanels] = useState({});
+  const [openTeacherPanels, setOpenTeacherPanels] = useState({});
   const [openRedemptionPanels, setOpenRedemptionPanels] = useState({});
   const [confirmRemoveEnrollmentId, setConfirmRemoveEnrollmentId] = useState("");
+  const [teacherForms, setTeacherForms] = useState({});
+  const [classTeacherForms, setClassTeacherForms] = useState({});
 
   async function loadOverview() {
     setLoading(true);
@@ -266,6 +271,9 @@ export default function OwnerSchoolsClient() {
   const classGroups = overview?.classGroups ?? EMPTY_ITEMS;
   const accessCodes = overview?.accessCodes ?? EMPTY_ITEMS;
   const redemptions = overview?.redemptions ?? EMPTY_ITEMS;
+  const schoolAdmins = overview?.schoolAdmins ?? EMPTY_ITEMS;
+  const schoolTeachers = overview?.schoolTeachers ?? EMPTY_ITEMS;
+  const teacherClassAssignments = overview?.teacherClassAssignments ?? EMPTY_ITEMS;
 
   const classGroupsBySchool = useMemo(
     () =>
@@ -296,6 +304,46 @@ export default function OwnerSchoolsClient() {
         return acc;
       }, {}),
     [redemptions]
+  );
+
+  const schoolAdminsBySchool = useMemo(
+    () =>
+      schoolAdmins.reduce((acc, item) => {
+        if (!acc[item.school_id]) acc[item.school_id] = [];
+        acc[item.school_id].push(item);
+        return acc;
+      }, {}),
+    [schoolAdmins]
+  );
+
+  const schoolTeachersBySchool = useMemo(
+    () =>
+      schoolTeachers.reduce((acc, item) => {
+        if (!acc[item.school_id]) acc[item.school_id] = [];
+        acc[item.school_id].push(item);
+        return acc;
+      }, {}),
+    [schoolTeachers]
+  );
+
+  const teacherAssignmentsByUserId = useMemo(
+    () =>
+      teacherClassAssignments.reduce((acc, item) => {
+        if (!acc[item.user_id]) acc[item.user_id] = [];
+        acc[item.user_id].push(item);
+        return acc;
+      }, {}),
+    [teacherClassAssignments]
+  );
+
+  const teacherAssignmentsByClassId = useMemo(
+    () =>
+      teacherClassAssignments.reduce((acc, item) => {
+        if (!acc[item.class_group_id]) acc[item.class_group_id] = [];
+        acc[item.class_group_id].push(item);
+        return acc;
+      }, {}),
+    [teacherClassAssignments]
   );
 
   useEffect(() => {
@@ -396,6 +444,7 @@ export default function OwnerSchoolsClient() {
         });
         return next;
       });
+      setOpenTeacherPanels((prev) => ({ ...prev, [schoolId]: false }));
       setConfirmRemoveEnrollmentId("");
       setOpenRedemptionPanels((prev) => {
         const next = { ...prev };
@@ -427,6 +476,13 @@ export default function OwnerSchoolsClient() {
       setOpenCodePanels((prev) => {
         const next = { ...prev };
         otherClassIds.forEach((id) => {
+          next[id] = false;
+        });
+        return next;
+      });
+      setOpenTeacherPanels((prev) => {
+        const next = { ...prev };
+        otherSchoolIds.forEach((id) => {
           next[id] = false;
         });
         return next;
@@ -532,6 +588,82 @@ export default function OwnerSchoolsClient() {
                     />
                   </LabeledField>
                   <HelperText>Use the full class name students and staff recognize.</HelperText>
+                  <div
+                    style={{
+                      borderTop: "1px solid var(--chrome-border)",
+                      paddingTop: 12,
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 15 }}>Assigned teacher</div>
+                    <div style={listMeta}>
+                      {(teacherAssignmentsByClassId[classForm.id] || []).length
+                        ? (teacherAssignmentsByClassId[classForm.id] || [])
+                            .map((item) => item.user?.full_name || item.user?.email || item.user_id)
+                            .join(", ")
+                        : "No teacher assigned yet"}
+                    </div>
+                    {(teacherAssignmentsByClassId[classForm.id] || []).length ? (
+                      <div style={actionsRow}>
+                        {(teacherAssignmentsByClassId[classForm.id] || []).map((assignment) => (
+                          <button
+                            key={assignment.id}
+                            style={buttonTinyWarning}
+                            disabled={busy}
+                            onClick={() =>
+                              runAction(async () => {
+                                await deleteOwnerTeacherAssignment(assignment.id);
+                              }, "Teacher removed from class.")
+                            }
+                          >
+                            Remove {assignment.user?.full_name || assignment.user?.email || "teacher"}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <LabeledField label="Assign or change teacher">
+                      <select
+                        style={input}
+                        value={classTeacherForms[classForm.id]?.teacherId || ""}
+                        onChange={(e) =>
+                          setClassTeacherForms((prev) => ({
+                            ...prev,
+                            [classForm.id]: {
+                              teacherId: e.target.value,
+                            },
+                          }))
+                        }
+                      >
+                        <option value="">Select teacher</option>
+                        {(schoolTeachersBySchool[classForm.schoolId] || []).map((teacher) => (
+                          <option key={teacher.user_id} value={teacher.user_id}>
+                            {teacher.user?.full_name || teacher.user?.email || teacher.user_id}
+                          </option>
+                        ))}
+                      </select>
+                    </LabeledField>
+                    <div style={actionsRow}>
+                      <button
+                        style={buttonSecondary}
+                        disabled={!classTeacherForms[classForm.id]?.teacherId || busy}
+                        onClick={() =>
+                          runAction(async () => {
+                            await assignOwnerTeacherToClass({
+                              teacherId: classTeacherForms[classForm.id]?.teacherId,
+                              classGroupId: classForm.id,
+                            });
+                            setClassTeacherForms((prev) => ({
+                              ...prev,
+                              [classForm.id]: { teacherId: "" },
+                            }));
+                          }, "Teacher assigned to class.")
+                        }
+                      >
+                        Save teacher assignment
+                      </button>
+                    </div>
+                  </div>
                   <div style={actionsRow}>
                     <button
                       style={buttonPrimary}
@@ -639,10 +771,38 @@ export default function OwnerSchoolsClient() {
                   <div style={{ display: "grid", gap: 10 }}>
                     <div style={listMeta}>School ID: {school.slug || "Not set"}</div>
                     <div style={listMeta}>
+                      School admin:{" "}
+                      {(schoolAdminsBySchool[school.id] || []).length
+                        ? (schoolAdminsBySchool[school.id] || [])
+                            .map((item) => item.user?.full_name || item.user?.email || item.user_id)
+                            .join(", ")
+                        : "No school admin assigned"}
+                    </div>
+                    <div style={listMeta}>Teachers: {(schoolTeachersBySchool[school.id] || []).length}</div>
+                    <div style={listMeta}>
                       {(classGroupsBySchool[school.id] || []).length} class
                       {(classGroupsBySchool[school.id] || []).length === 1 ? "" : "es"}
                     </div>
                     <div style={actionsRow}>
+                      <Link
+                        href={`/owner/reports?scope=school&school_id=${encodeURIComponent(
+                          school.id
+                        )}&school_name=${encodeURIComponent(school.name || "")}&lang=en&from=schools`}
+                        style={buttonSecondary}
+                      >
+                        School report
+                      </Link>
+                      <button
+                        style={buttonSecondary}
+                        onClick={() =>
+                          setOpenTeacherPanels((prev) => ({
+                            ...prev,
+                            [school.id]: !prev[school.id],
+                          }))
+                        }
+                      >
+                        {openTeacherPanels[school.id] ? "Close teachers" : "Teachers"}
+                      </button>
                       <button
                         style={buttonSecondary}
                         disabled={busy}
@@ -668,6 +828,96 @@ export default function OwnerSchoolsClient() {
                         Delete school
                       </button>
                     </div>
+
+                    {openTeacherPanels[school.id] ? (
+                      (schoolTeachersBySchool[school.id] || []).length ? (
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {(schoolTeachersBySchool[school.id] || []).map((teacher) => {
+                            const assignments = teacherAssignmentsByUserId[teacher.user_id] || [];
+                            const currentForm = teacherForms[teacher.user_id] || { classGroupId: "" };
+
+                            return (
+                              <div key={teacher.id} style={{ ...listCard, background: "white" }}>
+                                <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                  {teacher.user?.full_name || teacher.user?.email || teacher.user_id}
+                                </div>
+                                <div style={listMeta}>{teacher.user?.email || "No email on record"}</div>
+                                <div style={listMeta}>
+                                  Assigned classes:{" "}
+                                  {assignments.length
+                                    ? assignments.map((item) => item.classGroup?.name || item.class_group_id).join(", ")
+                                    : "No classes assigned yet"}
+                                </div>
+                                {assignments.length ? (
+                                  <div style={actionsRow}>
+                                    {assignments.map((assignment) => (
+                                      <button
+                                        key={assignment.id}
+                                        style={buttonTinyWarning}
+                                        disabled={busy}
+                                        onClick={() =>
+                                          runAction(async () => {
+                                            await deleteOwnerTeacherAssignment(assignment.id);
+                                          }, "Teacher class assignment removed.")
+                                        }
+                                      >
+                                        Remove {assignment.classGroup?.name || "class"}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                <div style={{ ...editCard, padding: 12 }}>
+                                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Assign class</div>
+                                  <LabeledField label="Class">
+                                    <select
+                                      style={input}
+                                      value={currentForm.classGroupId || ""}
+                                      onChange={(e) =>
+                                        setTeacherForms((prev) => ({
+                                          ...prev,
+                                          [teacher.user_id]: {
+                                            classGroupId: e.target.value,
+                                          },
+                                        }))
+                                      }
+                                    >
+                                      <option value="">Select class</option>
+                                      {(classGroupsBySchool[school.id] || []).map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                          {item.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </LabeledField>
+                                  <div style={actionsRow}>
+                                    <button
+                                      style={buttonSecondary}
+                                      disabled={!currentForm.classGroupId || busy}
+                                      onClick={() =>
+                                        runAction(async () => {
+                                          await assignOwnerTeacherToClass({
+                                            teacherId: teacher.user_id,
+                                            classGroupId: currentForm.classGroupId,
+                                          });
+                                          setTeacherForms((prev) => ({
+                                            ...prev,
+                                            [teacher.user_id]: { classGroupId: "" },
+                                          }));
+                                        }, "Teacher assigned to class.")
+                                      }
+                                    >
+                                      Assign class
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div style={listMeta}>No teachers yet for this school.</div>
+                      )
+                    ) : null}
 
                     {(classGroupsBySchool[school.id] || []).length ? (
                       (classGroupsBySchool[school.id] || []).map((item) => (

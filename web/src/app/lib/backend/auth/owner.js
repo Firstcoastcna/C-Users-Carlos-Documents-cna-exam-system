@@ -19,6 +19,11 @@ function hasSchoolAdminRole(context) {
   return Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "admin");
 }
 
+function hasTeacherRole(context) {
+  const staff = context?.staff;
+  return Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "teacher");
+}
+
 export function getOwnerEmails() {
   const configured = String(process.env.OWNER_EMAILS || "")
     .split(",")
@@ -53,14 +58,21 @@ export async function requireOwnerRequestUser(request) {
   }
 
   const email = student.email || "";
+  const schoolContext = await loadSchoolContextForUser(student.id).catch(() => null);
+  const requestedAccountRole = getOwnerEmails().includes(normalizeEmail(email))
+    ? "owner"
+    : hasSchoolAdminRole(schoolContext)
+      ? "school_admin"
+      : hasTeacherRole(schoolContext)
+        ? "teacher"
+        : null;
   const appUser = await upsertAppUser({
     id: student.id,
     email: email || `${student.id}@study.firstcoastcna.com`,
     fullName: student.fullName || "Owner User",
-    accountRole: getOwnerEmails().includes(normalizeEmail(email)) ? "owner" : "school_admin",
+    accountRole: requestedAccountRole,
   });
 
-  const schoolContext = await loadSchoolContextForUser(student.id).catch(() => null);
   const isAllowedControlCenterUser =
     isLocalDevOwnerBypassEnabled() ||
     getOwnerEmails().includes(normalizeEmail(email)) ||

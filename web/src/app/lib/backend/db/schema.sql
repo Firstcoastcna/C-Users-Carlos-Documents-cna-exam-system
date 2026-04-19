@@ -100,6 +100,19 @@ create table if not exists class_group_enrollments (
 create index if not exists class_group_enrollments_class_idx on class_group_enrollments(class_group_id, created_at desc);
 create index if not exists class_group_enrollments_user_idx on class_group_enrollments(user_id, created_at desc);
 
+create table if not exists class_group_staff (
+  id text primary key,
+  class_group_id text not null references class_groups(id) on delete cascade,
+  user_id text not null references app_users(id) on delete cascade,
+  role text not null default 'teacher',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (class_group_id, user_id)
+);
+
+create index if not exists class_group_staff_class_idx on class_group_staff(class_group_id, created_at desc);
+create index if not exists class_group_staff_user_idx on class_group_staff(user_id, created_at desc);
+
 create table if not exists exam_attempts (
   id text primary key,
   user_id text not null references app_users(id) on delete cascade,
