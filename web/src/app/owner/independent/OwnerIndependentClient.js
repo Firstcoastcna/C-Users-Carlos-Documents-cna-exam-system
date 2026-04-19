@@ -249,6 +249,7 @@ export default function OwnerIndependentClient() {
   const redemptions = overview?.redemptions ?? EMPTY_ITEMS;
   const schools = overview?.schools ?? EMPTY_ITEMS;
   const classGroups = overview?.classGroups ?? EMPTY_ITEMS;
+  const accessGrantedStudents = overview?.accessGrantedStudents ?? EMPTY_ITEMS;
   const accessCodesById = useMemo(
     () => Object.fromEntries(accessCodes.map((item) => [item.id, item])),
     [accessCodes]
@@ -310,13 +311,31 @@ export default function OwnerIndependentClient() {
       }
     });
 
+    accessGrantedStudents.forEach((student) => {
+      if (!student?.id || enrolledUserIds.has(student.id)) {
+        return;
+      }
+
+      if (!byUser[student.id]) {
+        byUser[student.id] = {
+          userId: student.id,
+          name: student.full_name || student.email || student.id,
+          email: student.email || "",
+          firstRedeemedAt: student.access_granted_at || null,
+          latestRedeemedAt: student.access_granted_at || null,
+          redemptionCount: 0,
+          codes: new Set(),
+        };
+      }
+    });
+
     return Object.values(byUser)
       .map((item) => ({
         ...item,
         codes: Array.from(item.codes),
       }))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-  }, [currentIndependentRedemptions, accessCodesById]);
+  }, [currentIndependentRedemptions, accessCodesById, accessGrantedStudents, enrolledUserIds]);
 
   const activeIndependentCodes = accessCodes.filter((item) => !item.class_group_id && item.status === "active").length;
 
@@ -395,13 +414,17 @@ export default function OwnerIndependentClient() {
                     <div style={detailsBody}>
                       <div style={metaText}>
                         {student.email ? `${student.email} | ` : ""}
-                        First access: {new Date(student.firstRedeemedAt).toLocaleString()}
+                        First access:{" "}
+                        {student.firstRedeemedAt ? new Date(student.firstRedeemedAt).toLocaleString() : "No access date on record"}
                       </div>
                       <div style={metaText}>
-                        Latest access: {new Date(student.latestRedeemedAt).toLocaleString()} | {student.redemptionCount} redemption
-                        {student.redemptionCount === 1 ? "" : "s"}
+                        Latest access:{" "}
+                        {student.latestRedeemedAt ? new Date(student.latestRedeemedAt).toLocaleString() : "No access date on record"} |{" "}
+                        {student.redemptionCount} redemption{student.redemptionCount === 1 ? "" : "s"}
                       </div>
-                      <div style={metaText}>Codes used: {student.codes.join(", ")}</div>
+                      <div style={metaText}>
+                        Codes used: {student.codes.length ? student.codes.join(", ") : "No independent code on record"}
+                      </div>
                       <div style={actionsRow}>
                         <Link
                           href={`/owner/reports?scope=student&user_id=${encodeURIComponent(

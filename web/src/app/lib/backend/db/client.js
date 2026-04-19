@@ -931,6 +931,29 @@ export async function deleteClassGroupEnrollments(classGroupId) {
   return { ok: true, classGroupId };
 }
 
+export async function deleteSingleClassGroupEnrollment(enrollmentId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedId = String(enrollmentId || "").trim();
+  if (!normalizedId) {
+    throw new Error("Enrollment id is required.");
+  }
+
+  const { error } = await supabase
+    .from("class_group_enrollments")
+    .delete()
+    .eq("id", normalizedId);
+
+  if (error) {
+    throw new Error(`Supabase delete class enrollment failed: ${error.message}`);
+  }
+
+  return { ok: true, enrollmentId: normalizedId };
+}
+
 function normalizeQuestionIds(questionIds) {
   if (!Array.isArray(questionIds)) return [];
   return Array.from(

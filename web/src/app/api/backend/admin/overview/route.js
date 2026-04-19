@@ -3,6 +3,7 @@ import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
 import {
   listAccessCodeRecords,
   listAccessCodeRedemptionRecords,
+  listAccessGrantedPreferences,
   listClassGroupRecords,
   listSchoolRecords,
   loadAppUser,
@@ -39,11 +40,12 @@ function summarizeAccessCodes(codes, redemptions, usersById) {
 export async function GET(request) {
   try {
     const owner = await requireOwnerRequestUser(request);
-    const [schools, classGroups, accessCodes, redemptions] = await Promise.all([
+    const [schools, classGroups, accessCodes, redemptions, accessGrantedPreferences] = await Promise.all([
       listSchoolRecords(),
       listClassGroupRecords(),
       listAccessCodeRecords(),
       listAccessCodeRedemptionRecords(),
+      listAccessGrantedPreferences(),
     ]);
 
     const rosterEntries = await Promise.all(
@@ -56,9 +58,32 @@ export async function GET(request) {
       rosterEntries.map((entry) => [entry.classGroupId, entry.roster])
     );
 
-    const userIds = Array.from(new Set(redemptions.map((row) => row.user_id).filter(Boolean)));
+    const userIds = Array.from(
+      new Set([
+        ...redemptions.map((row) => row.user_id).filter(Boolean),
+        ...accessGrantedPreferences.map((row) => row.user_id).filter(Boolean),
+      ])
+    );
     const users = await Promise.all(userIds.map((userId) => loadAppUser(userId)));
     const usersById = Object.fromEntries(users.filter(Boolean).map((user) => [user.id, user]));
+
+    const accessGrantedStudents = accessGrantedPreferences
+      .map((prefs) => {
+        const user = usersById[prefs.user_id];
+        if (!user) return null;
+        if ((user.account_role || "student") !== "student") return null;
+
+        return {
+          id: user.id,
+          email: user.email || null,
+          full_name: user.full_name || null,
+          account_role: user.account_role || "student",
+          access_granted_at: prefs.updated_at || prefs.created_at || null,
+          preferred_language: prefs.preferred_language || null,
+          preferences: prefs,
+        };
+      })
+      .filter(Boolean);
 
     return NextResponse.json({
       ok: true,
@@ -80,6 +105,7 @@ export async function GET(request) {
         roster: rosterByClassId[group.id] || [],
         enrollment_count: (rosterByClassId[group.id] || []).length,
       })),
+      accessGrantedStudents,
       accessCodes: summarizeAccessCodes(accessCodes, redemptions, usersById),
       redemptions: redemptions.map((row) => ({
         ...row,

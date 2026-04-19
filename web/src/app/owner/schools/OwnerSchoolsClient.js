@@ -10,6 +10,7 @@ import {
   deleteOwnerClassGroup,
   deleteOwnerSchool,
   fetchOwnerOverview,
+  removeOwnerClassEnrollment,
 } from "../../lib/backend/auth/browserAuth";
 
 const EMPTY_ITEMS = [];
@@ -72,6 +73,27 @@ const buttonSecondary = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+};
+
+const buttonTiny = {
+  ...buttonSecondary,
+  padding: "6px 9px",
+  fontSize: 12,
+  borderRadius: 8,
+};
+
+const buttonTinyWarning = {
+  ...buttonTiny,
+  border: "1px solid #d48c86",
+  color: "#a22b25",
+  background: "#fff1f0",
+};
+
+const buttonTinyDanger = {
+  ...buttonTiny,
+  border: "1px solid var(--brand-red)",
+  color: "white",
+  background: "var(--brand-red)",
 };
 
 const buttonPrimary = {
@@ -205,11 +227,13 @@ export default function OwnerSchoolsClient() {
   const [overview, setOverview] = useState(null);
   const [schoolForm, setSchoolForm] = useState({ id: "", name: "", slug: "" });
   const [classForm, setClassForm] = useState({ id: "", schoolId: "", name: "" });
+  const [confirmClearClassId, setConfirmClearClassId] = useState("");
   const [openSchoolId, setOpenSchoolId] = useState("");
   const [openClassPanels, setOpenClassPanels] = useState({});
   const [openRosterPanels, setOpenRosterPanels] = useState({});
   const [openCodePanels, setOpenCodePanels] = useState({});
   const [openRedemptionPanels, setOpenRedemptionPanels] = useState({});
+  const [confirmRemoveEnrollmentId, setConfirmRemoveEnrollmentId] = useState("");
 
   async function loadOverview() {
     setLoading(true);
@@ -311,6 +335,7 @@ export default function OwnerSchoolsClient() {
 
   function resetClassForm() {
     setClassForm({ id: "", schoolId: "", name: "" });
+    setConfirmClearClassId("");
   }
 
   async function runAction(action, okMessage) {
@@ -371,6 +396,7 @@ export default function OwnerSchoolsClient() {
         });
         return next;
       });
+      setConfirmRemoveEnrollmentId("");
       setOpenRedemptionPanels((prev) => {
         const next = { ...prev };
         classIds.forEach((id) => {
@@ -405,6 +431,7 @@ export default function OwnerSchoolsClient() {
         });
         return next;
       });
+      setConfirmRemoveEnrollmentId("");
       setOpenRedemptionPanels((prev) => {
         const next = { ...prev };
         otherClassIds.forEach((id) => {
@@ -534,18 +561,38 @@ export default function OwnerSchoolsClient() {
                     <HelperText>
                       Use these actions when you need to empty the roster or remove the class after it is no longer in use.
                     </HelperText>
+                    {confirmClearClassId === classForm.id ? (
+                      <InlineMessage tone="error">
+                        <strong>Warning:</strong> `Clear enrollments` removes every student from this class at once. This is a serious bulk action, and putting those students back in the right place later may be difficult and time-consuming.
+                      </InlineMessage>
+                    ) : null}
                     <div style={actionsRow}>
                       <button
                         style={buttonSecondary}
                         disabled={busy}
-                        onClick={() =>
-                          runClassAction(async () => {
-                            await clearOwnerClassEnrollments(classForm.id);
-                          }, "Class enrollments cleared.")
-                        }
+                        onClick={() => {
+                          if (confirmClearClassId === classForm.id) {
+                            void runClassAction(async () => {
+                              await clearOwnerClassEnrollments(classForm.id);
+                              setConfirmClearClassId("");
+                            }, "Class enrollments cleared.");
+                            return;
+                          }
+
+                          setConfirmClearClassId(classForm.id);
+                        }}
                       >
-                        Clear enrollments
+                        {confirmClearClassId === classForm.id ? "Confirm clear enrollments" : "Clear enrollments"}
                       </button>
+                      {confirmClearClassId === classForm.id ? (
+                        <button
+                          style={buttonSecondary}
+                          disabled={busy}
+                          onClick={() => setConfirmClearClassId("")}
+                        >
+                          Cancel
+                        </button>
+                      ) : null}
                       <button
                         style={buttonSecondary}
                         disabled={busy}
@@ -713,19 +760,45 @@ export default function OwnerSchoolsClient() {
                                       <div style={listMeta}>
                                         {row.user?.email || "No email on file"} | {row.status || "active"}
                                       </div>
-                                      <div style={actionsRow}>
-                                        <Link
-                                          href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
-                                            row.user_id
+                                    <div style={actionsRow}>
+                                      <Link
+                                        href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
+                                          row.user_id
                                           )}&school_id=${encodeURIComponent(school.id)}&class_group_id=${encodeURIComponent(
                                             item.id
                                           )}&class_name=${encodeURIComponent(
                                             item.name || ""
                                           )}&lang=en&from=schools`}
-                                          style={buttonSecondary}
+                                          style={buttonTiny}
                                         >
                                           View student report
                                         </Link>
+                                      <button
+                                        style={confirmRemoveEnrollmentId === row.id ? buttonTinyDanger : buttonTinyWarning}
+                                        disabled={busy}
+                                        onClick={() => {
+                                          if (confirmRemoveEnrollmentId === row.id) {
+                                            void runClassAction(async () => {
+                                              await removeOwnerClassEnrollment(row.id);
+                                              setConfirmRemoveEnrollmentId("");
+                                            }, "Student removed from class.");
+                                            return;
+                                          }
+
+                                          setConfirmRemoveEnrollmentId(row.id);
+                                        }}
+                                      >
+                                        {confirmRemoveEnrollmentId === row.id ? "Confirm remove" : "Remove from class"}
+                                      </button>
+                                      {confirmRemoveEnrollmentId === row.id ? (
+                                        <button
+                                          style={buttonTiny}
+                                          disabled={busy}
+                                          onClick={() => setConfirmRemoveEnrollmentId("")}
+                                        >
+                                          Cancel
+                                        </button>
+                                      ) : null}
                                       </div>
                                     </div>
                                   ))}

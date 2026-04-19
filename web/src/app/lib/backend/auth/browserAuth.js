@@ -483,6 +483,13 @@ export async function clearOwnerClassEnrollments(id) {
   });
 }
 
+export async function removeOwnerClassEnrollment(enrollmentId) {
+  return patchAuthenticatedJson("/api/backend/admin/class-groups", {
+    enrollmentId,
+    action: "remove-enrollment",
+  });
+}
+
 export async function deleteOwnerAccessCode(id) {
   return deleteAuthenticatedJson(`/api/backend/admin/access-codes?id=${encodeURIComponent(id)}`);
 }

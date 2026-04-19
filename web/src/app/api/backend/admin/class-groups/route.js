@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
 import {
+  deleteSingleClassGroupEnrollment,
   deleteClassGroupEnrollments,
   deleteClassGroupRecord,
   upsertClassGroup,
@@ -104,27 +105,51 @@ export async function PATCH(request) {
     const body = await request.json().catch(() => ({}));
     const classGroupId = String(body?.id || "").trim();
     const action = String(body?.action || "").trim();
+    const enrollmentId = String(body?.enrollmentId || "").trim();
 
-    if (!classGroupId || !action) {
+    if (!action) {
       return NextResponse.json(
-        { ok: false, service: "admin-class-groups", error: "Class id and action are required." },
+        { ok: false, service: "admin-class-groups", error: "Class action is required." },
         { status: 400 }
       );
     }
 
-    if (action !== "clear-enrollments") {
-      return NextResponse.json(
-        { ok: false, service: "admin-class-groups", error: "Unsupported class action." },
-        { status: 400 }
-      );
+    if (action === "clear-enrollments") {
+      if (!classGroupId) {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "Class id is required." },
+          { status: 400 }
+        );
+      }
+
+      const result = await deleteClassGroupEnrollments(classGroupId);
+      return NextResponse.json({
+        ok: true,
+        service: "admin-class-groups",
+        ...result,
+      });
     }
 
-    const result = await deleteClassGroupEnrollments(classGroupId);
-    return NextResponse.json({
-      ok: true,
-      service: "admin-class-groups",
-      ...result,
-    });
+    if (action === "remove-enrollment") {
+      if (!enrollmentId) {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "Enrollment id is required." },
+          { status: 400 }
+        );
+      }
+
+      const result = await deleteSingleClassGroupEnrollment(enrollmentId);
+      return NextResponse.json({
+        ok: true,
+        service: "admin-class-groups",
+        ...result,
+      });
+    }
+
+    return NextResponse.json(
+      { ok: false, service: "admin-class-groups", error: "Unsupported class action." },
+      { status: 400 }
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown class update error.";
     const status = message.includes("authorized") || message.includes("sign in") ? 403 : 500;
