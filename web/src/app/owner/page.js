@@ -280,7 +280,13 @@ export default function OwnerPage() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupTab, setSetupTab] = useState("school");
   const [schoolForm, setSchoolForm] = useState({ name: "", slug: "" });
-  const [classForm, setClassForm] = useState({ schoolId: "", name: "" });
+  const [classForm, setClassForm] = useState({
+    schoolId: "",
+    name: "",
+    createCode: true,
+    accessCode: "",
+    maxRedemptions: "",
+  });
   const [codeForm, setCodeForm] = useState({
     code: "",
     codeType: "independent",
@@ -291,9 +297,11 @@ export default function OwnerPage() {
   const [userForm, setUserForm] = useState({
     fullName: "",
     email: "",
-    password: "",
     role: "student",
     schoolId: "",
+    classGroupId: "",
+    assignToClass: false,
+    accessCodeId: "",
   });
 
   async function loadOverview() {
@@ -302,19 +310,6 @@ export default function OwnerPage() {
     try {
       const payload = await fetchOwnerOverview();
       setOverview(payload);
-      setClassForm((prev) => ({
-        ...prev,
-        schoolId: prev.schoolId || payload.schools?.[0]?.id || "",
-      }));
-      setCodeForm((prev) => ({
-        ...prev,
-        schoolId: prev.schoolId || payload.schools?.[0]?.id || "",
-        classGroupId: prev.classGroupId || payload.classGroups?.[0]?.id || "",
-      }));
-      setUserForm((prev) => ({
-        ...prev,
-        schoolId: prev.schoolId || payload.schools?.[0]?.id || "",
-      }));
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Unable to load control center.");
     } finally {
@@ -352,6 +347,9 @@ export default function OwnerPage() {
   const accessCodes = overview?.accessCodes || [];
   const redemptions = overview?.redemptions || [];
   const activeCodes = accessCodes.filter((item) => item.status === "active").length;
+  const independentAccessCodes = accessCodes.filter(
+    (item) => item.status === "active" && item.code_type === "independent" && !item.class_group_id
+  );
 
   async function runAction(action, okMessage) {
     setBusy(true);
@@ -513,7 +511,7 @@ export default function OwnerPage() {
                       style={input}
                       value={schoolForm.name}
                       onChange={(e) => setSchoolForm((prev) => ({ ...prev, name: e.target.value }))}
-                      placeholder="Gator CNA"
+                      placeholder="First Coast CNA"
                     />
                   </LabeledField>
                   <LabeledField label="School ID">
@@ -521,7 +519,7 @@ export default function OwnerPage() {
                       style={input}
                       value={schoolForm.slug}
                       onChange={(e) => setSchoolForm((prev) => ({ ...prev, slug: e.target.value }))}
-                      placeholder="gatorcna"
+                      placeholder="fccna-01"
                     />
                   </LabeledField>
                   <div style={actionsRow}>
@@ -566,21 +564,87 @@ export default function OwnerPage() {
                       style={input}
                       value={classForm.name}
                       onChange={(e) => setClassForm((prev) => ({ ...prev, name: e.target.value }))}
-                      placeholder="May 2026 Day"
+                      placeholder="Morning Class"
                     />
                   </LabeledField>
+                  <label style={{ display: "flex", gap: 10, alignItems: "center", color: "#445565", fontSize: 14 }}>
+                    <input
+                      type="checkbox"
+                      checked={classForm.createCode}
+                      onChange={(e) =>
+                        setClassForm((prev) => ({
+                          ...prev,
+                          createCode: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span>Create the first access code for this class now</span>
+                  </label>
+                  {classForm.createCode ? (
+                    <>
+                      <LabeledField label="Access code">
+                        <input
+                          style={input}
+                          value={classForm.accessCode}
+                          onChange={(e) =>
+                            setClassForm((prev) => ({ ...prev, accessCode: e.target.value.toUpperCase() }))
+                          }
+                          placeholder="SPRING-01"
+                        />
+                      </LabeledField>
+                      <LabeledField label="Max redemptions">
+                        <input
+                          style={input}
+                          type="number"
+                          min="1"
+                          value={classForm.maxRedemptions}
+                          onChange={(e) =>
+                            setClassForm((prev) => ({ ...prev, maxRedemptions: e.target.value }))
+                          }
+                          placeholder="Leave blank for unlimited"
+                        />
+                      </LabeledField>
+                      <HelperText>
+                        This creates the student code for this class right away, so you do not need to reselect the school and class again in the code tab.
+                      </HelperText>
+                    </>
+                  ) : null}
                   <div style={actionsRow}>
                     <button
                       style={buttonPrimary}
                       disabled={busy}
                       onClick={() =>
                         runAction(async () => {
-                          await createOwnerClassGroup(classForm);
-                          setClassForm({ schoolId: schools[0]?.id || "", name: "" });
-                        }, "Class saved.")
+                          if (classForm.createCode && !classForm.accessCode.trim()) {
+                            throw new Error("Enter an access code, or turn off code creation for now.");
+                          }
+
+                          const classResult = await createOwnerClassGroup({
+                            schoolId: classForm.schoolId,
+                            name: classForm.name,
+                          });
+
+                          if (classForm.createCode && classForm.accessCode) {
+                            await createOwnerAccessCode({
+                              code: classForm.accessCode,
+                              codeType: "class",
+                              schoolId: classForm.schoolId,
+                              classGroupId: classResult?.classGroup?.id,
+                              maxRedemptions: classForm.maxRedemptions,
+                            });
+                          }
+
+                          setClassForm({
+                            schoolId: "",
+                            name: "",
+                            createCode: true,
+                            accessCode: "",
+                            maxRedemptions: "",
+                          });
+                        }, classForm.createCode && classForm.accessCode ? "Class and access code saved." : "Class saved.")
                       }
                     >
-                      Save class
+                      {classForm.createCode ? "Save class and code" : "Save class"}
                     </button>
                   </div>
                 </div>
@@ -632,11 +696,12 @@ export default function OwnerPage() {
                         <select
                           style={input}
                           value={codeForm.classGroupId}
+                          disabled={!codeForm.schoolId}
                           onChange={(e) => setCodeForm((prev) => ({ ...prev, classGroupId: e.target.value }))}
                         >
-                          <option value="">Select class</option>
+                          <option value="">{codeForm.schoolId ? "Select class" : "Select school first"}</option>
                           {classGroups
-                            .filter((item) => !codeForm.schoolId || item.school_id === codeForm.schoolId)
+                            .filter((item) => item.school_id === codeForm.schoolId)
                             .map((item) => (
                               <option key={item.id} value={item.id}>
                                 {item.name}
@@ -651,7 +716,7 @@ export default function OwnerPage() {
                       style={input}
                       value={codeForm.code}
                       onChange={(e) => setCodeForm((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                      placeholder={codeForm.codeType === "independent" ? "FCCNA-SOLO-001" : "MAYDAY26"}
+                      placeholder={codeForm.codeType === "independent" ? "FCCNA-SOLO-001" : "SPRING-01"}
                     />
                   </LabeledField>
                   <LabeledField label="Max redemptions">
@@ -704,7 +769,10 @@ export default function OwnerPage() {
                         setUserForm((prev) => ({
                           ...prev,
                           role: e.target.value,
-                          schoolId: e.target.value === "school_admin" ? prev.schoolId || schools[0]?.id || "" : "",
+                          schoolId: e.target.value === "school_admin" ? "" : prev.schoolId,
+                          classGroupId: "",
+                          assignToClass: e.target.value === "student" ? prev.assignToClass : false,
+                          accessCodeId: e.target.value === "student" ? prev.accessCodeId : "",
                         }))
                       }
                     >
@@ -728,12 +796,99 @@ export default function OwnerPage() {
                       </select>
                     </LabeledField>
                   ) : null}
+                  {userForm.role === "student" ? (
+                    <>
+                      <label style={{ display: "flex", gap: 10, alignItems: "center", color: "#445565", fontSize: 14 }}>
+                        <input
+                          type="checkbox"
+                          checked={userForm.assignToClass}
+                          onChange={(e) =>
+                            setUserForm((prev) => ({
+                              ...prev,
+                              assignToClass: e.target.checked,
+                              schoolId: e.target.checked ? prev.schoolId : "",
+                              classGroupId: "",
+                              accessCodeId: e.target.checked ? "" : prev.accessCodeId,
+                            }))
+                          }
+                        />
+                        <span>Assign this student to a school and class now</span>
+                      </label>
+                      {userForm.assignToClass ? (
+                        <>
+                          <div style={subText}>
+                            Use this when the student already belongs to a specific class. Leave it off if the student should stay independent for now.
+                          </div>
+                          <LabeledField label="School">
+                            <select
+                              style={input}
+                              value={userForm.schoolId}
+                              onChange={(e) =>
+                                setUserForm((prev) => ({
+                                  ...prev,
+                                  schoolId: e.target.value,
+                                  classGroupId: "",
+                                }))
+                              }
+                            >
+                              <option value="">Select school</option>
+                              {schools.map((school) => (
+                                <option key={school.id} value={school.id}>
+                                  {school.name}
+                                </option>
+                              ))}
+                            </select>
+                          </LabeledField>
+                          <LabeledField label="Class">
+                            <select
+                              style={input}
+                              value={userForm.classGroupId}
+                              disabled={!userForm.schoolId}
+                              onChange={(e) => setUserForm((prev) => ({ ...prev, classGroupId: e.target.value }))}
+                            >
+                              <option value="">{userForm.schoolId ? "Select class" : "Select school first"}</option>
+                              {classGroups
+                                .filter((item) => item.school_id === userForm.schoolId)
+                                .map((item) => (
+                                  <option key={item.id} value={item.id}>
+                                    {item.name}
+                                  </option>
+                                ))}
+                            </select>
+                          </LabeledField>
+                        </>
+                      ) : (
+                        <>
+                          <div style={subText}>
+                            Independent students still need an access code on record. Pick the code you want assigned behind the scenes.
+                          </div>
+                          <LabeledField label="Independent access code">
+                            <select
+                              style={input}
+                              value={userForm.accessCodeId}
+                              onChange={(e) => setUserForm((prev) => ({ ...prev, accessCodeId: e.target.value }))}
+                            >
+                              <option value="">
+                                {independentAccessCodes.length ? "Select code" : "Create an independent code first"}
+                              </option>
+                              {independentAccessCodes.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                  {item.code}
+                                  {item.max_redemptions != null ? ` (${item.redemption_count}/${item.max_redemptions})` : ""}
+                                </option>
+                              ))}
+                            </select>
+                          </LabeledField>
+                        </>
+                      )}
+                    </>
+                  ) : null}
                   <LabeledField label="Full name">
                     <input
                       style={input}
                       value={userForm.fullName}
                       onChange={(e) => setUserForm((prev) => ({ ...prev, fullName: e.target.value }))}
-                      placeholder={userForm.role === "school_admin" ? "Carlos Chavez" : "Ana Gomez"}
+                      placeholder={userForm.role === "school_admin" ? "Admin Name" : "Student Name"}
                     />
                   </LabeledField>
                   <LabeledField label="Email">
@@ -742,24 +897,13 @@ export default function OwnerPage() {
                       type="email"
                       value={userForm.email}
                       onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
-                      placeholder={userForm.role === "school_admin" ? "admin@gatorcna.com" : "student@example.com"}
+                      placeholder={userForm.role === "school_admin" ? "admin@example.com" : "student@example.com"}
                     />
                   </LabeledField>
-                  {userForm.role === "student" ? (
-                    <LabeledField label="Temporary password">
-                      <input
-                        style={input}
-                        type="text"
-                        value={userForm.password}
-                        onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))}
-                        placeholder="TempPass2026!"
-                      />
-                    </LabeledField>
-                  ) : null}
                   <HelperText>
                     {userForm.role === "school_admin"
                       ? "This school admin will receive an email invite to finish setup, then can use Admin Access."
-                      : "Students can use the regular sign-in page with the temporary password you set here."}
+                      : "This student will receive an email invite to set a password and then sign in normally."}
                   </HelperText>
                   <div style={actionsRow}>
                     <button
@@ -771,9 +915,11 @@ export default function OwnerPage() {
                           setUserForm({
                             fullName: "",
                             email: "",
-                            password: "",
                             role: "student",
-                            schoolId: schools[0]?.id || "",
+                            schoolId: "",
+                            classGroupId: "",
+                            assignToClass: false,
+                            accessCodeId: "",
                           });
                         }, "User created.")
                       }

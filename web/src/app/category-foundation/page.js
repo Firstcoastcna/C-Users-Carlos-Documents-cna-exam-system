@@ -154,12 +154,35 @@ function MobileCollapsibleSection({ isNarrow, title, openLabel, closeLabel, chil
   );
 }
 
-function CategoryTile({ name, meaning, clues, why, isNarrow, labels }) {
-  const [isOpen, setIsOpen] = useState(!isNarrow);
+function CategoryButton({ label, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        border: active ? "1px solid var(--brand-teal)" : "1px solid var(--chrome-border)",
+        borderRadius: "16px",
+        background: active ? "var(--brand-teal-soft)" : "white",
+        padding: "12px 14px",
+        textAlign: "left",
+        cursor: "pointer",
+        fontSize: 14,
+        fontWeight: 800,
+        color: active ? "var(--brand-teal-dark)" : "var(--heading)",
+        lineHeight: 1.35,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function CategoryMobileTile({ category, labels, supportText }) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <details
-      open={!isNarrow}
+      open={isOpen}
       onToggle={(event) => setIsOpen(event.currentTarget.open)}
       style={{
         border: "1px solid var(--chrome-border)",
@@ -170,28 +193,29 @@ function CategoryTile({ name, meaning, clues, why, isNarrow, labels }) {
     >
       <summary
         style={{
-          cursor: isNarrow ? "pointer" : "default",
+          cursor: "pointer",
           listStyle: "none",
-          padding: "16px",
-          background: isNarrow ? "var(--surface-soft)" : "white",
+          padding: "14px 16px",
+          background: isOpen ? "var(--brand-teal-soft)" : "white",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: "var(--heading)", lineHeight: 1.25 }}>{name}</div>
-          {isNarrow ? (
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>
-              {isOpen ? labels.closeHint : labels.openHint}
-            </div>
-          ) : null}
+          <div style={{ fontSize: 16, fontWeight: 800, color: "var(--heading)", lineHeight: 1.25 }}>{category.name}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>
+            {isOpen ? labels.closeHint : labels.openHint}
+          </div>
         </div>
       </summary>
       <div style={{ padding: "0 16px 16px", display: "grid", gap: "8px" }}>
-        <div style={{ color: "#456173", lineHeight: 1.65, fontSize: 14 }}>{meaning}</div>
+        <div style={{ color: "#456173", lineHeight: 1.65, fontSize: 14 }}>{category.meaning}</div>
         <div style={{ color: "#315061", fontSize: 13, lineHeight: 1.6 }}>
-          <strong>{labels.commonClues}:</strong> {clues}
+          <strong>{labels.commonClues}:</strong> {category.clues}
         </div>
         <div style={{ color: "#315061", fontSize: 13, lineHeight: 1.6 }}>
-          <strong>{labels.whyItHelps}:</strong> {why}
+          <strong>{labels.askYourself}:</strong> {supportText}
+        </div>
+        <div style={{ color: "#315061", fontSize: 13, lineHeight: 1.6 }}>
+          <strong>{labels.whyItHelps}:</strong> {category.why}
         </div>
       </div>
     </details>
@@ -290,8 +314,58 @@ function DraftInner() {
     openHint: t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri"),
     closeHint: t("Tap to close", "Toque para cerrar", "Touchez pour fermer", "Peze pou femen"),
     commonClues: t("Common clues", "Pistas comunes", "Indices frequents", "Siy komen"),
+    askYourself: t("Ask yourself", "Preguntese", "Demandez-vous", "Mande tèt ou"),
     whyItHelps: t("Why it helps", "Por que ayuda", "Pourquoi cela aide", "Poukisa sa ede"),
   };
+
+  function categorySupportLabel(cat) {
+    return {
+      en: {
+        "Change in Condition": "Notice when something is new, worse, or concerning.",
+        "Communication & Emotional Support": "Choose calm, respectful, and supportive communication.",
+        "Dignity & Resident Rights": "Protect privacy, choice, dignity, and resident rights.",
+        "Environment & Safety": "Watch for hazards in the room and surroundings.",
+        "Infection Control": "Prevent contamination and reduce the spread of germs.",
+        "Mobility & Positioning": "Keep the resident safe during movement, transfer, and positioning.",
+        "Observation & Safety": "Recognize risks and warning signs before harm increases.",
+        "Personal Care & Comfort": "Support comfort and proper daily care.",
+        "Scope of Practice & Reporting": "Know what to do, what not to do, and what to report.",
+      },
+      es: {
+        "Change in Condition": "Detecte cuando algo es nuevo, peor o preocupante.",
+        "Communication & Emotional Support": "Elija una comunicacion calmada, respetuosa y de apoyo.",
+        "Dignity & Resident Rights": "Proteja la privacidad, la eleccion, la dignidad y los derechos del residente.",
+        "Environment & Safety": "Observe peligros en la habitacion y en el entorno.",
+        "Infection Control": "Prevenga la contaminacion y reduzca la propagacion de germenes.",
+        "Mobility & Positioning": "Mantenga al residente seguro durante el movimiento, el traslado y el posicionamiento.",
+        "Observation & Safety": "Reconozca riesgos y senales de alerta antes de que aumente el dano.",
+        "Personal Care & Comfort": "Apoye la comodidad y el cuidado diario adecuado.",
+        "Scope of Practice & Reporting": "Sepa que hacer, que no hacer y que debe reportar.",
+      },
+      fr: {
+        "Change in Condition": "Reperez quand quelque chose est nouveau, plus grave ou inquietant.",
+        "Communication & Emotional Support": "Choisissez une communication calme, respectueuse et rassurante.",
+        "Dignity & Resident Rights": "Protegez la vie privee, le choix, la dignite et les droits du resident.",
+        "Environment & Safety": "Reperez les dangers dans la chambre et l'environnement.",
+        "Infection Control": "Prevenez la contamination et reduisez la propagation des germes.",
+        "Mobility & Positioning": "Gardez le resident en securite pendant le deplacement, le transfert et le positionnement.",
+        "Observation & Safety": "Reconnaissez les risques et les signes d'alerte avant que la situation ne s'aggrave.",
+        "Personal Care & Comfort": "Soutenez le confort et les soins quotidiens appropries.",
+        "Scope of Practice & Reporting": "Sachez quoi faire, quoi ne pas faire et ce qui doit etre signale.",
+      },
+      ht: {
+        "Change in Condition": "Remake le yon bagay vin nouvo, pi mal, oswa bay enkyetid.",
+        "Communication & Emotional Support": "Chwazi yon kominikasyon kalm, respekte, ak soutni.",
+        "Dignity & Resident Rights": "Pwoteje vi prive, chwa, diyite, ak dwa rezidan an.",
+        "Environment & Safety": "Veye danje ki nan chanm nan ak nan anviwonman an.",
+        "Infection Control": "Anpeche kontaminasyon epi diminye pwopagasyon mikwob yo.",
+        "Mobility & Positioning": "Kenbe rezidan an an sekirite pandan mouvman, transfere, ak pozisyonman.",
+        "Observation & Safety": "Rekonet risk ak siy avetisman anvan sitiyasyon an vin pi mal.",
+        "Personal Care & Comfort": "Soutni konfo ak bon swen chak jou.",
+        "Scope of Practice & Reporting": "Konnen sa pou fe, sa pou pa fe, ak sa pou rapote.",
+      },
+    }[lang]?.[cat] || "";
+  }
 
   const categories = [
     {
@@ -485,6 +559,9 @@ function DraftInner() {
     },
   ];
 
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+  const activeCategory = categories[activeCategoryIndex] || categories[0];
+
   return (
     <Frame
       title={t(
@@ -581,204 +658,36 @@ function DraftInner() {
           </div>
         </SectionCard>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
-            gap: "16px",
-          }}
-        >
-          <SectionCard
-            title={t("Chapters", "Capitulos", "Chapitres", "Chapit")}
-            tint="white"
-          >
-            <MiniBullet
-              text={t(
-                "Help you study by official topic area.",
-                "Le ayudan a estudiar por area oficial de contenido.",
-                "Vous aident a etudier par domaine officiel.",
-                "Yo ede ou etidye pa sijè ofisyèl yo."
-              )}
-            />
-            <MiniBullet
-              text={t(
-                "Match the CNA blueprint and your book structure.",
-                "Coinciden con la estructura del examen CNA y de su libro.",
-                "Correspondent a la structure de l'examen CNA et de votre livre.",
-                "Yo mache ak plan egzamen CNA a ak estrikti liv ou."
-              )}
-            />
-            <MiniBullet
-              text={t(
-                "Best when you want to review a content area.",
-                "Son mejores cuando quiere repasar un area de contenido.",
-                "Sont plus utiles quand vous voulez revoir un domaine de contenu.",
-                "Yo pi bon lè ou vle revize yon zòn kontni."
-              )}
-            />
-          </SectionCard>
-
-          <SectionCard
-            title={t("Categories", "Categorias", "Categories", "Kategori")}
-            tint="white"
-          >
-            <MiniBullet
-              text={t(
-                "Help you study the kind of decision the question is testing.",
-                "Le ayudan a estudiar el tipo de decision que la pregunta esta evaluando.",
-                "Vous aident a etudier le type de decision que la question evalue.",
-                "Yo ede ou etidye kalite desizyon kestyon an ap teste."
-              )}
-            />
-            <MiniBullet
-              text={t(
-                "Show patterns in the mistakes you make.",
-                "Muestran patrones en los errores que usted comete.",
-                "Montrent les tendances dans les erreurs que vous faites.",
-                "Yo montre modèl nan erè ou fè yo."
-              )}
-            />
-            <MiniBullet
-              text={t(
-              "Best when you want to improve CNA judgment before acting.",
-              "Son mejores cuando quiere mejorar el juicio clinico de CNA antes de actuar.",
-              "Sont plus utiles quand vous voulez ameliorer votre jugement CNA avant d'agir.",
-                "Yo pi bon lè ou vle amelyore jijman CNA anvan ou aji."
-              )}
-            />
-          </SectionCard>
-        </div>
-
         <SectionCard
           title={t(
-            "Why they matter",
-            "Por que importan",
-            "Pourquoi elles sont importantes",
-            "Poukisa yo enpotan"
+            "How categories help you use the platform",
+            "Como le ayudan las categorias a usar la plataforma",
+            "Comment les categories vous aident a utiliser la plateforme",
+            "Kijan kategori yo ede ou itilize platfom nan"
           )}
         >
           <MiniBullet
             text={t(
-              "They help you notice important clues.",
-              "Le ayudan a notar pistas importantes.",
-              "Elles vous aident a remarquer des indices importants.",
-              "Yo ede ou remake siy enpotan yo."
+              "They help you see what kind of CNA decision a question is testing, not only the topic it came from.",
+              "Le ayudan a ver que tipo de decision de CNA esta evaluando una pregunta, no solo el tema del que viene.",
+              "Elles vous aident a voir quel type de decision CNA une question evalue, pas seulement le sujet dont elle vient.",
+              "Yo ede ou wè ki kalite desizyon CNA yon kestyon ap teste, pa sèlman sijè li soti ladan l."
             )}
           />
           <MiniBullet
             text={t(
-              "They help you use safe logic instead of only memorizing answers.",
-              "Le ayudan a usar una logica segura en lugar de solo memorizar respuestas.",
-              "Elles vous aident a utiliser une logique sure au lieu de seulement memoriser les reponses.",
-              "Yo ede ou itilize yon lojik ki an sekirite olye ou selman memorize repons yo."
+              "They help you notice patterns in the kinds of mistakes you make, so weak areas are easier to recognize.",
+              "Le ayudan a notar patrones en los tipos de errores que usted comete, para reconocer mas facilmente las areas debiles.",
+              "Elles vous aident a remarquer des tendances dans les types d'erreurs que vous faites, afin de reconnaitre plus facilement les points faibles.",
+              "Yo ede ou remake modèl nan kalite erè ou fè yo, pou li pi fasil wè zòn ki fèb yo."
             )}
           />
           <MiniBullet
             text={t(
-              "They help you stay within the nurse aide role.",
-              "Le ayudan a mantenerse dentro del rol del auxiliar.",
-              "Elles vous aident a rester dans le role de l'aide-soignant.",
-              "Yo ede ou rete nan wol CNA a."
-            )}
-          />
-          <MiniBullet
-            text={t(
-              "They help you choose safer answers with more confidence.",
-              "Le ayudan a elegir respuestas mas seguras y con mas confianza.",
-              "Elles vous aident a choisir des reponses plus sures avec plus d'assurance.",
-              "Yo ede ou chwazi repons ki pi an sekirite ak plis konfyans."
-            )}
-          />
-        </SectionCard>
-
-        <SectionCard
-          title={t(
-            "How categories help in this platform",
-            "Como ayudan las categorias en esta plataforma",
-            "Comment les categories vous aident dans cette plateforme",
-            "Kijan kategori yo ede nan platfom sa a"
-          )}
-        >
-          <MiniBullet
-            text={t(
-              "In Practice: choose a category when you want to train one kind of CNA decision at a time.",
-              "En Practica: elija una categoria cuando quiera practicar un tipo de decision de CNA a la vez.",
-              "En pratique : choisissez une categorie lorsque vous voulez entrainer un type de decision CNA a la fois.",
-              "Nan Pratik: chwazi yon kategori lè ou vle antrene yon sèl kalite desizyon CNA a la fwa."
-            )}
-          />
-          <MiniBullet
-            text={t(
-              "In Analytics: categories show the kinds of decisions you missed most often, not just the chapters you should review.",
-              "En Analitica: las categorias muestran los tipos de decisiones que usted falla con mas frecuencia, no solo los capitulos que debe repasar.",
-              "Dans l'analyse : les categories montrent les types de decisions que vous manquez le plus souvent, pas seulement les chapitres a revoir.",
-              "Nan Analiz: kategori yo montre kalite desizyon ou te rate pi souvan yo, pa sèlman chapit ou dwe revize yo."
-            )}
-          />
-          <MiniBullet
-            text={t(
-              "In Remediation: categories guide the next targeted set of questions so you can strengthen the decision pattern behind the mistake.",
-              "En Remediacion: las categorias guian el siguiente grupo de preguntas dirigidas para fortalecer el patron de decision que esta detras del error.",
-              "En remediation : les categories guident le prochain groupe cible de questions afin de renforcer le schema de decision qui se trouve derriere l'erreur.",
-              "Nan Remedyasyon: kategori yo gide pwochen gwoup kestyon yo pou ranfòse modèl desizyon ki dèyè erè a."
-            )}
-          />
-        </SectionCard>
-
-        <SectionCard
-          title={t(
-            "How to use them",
-            "Como usarlas",
-            "Comment les utiliser",
-            "Kijan pou itilize yo"
-          )}
-        >
-          <MiniBullet
-            text={t(
-              "Look for the main clue in the question.",
-              "Busque la pista principal en la pregunta.",
-              "Cherchez l'indice principal dans la question.",
-              "Chache siy prensipal la nan kestyon an."
-            )}
-          />
-          <MiniBullet
-            text={t(
-              "Ask what kind of problem or decision the question is testing.",
-              "Preguntese que tipo de problema o decision esta evaluando la pregunta.",
-              "Demandez-vous quel type de probleme ou de decision la question evalue.",
-              "Mande tet ou ki kalite pwoblem oswa desizyon kestyon an ap teste."
-            )}
-          />
-          <MiniBullet
-            text={t(
-              "Identify which category best fits the question.",
-              "Identifique que categoria se ajusta mejor a la pregunta.",
-              "Identifiez quelle categorie correspond le mieux a la question.",
-              "Idantifye ki kategori ki pi byen mache ak kestyon an."
-            )}
-          />
-          <MiniBullet
-            text={t(
-              "Think about the safest next step.",
-              "Piense en el siguiente paso mas seguro.",
-              "Pensez a l'etape suivante la plus sure.",
-              "Reflechi sou pwochen etap ki pi an sekirite a."
-            )}
-          />
-          <MiniBullet
-            text={t(
-              "Ask whether you should do it, report it, or watch closely.",
-              "Preguntese si debe hacerlo, reportarlo o vigilarlo de cerca.",
-              "Demandez-vous si vous devez le faire, le signaler ou l'observer de pres.",
-              "Mande tet ou si ou dwe fe li, rapote li, oswa siveye li byen pre."
-            )}
-          />
-          <MiniBullet
-            text={t(
-              "Choose the answer that best protects the resident.",
-              "Elija la respuesta que mejor protege al residente.",
-              "Choisissez la reponse qui protege le mieux le resident.",
-              "Chwazi repons ki pi byen pwoteje rezidan an."
+              "In this platform, categories help guide practice, show what needs more review, and shape what to work on next.",
+              "En esta plataforma, las categorias ayudan a guiar la practica, mostrar lo que necesita mas repaso y orientar en que trabajar despues.",
+              "Dans cette plateforme, les categories aident a guider la pratique, a montrer ce qui a besoin de plus de revision et a orienter le travail suivant.",
+              "Nan platfòm sa a, kategori yo ede gide pratik, montre sa ki bezwen plis revizyon, epi montre sou kisa pou travay apre."
             )}
           />
         </SectionCard>
@@ -816,25 +725,62 @@ function DraftInner() {
         <SectionCard
           title={t("The 9 categories", "Las 9 categorias", "Les 9 categories", "9 kategori yo")}
         >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
-              gap: "14px",
-            }}
-          >
-            {categories.map((category) => (
-              <CategoryTile
-                key={`${category.name}-${isNarrow ? "narrow" : "wide"}`}
-                name={category.name}
-                meaning={category.meaning}
-                clues={category.clues}
-                why={category.why}
-                isNarrow={isNarrow}
-                labels={categoryLabels}
-              />
-            ))}
-          </div>
+          {isNarrow ? (
+            <div style={{ display: "grid", gap: "10px" }}>
+              {categories.map((category) => (
+                <CategoryMobileTile
+                  key={category.name}
+                  category={category}
+                  labels={categoryLabels}
+                  supportText={categorySupportLabel(category.name)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: "14px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                {categories.map((category, index) => (
+                  <CategoryButton
+                    key={category.name}
+                    label={category.name}
+                    active={index === activeCategoryIndex}
+                    onClick={() => setActiveCategoryIndex(index)}
+                  />
+                ))}
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid var(--chrome-border)",
+                  borderRadius: "16px",
+                  background: "white",
+                  padding: "18px",
+                  display: "grid",
+                  gap: "10px",
+                }}
+              >
+                <div style={{ fontSize: 18, fontWeight: 800, color: "var(--heading)", lineHeight: 1.25 }}>
+                  {activeCategory.name}
+                </div>
+                <div style={{ color: "#456173", lineHeight: 1.65, fontSize: 14 }}>{activeCategory.meaning}</div>
+                <div style={{ color: "#315061", fontSize: 13, lineHeight: 1.6 }}>
+                  <strong>{categoryLabels.commonClues}:</strong> {activeCategory.clues}
+                </div>
+                <div style={{ color: "#315061", fontSize: 13, lineHeight: 1.6 }}>
+                  <strong>{categoryLabels.askYourself}:</strong> {categorySupportLabel(activeCategory.name)}
+                </div>
+                <div style={{ color: "#315061", fontSize: 13, lineHeight: 1.6 }}>
+                  <strong>{categoryLabels.whyItHelps}:</strong> {activeCategory.why}
+                </div>
+              </div>
+            </div>
+          )}
         </SectionCard>
       </div>
     </Frame>

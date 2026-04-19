@@ -60,6 +60,7 @@ function CategoriesInner() {
   const source = sp.get("src") || "exam";
   const [isNarrow, setIsNarrow] = useState(false);
   const [openCategoryId, setOpenCategoryId] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(1);
 
   useEffect(() => {
     let granted = false;
@@ -261,22 +262,24 @@ function CategoriesInner() {
   const detailsStyle = {
     border: `2px solid ${theme.primaryBg}`,
     borderRadius: "16px",
-    padding: isNarrow ? "16px" : "18px",
+    padding: isNarrow ? "14px 16px" : "18px",
     background: "white",
     boxShadow: "0 10px 24px rgba(31, 52, 74, 0.08)",
   };
 
   const summaryStyle = {
     cursor: "pointer",
+    listStyle: "none",
     fontWeight: 800,
-    fontSize: isNarrow ? "15px" : "16px",
+    fontSize: isNarrow ? "16px" : "16px",
     outline: "none",
     color: "var(--heading)",
-    lineHeight: 1.4,
+    lineHeight: 1.25,
+    display: "block",
   };
 
   const subhead = {
-    marginTop: 14,
+    marginTop: isNarrow ? 12 : 14,
     marginBottom: 6,
     fontSize: 14,
     fontWeight: 800,
@@ -285,7 +288,7 @@ function CategoriesInner() {
 
   const bodyText = {
     color: "#385164",
-    lineHeight: 1.7,
+    lineHeight: isNarrow ? 1.65 : 1.7,
     fontSize: 14,
   };
 
@@ -710,6 +713,8 @@ const categories = [
       ),
     },
   };
+  const activeCategory = categoryById[selectedCategoryId] || categoryById[orderedCategoryIds[0]];
+  const activeExpanded = expandedCategoryContent[selectedCategoryId] || {};
 
   return (
     <Frame
@@ -892,58 +897,115 @@ const categories = [
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isNarrow ? "1fr" : "repeat(2, minmax(0, 1fr))",
-            gap: 12,
-          }}
-        >
-          {orderedCategoryIds.map((categoryId) => {
-            const category = categoryById[categoryId];
-            const expanded = expandedCategoryContent[categoryId] || {};
-            if (!category) return null;
-            return (
-              <div key={`direct-${category.id}`}>
-                <details
-                  style={detailsStyle}
-                  data-category={String(category.id)}
-                  onToggle={(e) => handleToggle(category.id, e)}
-                >
-                  <summary style={summaryStyle}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                      <div>{`${category.id}. ${category.title}`}</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>
-                        {openCategoryId === category.id
-                          ? isNarrow
+        {isNarrow ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr",
+              gap: 12,
+            }}
+          >
+            {orderedCategoryIds.map((categoryId) => {
+              const category = categoryById[categoryId];
+              const expanded = expandedCategoryContent[categoryId] || {};
+              if (!category) return null;
+              return (
+                <div key={`direct-${category.id}`}>
+                  <details
+                    style={detailsStyle}
+                    data-category={String(category.id)}
+                    onToggle={(e) => handleToggle(category.id, e)}
+                  >
+                    <summary style={summaryStyle}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                        <div>{`${category.id}. ${category.title}`}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#607282", whiteSpace: "nowrap" }}>
+                          {openCategoryId === category.id
                             ? t("Tap to close", "Toque para cerrar", "Touchez pour fermer", "Peze pou femen")
-                            : t("Click to close", "Haga clic para cerrar", "Cliquez pour fermer", "Klike pou femen")
-                          : isNarrow
-                            ? t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")
-                            : t("Click to open", "Haga clic para abrir", "Cliquez pour ouvrir", "Klike pou louvri")}
+                            : t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")}
+                        </div>
                       </div>
-                    </div>
-                  </summary>
+                    </summary>
 
-                  <div style={{ ...bodyText, marginTop: 10 }}>{expanded.description || category.description}</div>
+                    <div style={bodyText}>{expanded.description || category.description}</div>
 
-                  {expanded.clues ? (
-                    <>
-                      <div style={subhead}>{t("Common clues", "Pistas comunes", "Indices frequents", "Siy komen")}</div>
-                      <div style={bodyText}>{expanded.clues}</div>
-                    </>
-                  ) : null}
+                    {expanded.clues ? (
+                      <>
+                        <div style={subhead}>{t("Common clues", "Pistas comunes", "Indices frequents", "Siy komen")}</div>
+                        <div style={bodyText}>{expanded.clues}</div>
+                      </>
+                    ) : null}
 
-                  <div style={subhead}>{t("Ask yourself", "Preguntese", "Posez-vous la question", "Mande tet ou")}</div>
-                  <div style={bodyText}>{category.ask}</div>
+                    <div style={subhead}>{t("Ask yourself", "Preguntese", "Posez-vous la question", "Mande tet ou")}</div>
+                    <div style={bodyText}>{category.ask}</div>
 
-                  <div style={subhead}>{t("Why this category helps", "Por que esta categoria ayuda", "Pourquoi cette categorie aide", "Poukisa kategori sa a ede")}</div>
-                  <div style={bodyText}>{expanded.why || category.why}</div>
-                </details>
+                    <div style={subhead}>{t("Why this category helps", "Por que esta categoria ayuda", "Pourquoi cette categorie aide", "Poukisa kategori sa a ede")}</div>
+                    <div style={bodyText}>{expanded.why || category.why}</div>
+                  </details>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 14 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: 10,
+              }}
+            >
+              {orderedCategoryIds.map((categoryId) => {
+                const category = categoryById[categoryId];
+                if (!category) return null;
+                const active = selectedCategoryId === categoryId;
+                return (
+                  <button
+                    key={`desktop-${category.id}`}
+                    type="button"
+                    onClick={() => setSelectedCategoryId(categoryId)}
+                    style={{
+                      border: active ? "1px solid var(--brand-teal)" : "1px solid var(--chrome-border)",
+                      borderRadius: "16px",
+                      background: active ? "var(--brand-teal-soft)" : "white",
+                      padding: "12px 14px",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: active ? "var(--brand-teal-dark)" : "var(--heading)",
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {`${category.id}. ${category.title}`}
+                  </button>
+                );
+              })}
+            </div>
+
+            {activeCategory ? (
+              <div style={detailsStyle}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "var(--heading)", lineHeight: 1.25 }}>
+                  {`${activeCategory.id}. ${activeCategory.title}`}
+                </div>
+                <div style={bodyText}>{activeExpanded.description || activeCategory.description}</div>
+
+                {activeExpanded.clues ? (
+                  <>
+                    <div style={subhead}>{t("Common clues", "Pistas comunes", "Indices frequents", "Siy komen")}</div>
+                    <div style={bodyText}>{activeExpanded.clues}</div>
+                  </>
+                ) : null}
+
+                <div style={subhead}>{t("Ask yourself", "Preguntese", "Posez-vous la question", "Mande tet ou")}</div>
+                <div style={bodyText}>{activeCategory.ask}</div>
+
+                <div style={subhead}>{t("Why this category helps", "Por que esta categoria ayuda", "Pourquoi cette categorie aide", "Poukisa kategori sa a ede")}</div>
+                <div style={bodyText}>{activeExpanded.why || activeCategory.why}</div>
               </div>
-            );
-          })}
-        </div>
+            ) : null}
+          </div>
+        )}
 
         {false && frameworkGroups.map((group, groupIndex) => {
           const groupCategories = group.items.map((categoryId, index) => {
@@ -958,7 +1020,7 @@ const categories = [
                 >
                   <summary style={summaryStyle}>{`${category.id}. ${category.title}`}</summary>
 
-                  <div style={{ ...bodyText, marginTop: 10 }}>{category.description}</div>
+                  <div style={bodyText}>{category.description}</div>
 
                   <div style={subhead}>{t("Ask yourself", "Preguntese", "Posez-vous la question", "Mande tet ou")}</div>
                   <div style={bodyText}>{category.ask}</div>

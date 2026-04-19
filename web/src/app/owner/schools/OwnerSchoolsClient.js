@@ -205,8 +205,11 @@ export default function OwnerSchoolsClient() {
   const [overview, setOverview] = useState(null);
   const [schoolForm, setSchoolForm] = useState({ id: "", name: "", slug: "" });
   const [classForm, setClassForm] = useState({ id: "", schoolId: "", name: "" });
-  const [openSchoolPanels, setOpenSchoolPanels] = useState({});
+  const [openSchoolId, setOpenSchoolId] = useState("");
   const [openClassPanels, setOpenClassPanels] = useState({});
+  const [openRosterPanels, setOpenRosterPanels] = useState({});
+  const [openCodePanels, setOpenCodePanels] = useState({});
+  const [openRedemptionPanels, setOpenRedemptionPanels] = useState({});
 
   async function loadOverview() {
     setLoading(true);
@@ -261,22 +264,14 @@ export default function OwnerSchoolsClient() {
     [accessCodes]
   );
 
-  const accessCodesById = useMemo(
-    () => Object.fromEntries(accessCodes.map((item) => [item.id, item])),
-    [accessCodes]
-  );
-
-  const classRedemptionsByClassId = useMemo(
+  const redemptionsByCodeId = useMemo(
     () =>
       redemptions.reduce((acc, row) => {
-        const code = accessCodesById[row.access_code_id];
-        const classGroupId = code?.class_group_id;
-        if (!classGroupId) return acc;
-        if (!acc[classGroupId]) acc[classGroupId] = [];
-        acc[classGroupId].push(row);
+        if (!acc[row.access_code_id]) acc[row.access_code_id] = [];
+        acc[row.access_code_id].push(row);
         return acc;
       }, {}),
-    [redemptions, accessCodesById]
+    [redemptions]
   );
 
   useEffect(() => {
@@ -287,13 +282,13 @@ export default function OwnerSchoolsClient() {
     }
 
     if (schoolId) {
-      setOpenSchoolPanels((prev) => ({ ...prev, [schoolId]: true }));
+      setOpenSchoolId(schoolId);
     }
 
     if (classId) {
       const matchedClass = classGroups.find((item) => item.id === classId);
       if (matchedClass?.school_id) {
-        setOpenSchoolPanels((prev) => ({ ...prev, [matchedClass.school_id]: true }));
+        setOpenSchoolId(matchedClass.school_id);
       }
       setOpenClassPanels((prev) => ({ ...prev, [classId]: true }));
     }
@@ -350,8 +345,8 @@ export default function OwnerSchoolsClient() {
   }
 
   function toggleSchoolPanel(schoolId) {
-    const nextOpen = !openSchoolPanels[schoolId];
-    setOpenSchoolPanels((prev) => ({ ...prev, [schoolId]: nextOpen }));
+    const nextOpen = openSchoolId !== schoolId;
+    setOpenSchoolId(nextOpen ? schoolId : "");
 
     if (!nextOpen) {
       const classIds = (classGroupsBySchool[schoolId] || []).map((item) => item.id);
@@ -359,6 +354,63 @@ export default function OwnerSchoolsClient() {
         const next = { ...prev };
         classIds.forEach((id) => {
           next[id] = false;
+        });
+        return next;
+      });
+      setOpenRosterPanels((prev) => {
+        const next = { ...prev };
+        classIds.forEach((id) => {
+          next[id] = false;
+        });
+        return next;
+      });
+      setOpenCodePanels((prev) => {
+        const next = { ...prev };
+        classIds.forEach((id) => {
+          next[id] = false;
+        });
+        return next;
+      });
+      setOpenRedemptionPanels((prev) => {
+        const next = { ...prev };
+        classIds.forEach((id) => {
+          (accessCodesByClassId[id] || []).forEach((code) => {
+            next[code.id] = false;
+          });
+        });
+        return next;
+      });
+    } else {
+      const otherSchoolIds = schools.map((item) => item.id).filter((id) => id !== schoolId);
+      const otherClassIds = otherSchoolIds.flatMap((id) => (classGroupsBySchool[id] || []).map((item) => item.id));
+
+      setOpenClassPanels((prev) => {
+        const next = { ...prev };
+        otherClassIds.forEach((id) => {
+          next[id] = false;
+        });
+        return next;
+      });
+      setOpenRosterPanels((prev) => {
+        const next = { ...prev };
+        otherClassIds.forEach((id) => {
+          next[id] = false;
+        });
+        return next;
+      });
+      setOpenCodePanels((prev) => {
+        const next = { ...prev };
+        otherClassIds.forEach((id) => {
+          next[id] = false;
+        });
+        return next;
+      });
+      setOpenRedemptionPanels((prev) => {
+        const next = { ...prev };
+        otherClassIds.forEach((id) => {
+          (accessCodesByClassId[id] || []).forEach((code) => {
+            next[code.id] = false;
+          });
         });
         return next;
       });
@@ -376,7 +428,7 @@ export default function OwnerSchoolsClient() {
           <div style={{ display: "grid", gap: 4 }}>
             <div style={title}>Manage Schools</div>
             <div style={subText}>
-              This lane is school-centered: open a school, then drill into its classes, their codes, and the student activity tied to them.
+              This lane is school-centered: open a school, then drill into its classes, codes, and reports.
             </div>
           </div>
           <Link href="/owner" style={buttonSecondary}>
@@ -470,6 +522,44 @@ export default function OwnerSchoolsClient() {
                       Cancel
                     </button>
                   </div>
+                  <div
+                    style={{
+                      borderTop: "1px solid var(--chrome-border)",
+                      paddingTop: 12,
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 15 }}>Class management</div>
+                    <HelperText>
+                      Use these actions when you need to empty the roster or remove the class after it is no longer in use.
+                    </HelperText>
+                    <div style={actionsRow}>
+                      <button
+                        style={buttonSecondary}
+                        disabled={busy}
+                        onClick={() =>
+                          runClassAction(async () => {
+                            await clearOwnerClassEnrollments(classForm.id);
+                          }, "Class enrollments cleared.")
+                        }
+                      >
+                        Clear enrollments
+                      </button>
+                      <button
+                        style={buttonSecondary}
+                        disabled={busy}
+                        onClick={() =>
+                          runClassAction(async () => {
+                            await deleteOwnerClassGroup(classForm.id);
+                            resetClassForm();
+                          }, "Class deleted.")
+                        }
+                      >
+                        Delete class
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -484,7 +574,7 @@ export default function OwnerSchoolsClient() {
                   key={school.id}
                   id={`owner-school-${school.id}`}
                   style={listCard}
-                  open={!!openSchoolPanels[school.id]}
+                  open={openSchoolId === school.id}
                 >
                   <summary
                     style={{ cursor: "pointer", listStyle: "none" }}
@@ -495,7 +585,7 @@ export default function OwnerSchoolsClient() {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
                       <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 17 }}>{school.name}</div>
-                      <HintText isOpen={!!openSchoolPanels[school.id]} />
+                      <HintText isOpen={openSchoolId === school.id} />
                     </div>
                   </summary>
 
@@ -567,6 +657,38 @@ export default function OwnerSchoolsClient() {
                             <div style={actionsRow}>
                               <button
                                 style={buttonSecondary}
+                                onClick={() =>
+                                  setOpenRosterPanels((prev) => ({
+                                    ...prev,
+                                    [item.id]: !prev[item.id],
+                                  }))
+                                }
+                              >
+                                {openRosterPanels[item.id] ? "Close class roster" : "Class roster"}
+                              </button>
+                              <Link
+                                href={`/owner/reports?scope=class&class_group_id=${encodeURIComponent(
+                                  item.id
+                                )}&school_id=${encodeURIComponent(school.id)}&class_name=${encodeURIComponent(
+                                  item.name || ""
+                                )}&lang=en&from=schools`}
+                                style={buttonSecondary}
+                              >
+                                Class report
+                              </Link>
+                              <button
+                                style={buttonSecondary}
+                                onClick={() =>
+                                  setOpenCodePanels((prev) => ({
+                                    ...prev,
+                                    [item.id]: !prev[item.id],
+                                  }))
+                                }
+                              >
+                                {openCodePanels[item.id] ? "Close access code" : "Access code"}
+                              </button>
+                              <button
+                                style={buttonSecondary}
                                 disabled={busy}
                                 onClick={() =>
                                   setClassForm({
@@ -578,93 +700,99 @@ export default function OwnerSchoolsClient() {
                               >
                                 Edit class
                               </button>
-                              <Link
-                                href={`/owner/reports?scope=class&class_group_id=${encodeURIComponent(
-                                  item.id
-                                )}&school_id=${encodeURIComponent(school.id)}&class_name=${encodeURIComponent(
-                                  item.name || ""
-                                )}&lang=en&from=schools`}
-                                style={buttonSecondary}
-                              >
-                                View class report
-                              </Link>
-                              <button
-                                style={buttonSecondary}
-                                disabled={busy}
-                                onClick={() =>
-                                  runClassAction(async () => {
-                                    await clearOwnerClassEnrollments(item.id);
-                                  }, "Class enrollments cleared.")
-                                }
-                              >
-                                Clear enrollments
-                              </button>
-                              <button
-                                style={buttonSecondary}
-                                disabled={busy}
-                                onClick={() =>
-                                  runClassAction(async () => {
-                                    await deleteOwnerClassGroup(item.id);
-                                  }, "Class deleted.")
-                                }
-                              >
-                                Delete class
-                              </button>
                             </div>
 
-                            {(accessCodesByClassId[item.id] || []).length ? (
-                              <div style={{ display: "grid", gap: 8 }}>
-                                <div style={listMeta}>Class access codes</div>
-                                {(accessCodesByClassId[item.id] || []).map((code) => (
-                                  <div key={code.id} style={{ ...listCard, background: "#f9fcfe" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>{code.code}</div>
-                                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                        <span style={chip}>{code.status}</span>
-                                        <span style={chip}>{code.redemption_count} redemptions</span>
+                            {openRosterPanels[item.id] ? (
+                              item.roster?.length ? (
+                                <div style={{ display: "grid", gap: 8 }}>
+                                  {item.roster.map((row) => (
+                                    <div key={row.id} style={{ ...listCard, background: "#f9fcfe" }}>
+                                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                        {row.user?.full_name || row.user?.email || row.user_id}
+                                      </div>
+                                      <div style={listMeta}>
+                                        {row.user?.email || "No email on file"} | {row.status || "active"}
+                                      </div>
+                                      <div style={actionsRow}>
+                                        <Link
+                                          href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
+                                            row.user_id
+                                          )}&school_id=${encodeURIComponent(school.id)}&class_group_id=${encodeURIComponent(
+                                            item.id
+                                          )}&class_name=${encodeURIComponent(
+                                            item.name || ""
+                                          )}&lang=en&from=schools`}
+                                          style={buttonSecondary}
+                                        >
+                                          View student report
+                                        </Link>
                                       </div>
                                     </div>
-                                    <div style={listMeta}>
-                                      {code.max_redemptions != null ? `Limit ${code.max_redemptions}` : "Unlimited redemptions"}
-                                    </div>
-                                    <div style={actionsRow}>
-                                      <Link href="/owner/codes" style={buttonSecondary}>
-                                        Manage code
-                                      </Link>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div style={listMeta}>No enrolled students.</div>
+                              )
                             ) : null}
 
-                            {(classRedemptionsByClassId[item.id] || []).length ? (
-                              <div style={{ display: "grid", gap: 8 }}>
-                                <div style={listMeta}>Recent class redemptions</div>
-                                {(classRedemptionsByClassId[item.id] || []).slice(0, 6).map((row) => (
-                                  <div key={row.id} style={{ ...listCard, background: "#f9fcfe" }}>
-                                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                                      {row.user?.full_name || row.user?.email || row.user_id}
-                                    </div>
-                                    <div style={listMeta}>
-                                      Code redemption on {new Date(row.redeemed_at || row.created_at).toLocaleString()}
-                                    </div>
-                                    <div style={actionsRow}>
-                                      <Link
-                                        href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
-                                          row.user_id
-                                        )}&school_id=${encodeURIComponent(school.id)}&class_group_id=${encodeURIComponent(
-                                          item.id
-                                        )}&class_name=${encodeURIComponent(
-                                          item.name || ""
-                                        )}&lang=en&from=schools`}
-                                        style={buttonSecondary}
-                                      >
-                                        View student report
-                                      </Link>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                            {openCodePanels[item.id] ? (
+                              (accessCodesByClassId[item.id] || []).length ? (
+                                <div style={{ display: "grid", gap: 8 }}>
+                                  {(accessCodesByClassId[item.id] || []).map((code) => {
+                                    const codeTarget = `/owner/codes?type=class&code_id=${encodeURIComponent(code.id)}`;
+                                    const codeRedemptions = redemptionsByCodeId[code.id] || [];
+
+                                    return (
+                                      <div key={code.id} style={{ ...listCard, background: "#f9fcfe" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                                          <div style={{ fontWeight: 800, color: "var(--heading)" }}>{code.code}</div>
+                                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                            <span style={chip}>{code.status}</span>
+                                            <span style={chip}>
+                                              {code.redemption_count} redemption{code.redemption_count === 1 ? "" : "s"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div style={listMeta}>
+                                          {code.max_redemptions != null ? `Limit ${code.max_redemptions}` : "Unlimited redemptions"}
+                                        </div>
+                                        <div style={actionsRow}>
+                                          <button
+                                            style={buttonSecondary}
+                                            onClick={() =>
+                                              setOpenRedemptionPanels((prev) => ({
+                                                ...prev,
+                                                [code.id]: !prev[code.id],
+                                              }))
+                                            }
+                                          >
+                                            {openRedemptionPanels[code.id] ? "Close redemptions" : "Recent redemptions"}
+                                          </button>
+                                          <Link href={codeTarget} style={buttonSecondary}>
+                                            Manage code
+                                          </Link>
+                                        </div>
+                                        {openRedemptionPanels[code.id] ? (
+                                          codeRedemptions.length ? (
+                                            <div style={{ display: "grid", gap: 6 }}>
+                                              {codeRedemptions.slice(0, 6).map((row) => (
+                                                <div key={row.id} style={listMeta}>
+                                                  {row.user?.full_name || row.user?.email || row.user_id} |{" "}
+                                                  {new Date(row.redeemed_at || row.created_at).toLocaleString()}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            <div style={listMeta}>No redemptions yet.</div>
+                                          )
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div style={listMeta}>No access code has been created for this class yet.</div>
+                              )
                             ) : null}
                           </div>
                         </details>

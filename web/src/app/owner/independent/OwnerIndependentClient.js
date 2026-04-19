@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { fetchOwnerOverview } from "../../lib/backend/auth/browserAuth";
+import { assignOwnerStudentToClass, fetchOwnerOverview } from "../../lib/backend/auth/browserAuth";
 
 const EMPTY_ITEMS = [];
 
@@ -67,23 +67,33 @@ const buttonSecondary = {
   justifyContent: "center",
 };
 
+const buttonPrimary = {
+  ...buttonSecondary,
+  background: "#fff1f0",
+  border: "1px solid #d48c86",
+  color: "#a22b25",
+};
+
 const statGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 6,
 };
 
 const statCard = {
   border: "1px solid #d6e1e8",
-  borderRadius: 14,
+  borderRadius: 10,
   background: "var(--surface-soft)",
-  padding: "10px 12px",
-  display: "grid",
-  gap: 4,
+  padding: "4px 8px",
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: 6,
+  whiteSpace: "nowrap",
 };
 
 const statLabel = {
-  fontSize: 11,
+  fontSize: 10,
   fontWeight: 700,
   letterSpacing: "0.05em",
   textTransform: "uppercase",
@@ -91,7 +101,7 @@ const statLabel = {
 };
 
 const statValue = {
-  fontSize: 22,
+  fontSize: 13,
   fontWeight: 800,
   color: "var(--heading)",
   lineHeight: 1.1,
@@ -131,6 +141,15 @@ const detailsBody = {
   padding: "0 12px 12px",
   display: "grid",
   gap: 8,
+};
+
+const input = {
+  width: "100%",
+  padding: "10px 11px",
+  borderRadius: 10,
+  border: "1px solid var(--chrome-border)",
+  fontSize: 14,
+  background: "white",
 };
 
 const summaryRow = {
@@ -181,8 +200,12 @@ export default function OwnerIndependentClient() {
   const [loading, setLoading] = useState(true);
   const [showLoadingNotice, setShowLoadingNotice] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [busyUserId, setBusyUserId] = useState("");
   const [overview, setOverview] = useState(null);
-  const [openStudents, setOpenStudents] = useState({});
+  const [openStudentId, setOpenStudentId] = useState("");
+  const [showAssignForms, setShowAssignForms] = useState({});
+  const [assignForms, setAssignForms] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -190,6 +213,7 @@ export default function OwnerIndependentClient() {
     void (async () => {
       setLoading(true);
       setError("");
+      setSuccess("");
       try {
         const payload = await fetchOwnerOverview();
         if (!cancelled) {
@@ -223,6 +247,8 @@ export default function OwnerIndependentClient() {
 
   const accessCodes = overview?.accessCodes ?? EMPTY_ITEMS;
   const redemptions = overview?.redemptions ?? EMPTY_ITEMS;
+  const schools = overview?.schools ?? EMPTY_ITEMS;
+  const classGroups = overview?.classGroups ?? EMPTY_ITEMS;
   const accessCodesById = useMemo(
     () => Object.fromEntries(accessCodes.map((item) => [item.id, item])),
     [accessCodes]
@@ -237,10 +263,28 @@ export default function OwnerIndependentClient() {
     [redemptions, accessCodesById]
   );
 
+  const enrolledUserIds = useMemo(
+    () =>
+      new Set(
+        classGroups.flatMap((group) =>
+          (group.roster || [])
+            .filter((row) => (row.status || "active") === "active")
+            .map((row) => row.user_id)
+            .filter(Boolean)
+        )
+      ),
+    [classGroups]
+  );
+
+  const currentIndependentRedemptions = useMemo(
+    () => independentRedemptions.filter((row) => !enrolledUserIds.has(row.user_id)),
+    [independentRedemptions, enrolledUserIds]
+  );
+
   const independentStudents = useMemo(() => {
     const byUser = {};
 
-    independentRedemptions.forEach((row) => {
+    currentIndependentRedemptions.forEach((row) => {
       if (!byUser[row.user_id]) {
         byUser[row.user_id] = {
           userId: row.user_id,
@@ -271,8 +315,8 @@ export default function OwnerIndependentClient() {
         ...item,
         codes: Array.from(item.codes),
       }))
-      .sort((a, b) => new Date(b.latestRedeemedAt).getTime() - new Date(a.latestRedeemedAt).getTime());
-  }, [independentRedemptions, accessCodesById]);
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  }, [currentIndependentRedemptions, accessCodesById]);
 
   const activeIndependentCodes = accessCodes.filter((item) => !item.class_group_id && item.status === "active").length;
 
@@ -282,7 +326,7 @@ export default function OwnerIndependentClient() {
       return;
     }
 
-    setOpenStudents((prev) => ({ ...prev, [studentId]: true }));
+    setOpenStudentId(studentId);
 
     const timer = window.setTimeout(() => {
       document.getElementById(`owner-student-${studentId}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -300,6 +344,20 @@ export default function OwnerIndependentClient() {
             <div style={subText}>
               Review independent student activity and open student reports.
             </div>
+            <div style={statGrid}>
+              <div style={statCard}>
+                <div style={statLabel}>Students</div>
+                <div style={statValue}>{independentStudents.length}</div>
+              </div>
+              <div style={statCard}>
+                <div style={statLabel}>Codes</div>
+                <div style={statValue}>{activeIndependentCodes}</div>
+              </div>
+              <div style={statCard}>
+                <div style={statLabel}>Uses</div>
+                <div style={statValue}>{currentIndependentRedemptions.length}</div>
+              </div>
+            </div>
           </div>
           <Link href="/owner" style={buttonSecondary}>
             Control Center
@@ -308,22 +366,8 @@ export default function OwnerIndependentClient() {
 
         <div style={body}>
           {error ? <InlineMessage tone="error">{error}</InlineMessage> : null}
+          {success ? <InlineMessage>{success}</InlineMessage> : null}
           {showLoadingNotice ? <InlineMessage>Loading independent students...</InlineMessage> : null}
-
-          <div style={statGrid}>
-            <div style={statCard}>
-              <div style={statLabel}>Independent students</div>
-              <div style={statValue}>{independentStudents.length}</div>
-            </div>
-            <div style={statCard}>
-              <div style={statLabel}>Active codes</div>
-              <div style={statValue}>{activeIndependentCodes}</div>
-            </div>
-            <div style={statCard}>
-              <div style={statLabel}>Redemptions</div>
-              <div style={statValue}>{independentRedemptions.length}</div>
-            </div>
-          </div>
 
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>Student activity</div>
@@ -334,18 +378,18 @@ export default function OwnerIndependentClient() {
                     key={student.userId}
                     id={`owner-student-${student.userId}`}
                     style={listCard}
-                    open={!!openStudents[student.userId]}
+                    open={openStudentId === student.userId}
                   >
                     <summary
                       style={detailsSummary}
                       onClick={(e) => {
                         e.preventDefault();
-                        setOpenStudents((prev) => ({ ...prev, [student.userId]: !prev[student.userId] }));
+                        setOpenStudentId((prev) => (prev === student.userId ? "" : student.userId));
                       }}
                     >
                       <div style={summaryRow}>
                         <div style={{ fontWeight: 800, color: "var(--heading)" }}>{student.name}</div>
-                        <OpenHint isOpen={!!openStudents[student.userId]} />
+                        <OpenHint isOpen={openStudentId === student.userId} />
                       </div>
                     </summary>
                     <div style={detailsBody}>
@@ -363,11 +407,128 @@ export default function OwnerIndependentClient() {
                           href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
                             student.userId
                           )}&student_id=${encodeURIComponent(student.userId)}&lang=en&from=independent`}
-                          style={buttonSecondary}
+                          style={buttonPrimary}
                         >
                           View student report
                         </Link>
+                        <button
+                          style={buttonSecondary}
+                          onClick={() =>
+                            setShowAssignForms((prev) => ({
+                              ...prev,
+                              [student.userId]: !prev[student.userId],
+                            }))
+                          }
+                        >
+                          {showAssignForms[student.userId] ? "Close class assignment" : "Assign to class"}
+                        </button>
                       </div>
+                      {showAssignForms[student.userId] ? (
+                        <div
+                          style={{
+                            border: "1px solid var(--chrome-border)",
+                            borderRadius: 12,
+                            background: "white",
+                            padding: 12,
+                            display: "grid",
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Assign to class</div>
+                          <div style={metaText}>
+                            Use this if an independent student later needs to be connected to a school class.
+                          </div>
+                          <label style={{ display: "grid", gap: 6 }}>
+                            <span style={statLabel}>School</span>
+                            <select
+                              style={input}
+                              value={assignForms[student.userId]?.schoolId || ""}
+                              onChange={(e) =>
+                                setAssignForms((prev) => ({
+                                  ...prev,
+                                  [student.userId]: {
+                                    schoolId: e.target.value,
+                                    classGroupId: "",
+                                  },
+                                }))
+                              }
+                            >
+                              <option value="">Select school</option>
+                              {schools.map((school) => (
+                                <option key={school.id} value={school.id}>
+                                  {school.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label style={{ display: "grid", gap: 6 }}>
+                            <span style={statLabel}>Class</span>
+                            <select
+                              style={input}
+                              disabled={!assignForms[student.userId]?.schoolId}
+                              value={assignForms[student.userId]?.classGroupId || ""}
+                              onChange={(e) =>
+                                setAssignForms((prev) => ({
+                                  ...prev,
+                                  [student.userId]: {
+                                    ...(prev[student.userId] || {}),
+                                    classGroupId: e.target.value,
+                                  },
+                                }))
+                              }
+                            >
+                              <option value="">
+                                {assignForms[student.userId]?.schoolId ? "Select class" : "Select school first"}
+                              </option>
+                              {classGroups
+                                .filter((item) => item.school_id === assignForms[student.userId]?.schoolId)
+                                .map((item) => (
+                                  <option key={item.id} value={item.id}>
+                                    {item.name}
+                                  </option>
+                                ))}
+                            </select>
+                          </label>
+                          <div style={actionsRow}>
+                            <button
+                              style={buttonSecondary}
+                              disabled={!assignForms[student.userId]?.classGroupId || busyUserId === student.userId}
+                              onClick={async () => {
+                                try {
+                                  setBusyUserId(student.userId);
+                                  setError("");
+                                  setSuccess("");
+                                  await assignOwnerStudentToClass({
+                                    userId: student.userId,
+                                    classGroupId: assignForms[student.userId]?.classGroupId,
+                                  });
+                                  setSuccess("Student assigned to class.");
+                                  setAssignForms((prev) => ({
+                                    ...prev,
+                                    [student.userId]: { schoolId: "", classGroupId: "" },
+                                  }));
+                                  setShowAssignForms((prev) => ({
+                                    ...prev,
+                                    [student.userId]: false,
+                                  }));
+                                  await (async () => {
+                                    setLoading(true);
+                                    const payload = await fetchOwnerOverview();
+                                    setOverview(payload);
+                                    setLoading(false);
+                                  })();
+                                } catch (nextError) {
+                                  setError(nextError instanceof Error ? nextError.message : "Unable to assign student.");
+                                } finally {
+                                  setBusyUserId("");
+                                }
+                              }}
+                            >
+                              Assign to class
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </details>
                 ))}

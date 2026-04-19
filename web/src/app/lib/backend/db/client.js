@@ -635,6 +635,26 @@ export async function loadAccessCodeByCode(code) {
   return data;
 }
 
+export async function loadAccessCodeRecord(accessCodeId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedId = String(accessCodeId || "").trim();
+  const { data, error } = await supabase
+    .from("access_codes")
+    .select("id, code, code_type, label, status, school_id, class_group_id, grants_access, max_redemptions, expires_at, metadata, created_at, updated_at")
+    .eq("id", normalizedId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase load access code record failed: ${error.message}`);
+  }
+
+  return data;
+}
+
 export async function loadAccessCodeRedemptionCount(accessCodeId) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {

@@ -3,8 +3,11 @@ import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
 import { getPublicAppUrl } from "@/app/lib/backend/config";
 import { getSupabaseServerClient } from "@/app/lib/backend/supabase/serverClient";
 import {
-  createManagedAuthUser,
+  createAccessCodeRedemption,
+  loadAccessCodeRecord,
+  loadAccessCodeRedemptionCount,
   upsertAppUser,
+  upsertClassGroupEnrollment,
   upsertSchoolStaff,
   upsertUserPreferences,
 } from "@/app/lib/backend/db/client";
@@ -22,18 +25,15 @@ export async function POST(request) {
 
     const body = await request.json().catch(() => ({}));
     const email = String(body?.email || "").trim().toLowerCase();
-    const password = String(body?.password || "");
     const fullName = String(body?.fullName || "").trim();
     const role = normalizeRole(body?.role);
     const schoolId = String(body?.schoolId || "").trim();
+    const classGroupId = String(body?.classGroupId || "").trim();
+    const accessCodeId = String(body?.accessCodeId || "").trim();
     const supabase = getSupabaseServerClient();
 
     if (!email) {
       return NextResponse.json({ ok: false, service: "admin-create-user", error: "Email is required." }, { status: 400 });
-    }
-
-    if (role === "student" && !password) {
-      return NextResponse.json({ ok: false, service: "admin-create-user", error: "Password is required." }, { status: 400 });
     }
 
     if (!role) {
@@ -47,6 +47,17 @@ export async function POST(request) {
       );
     }
 
+    if (role === "student" && !classGroupId && !accessCodeId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          service: "admin-create-user",
+          error: "Choose an independent access code, or assign the student to a class.",
+        },
+        { status: 400 }
+      );
+    }
+
     if (!supabase) {
       return NextResponse.json(
         { ok: false, service: "admin-create-user", error: "Supabase server config is not configured." },
@@ -55,46 +66,33 @@ export async function POST(request) {
     }
 
     const publicUrl = String(getPublicAppUrl() || "").trim().replace(/\/+$/, "");
-    const redirectPath =
-      role === "school_admin"
-        ? "/reset-password?next=/owner-access"
-        : "/reset-password?next=/signin";
+    const redirectPath = role === "school_admin" ? "/reset-password?next=/owner-access" : "/reset-password?next=/signin";
     const redirectTo = `${publicUrl}${redirectPath}`;
 
     let authUser;
     let appUser;
 
-    if (role === "school_admin") {
+    if (role === "school_admin" || role === "student") {
       const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
         redirectTo,
         data: fullName ? { full_name: fullName } : {},
       });
 
       if (inviteError) {
-        throw new Error(`Admin invite failed: ${inviteError.message}`);
+        throw new Error(`User invite failed: ${inviteError.message}`);
       }
 
       authUser = inviteData?.user;
       if (!authUser?.id) {
-        throw new Error("Admin invite failed: Missing user record.");
+        throw new Error("User invite failed: Missing user record.");
       }
 
       appUser = await upsertAppUser({
         id: authUser.id,
         email: authUser.email || email,
         fullName: fullName || authUser.user_metadata?.full_name || "",
-        accountRole: "school_admin",
+        accountRole: role === "school_admin" ? "school_admin" : "student",
       });
-    } else {
-      const created = await createManagedAuthUser({
-        email,
-        password,
-        fullName,
-        emailConfirmed: true,
-        accountRole: "student",
-      });
-      authUser = created.authUser;
-      appUser = created.appUser;
     }
 
     if (role === "school_admin") {
@@ -107,21 +105,53 @@ export async function POST(request) {
     }
 
     if (role === "student") {
+      let accessCodeRecord = null;
+
+      if (accessCodeId) {
+        accessCodeRecord = await loadAccessCodeRecord(accessCodeId);
+
+        if (!accessCodeRecord) {
+          throw new Error("That access code could not be found.");
+        }
+        if (accessCodeRecord.status !== "active") {
+          throw new Error("Choose an active access code.");
+        }
+        if (accessCodeRecord.code_type !== "independent" || accessCodeRecord.class_group_id) {
+          throw new Error("Choose an independent access code for this student.");
+        }
+        if (Number.isFinite(accessCodeRecord.max_redemptions) && accessCodeRecord.max_redemptions >= 0) {
+          const redemptionCount = await loadAccessCodeRedemptionCount(accessCodeRecord.id);
+          if (redemptionCount >= accessCodeRecord.max_redemptions) {
+            throw new Error("That access code has already reached its redemption limit.");
+          }
+        }
+      }
+
       await upsertUserPreferences({
         userId: authUser.id,
         preferredLanguage: null,
-        accessGranted: false,
+        accessGranted: true,
         skipPracticeWelcome: false,
         skipExamWelcome: false,
         hasSeenFoundation: false,
         hasSeenCategoryIntro: false,
       });
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
-      });
+      if (classGroupId) {
+        await upsertClassGroupEnrollment({
+          id: `enrollment:${classGroupId}:${authUser.id}`,
+          classGroupId,
+          userId: authUser.id,
+          role: "student",
+          status: "active",
+        });
+      }
 
-      if (resetError) {
-        throw new Error(`Setup email failed: ${resetError.message}`);
+      if (accessCodeRecord) {
+        await createAccessCodeRedemption({
+          id: `redemption:${accessCodeRecord.id}:${authUser.id}`,
+          accessCodeId: accessCodeRecord.id,
+          userId: authUser.id,
+        });
       }
     }
 
@@ -134,8 +164,10 @@ export async function POST(request) {
         fullName: appUser.full_name,
         role,
         schoolId: role === "school_admin" ? schoolId : null,
+        classGroupId: role === "student" ? classGroupId || null : null,
+        accessCodeId: role === "student" ? accessCodeId || null : null,
       },
-      setupEmailSent: role === "school_admin" ? true : false,
+      setupEmailSent: true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown admin create-user error.";

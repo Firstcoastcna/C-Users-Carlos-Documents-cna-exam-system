@@ -236,7 +236,7 @@ export default function OwnerCodesPage() {
   const [overview, setOverview] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [openRows, setOpenRows] = useState({});
+  const [openCodeId, setOpenCodeId] = useState("");
   const [codeForm, setCodeForm] = useState({
     id: "",
     code: "",
@@ -279,6 +279,37 @@ export default function OwnerCodesPage() {
   const schoolById = useMemo(() => Object.fromEntries(schools.map((item) => [item.id, item])), [schools]);
   const classById = useMemo(() => Object.fromEntries(classGroups.map((item) => [item.id, item])), [classGroups]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !accessCodes.length) {
+      return undefined;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const requestedType = params.get("type");
+    const requestedCodeId = params.get("code_id");
+    const requestedClassGroupId = params.get("class_group_id");
+
+    if (requestedType === "class" || requestedType === "independent" || requestedType === "all") {
+      setTypeFilter(requestedType);
+    }
+
+    const matchedCodeId =
+      requestedCodeId ||
+      (requestedClassGroupId ? accessCodes.find((item) => item.class_group_id === requestedClassGroupId)?.id || "" : "");
+
+    if (!matchedCodeId) {
+      return undefined;
+    }
+
+    setOpenCodeId(matchedCodeId);
+
+    const timer = window.setTimeout(() => {
+      document.getElementById(`owner-code-${matchedCodeId}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 50);
+
+    return () => window.clearTimeout(timer);
+  }, [accessCodes]);
+
   const filteredCodes = useMemo(
     () =>
       accessCodes.filter((item) => {
@@ -290,7 +321,9 @@ export default function OwnerCodesPage() {
               : !!item.class_group_id;
         const matchesStatus = statusFilter === "all" ? true : item.status === statusFilter;
         return matchesType && matchesStatus;
-      }),
+      })
+        .slice()
+        .sort((a, b) => String(a.code || "").localeCompare(String(b.code || ""), undefined, { sensitivity: "base" })),
     [accessCodes, statusFilter, typeFilter]
   );
 
@@ -473,15 +506,15 @@ export default function OwnerCodesPage() {
                 const scopeText = item.class_group_id
                   ? `${school?.name || "Unknown school"} | ${classGroup?.name || "Unknown class"}`
                   : "Direct buyer access";
-                const isOpen = !!openRows[item.id];
+                const isOpen = openCodeId === item.id;
 
                 return (
-                  <details key={item.id} style={rowCard} open={isOpen}>
+                  <details key={item.id} id={`owner-code-${item.id}`} style={rowCard} open={isOpen}>
                     <summary
                       style={detailsSummary}
                       onClick={(e) => {
                         e.preventDefault();
-                        setOpenRows((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+                        setOpenCodeId((prev) => (prev === item.id ? "" : item.id));
                       }}
                     >
                       <div style={rowTop}>
@@ -542,7 +575,12 @@ export default function OwnerCodesPage() {
                           Reactivate
                         </button>
                         {item.class_group_id ? (
-                          <Link href="/owner/schools" style={buttonSecondary}>
+                          <Link
+                            href={`/owner/schools?school_id=${encodeURIComponent(
+                              item.school_id || ""
+                            )}&class_group_id=${encodeURIComponent(item.class_group_id)}`}
+                            style={buttonSecondary}
+                          >
                             View class
                           </Link>
                         ) : (

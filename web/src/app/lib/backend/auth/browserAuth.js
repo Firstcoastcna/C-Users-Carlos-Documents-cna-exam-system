@@ -464,6 +464,10 @@ export async function createOwnerUser(input) {
   return postAuthenticatedJson("/api/backend/admin/users", input);
 }
 
+export async function assignOwnerStudentToClass(input) {
+  return patchAuthenticatedJson("/api/backend/admin/student-assignments", input);
+}
+
 export async function deleteOwnerSchool(id) {
   return deleteAuthenticatedJson(`/api/backend/admin/schools?id=${encodeURIComponent(id)}`);
 }
