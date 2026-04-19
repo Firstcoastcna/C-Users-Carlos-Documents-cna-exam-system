@@ -69,31 +69,31 @@ function PathCard({ title, body, onClick, buttonLabel, theme, extraContent = nul
   return (
     <div
       style={{
-        padding: "20px",
+        padding: "16px",
         border: `1px solid ${theme.chromeBorder}`,
         borderRadius: "16px",
         background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
         boxShadow: "0 8px 20px rgba(31, 52, 74, 0.04)",
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: "10px",
       }}
     >
-      <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)", lineHeight: 1.2 }}>{title}</div>
+      <div style={{ fontSize: 21, fontWeight: 800, color: "var(--heading)", lineHeight: 1.2 }}>{title}</div>
       <div style={{ color: "#456173", lineHeight: 1.7, fontSize: 14 }}>{body}</div>
       <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end" }}>
         <button
           onClick={onClick}
           style={{
-            padding: "10px 14px",
-            fontSize: "14px",
+            padding: "9px 13px",
+            fontSize: "13px",
             borderRadius: "10px",
             border: `1px solid ${theme.primaryBg}`,
             background: theme.primaryBg,
             color: theme.primaryText,
             cursor: "pointer",
             fontWeight: 700,
-            minWidth: 190,
+            minWidth: 178,
           }}
         >
           {buttonLabel}
@@ -396,7 +396,7 @@ function StartInner() {
           style={{
             display: "grid",
             gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr",
-            gap: "16px",
+            gap: "14px",
           }}
         >
           <PathCard
@@ -503,8 +503,49 @@ function StartInner() {
           style={{
             border: `1px solid ${theme.chromeBorder}`,
             borderRadius: "14px",
-            background: "linear-gradient(180deg, #ffffff 0%, #f3fbfd 100%)",
+            background: "linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%)",
             padding: "14px 16px",
+            display: "flex",
+            alignItems: isNarrow ? "stretch" : "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            marginTop: 16,
+          }}
+        >
+          <div style={{ flex: "1 1 300px", display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+              {t("My Progress", "Mi progreso", "Mes progres", "Pwogrè mwen")}
+            </div>
+            <div style={{ color: "#456173", lineHeight: 1.6, fontSize: 14 }}>
+              {t(
+                "Open your personal report to review readiness, strengths, weak areas, and what to do next.",
+                "Abra su reporte personal para revisar preparacion, fortalezas, areas debiles y que hacer despues.",
+                "Ouvrez votre rapport personnel pour voir votre niveau, vos points forts, vos points faibles et la suite.",
+                "Louvri rapò pèsonèl ou pou wè preparasyon ou, fòs ou, feblès ou, ak sa pou fè apre."
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => router.push(`/reports?lang=${lang}`)}
+            style={{
+              ...btnSecondary,
+              width: isNarrow ? "100%" : "220px",
+              background: "white",
+              border: "2px solid #7aa6c5",
+              padding: "9px 12px",
+              fontSize: "13px",
+            }}
+          >
+            {t("Open My Progress", "Abrir mi progreso", "Ouvrir mes progres", "Louvri pwogrè mwen")}
+          </button>
+        </div>
+        <div
+          style={{
+            border: `1px solid ${theme.chromeBorder}`,
+            borderRadius: "14px",
+            background: "linear-gradient(180deg, #ffffff 0%, #f3fbfd 100%)",
+            padding: "13px 15px",
             display: "flex",
             alignItems: isNarrow ? "stretch" : "center",
             justifyContent: "space-between",
@@ -533,6 +574,8 @@ function StartInner() {
               width: isNarrow ? "100%" : "220px",
               background: "white",
               border: "2px solid #7aa6c5",
+              padding: "9px 12px",
+              fontSize: "13px",
             }}
           >
             {t("Open Category Guide", "Abrir guia de categorias", "Ouvrir le guide des categories", "Louvri gid kategori yo")}
