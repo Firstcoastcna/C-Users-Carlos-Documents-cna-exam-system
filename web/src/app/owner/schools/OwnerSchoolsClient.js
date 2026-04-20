@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  assignOwnerStudentToClass,
   assignOwnerTeacherToClass,
   clearOwnerClassEnrollments,
   createOwnerClassGroup,
@@ -237,6 +238,7 @@ export default function OwnerSchoolsClient() {
   const [openTeacherPanels, setOpenTeacherPanels] = useState({});
   const [openRedemptionPanels, setOpenRedemptionPanels] = useState({});
   const [confirmRemoveEnrollmentId, setConfirmRemoveEnrollmentId] = useState("");
+  const [moveStudentForms, setMoveStudentForms] = useState({});
   const [teacherForms, setTeacherForms] = useState({});
   const [classTeacherForms, setClassTeacherForms] = useState({});
 
@@ -950,6 +952,14 @@ export default function OwnerSchoolsClient() {
                                     .join(", ")}${item.roster.length > 3 ? "..." : ""}`
                                 : " | No enrolled students"}
                             </div>
+                            <div style={listMeta}>
+                              Teacher:{" "}
+                              {(teacherAssignmentsByClassId[item.id] || []).length
+                                ? (teacherAssignmentsByClassId[item.id] || [])
+                                    .map((assignment) => assignment.user?.full_name || assignment.user?.email || assignment.user_id)
+                                    .join(", ")
+                                : "No teacher assigned yet"}
+                            </div>
 
                             <div style={actionsRow}>
                               <button
@@ -1024,6 +1034,21 @@ export default function OwnerSchoolsClient() {
                                           View student report
                                         </Link>
                                       <button
+                                        style={buttonTiny}
+                                        disabled={busy}
+                                        onClick={() =>
+                                          setMoveStudentForms((prev) => ({
+                                            ...prev,
+                                            [row.id]: {
+                                              open: !prev[row.id]?.open,
+                                              targetClassGroupId: "",
+                                            },
+                                          }))
+                                        }
+                                      >
+                                        {moveStudentForms[row.id]?.open ? "Close move" : "Move class"}
+                                      </button>
+                                      <button
                                         style={confirmRemoveEnrollmentId === row.id ? buttonTinyDanger : buttonTinyWarning}
                                         disabled={busy}
                                         onClick={() => {
@@ -1050,6 +1075,83 @@ export default function OwnerSchoolsClient() {
                                         </button>
                                       ) : null}
                                       </div>
+                                      {moveStudentForms[row.id]?.open ? (
+                                        <div
+                                          style={{
+                                            border: "1px solid #d6e1e8",
+                                            borderRadius: 12,
+                                            background: "white",
+                                            padding: 10,
+                                            display: "grid",
+                                            gap: 8,
+                                          }}
+                                        >
+                                          <div style={{ ...listMeta, fontWeight: 700, color: "var(--heading)" }}>
+                                            Move student to another class in this school
+                                          </div>
+                                          <select
+                                            style={input}
+                                            value={moveStudentForms[row.id]?.targetClassGroupId || ""}
+                                            onChange={(e) =>
+                                              setMoveStudentForms((prev) => ({
+                                                ...prev,
+                                                [row.id]: {
+                                                  ...(prev[row.id] || {}),
+                                                  open: true,
+                                                  targetClassGroupId: e.target.value,
+                                                },
+                                              }))
+                                            }
+                                          >
+                                            <option value="">Select class</option>
+                                            {(classGroupsBySchool[school.id] || [])
+                                              .filter((classItem) => classItem.id !== item.id)
+                                              .map((classItem) => (
+                                                <option key={classItem.id} value={classItem.id}>
+                                                  {classItem.name}
+                                                </option>
+                                              ))}
+                                          </select>
+                                          <div style={actionsRow}>
+                                            <button
+                                              style={buttonTiny}
+                                              disabled={!moveStudentForms[row.id]?.targetClassGroupId || busy}
+                                              onClick={() =>
+                                                runClassAction(async () => {
+                                                  await assignOwnerStudentToClass({
+                                                    userId: row.user_id,
+                                                    classGroupId: moveStudentForms[row.id]?.targetClassGroupId,
+                                                  });
+                                                  setMoveStudentForms((prev) => ({
+                                                    ...prev,
+                                                    [row.id]: {
+                                                      open: false,
+                                                      targetClassGroupId: "",
+                                                    },
+                                                  }));
+                                                }, "Student moved to the new class.")
+                                              }
+                                            >
+                                              Save move
+                                            </button>
+                                            <button
+                                              style={buttonTiny}
+                                              disabled={busy}
+                                              onClick={() =>
+                                                setMoveStudentForms((prev) => ({
+                                                  ...prev,
+                                                  [row.id]: {
+                                                    open: false,
+                                                    targetClassGroupId: "",
+                                                  },
+                                                }))
+                                              }
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : null}
                                     </div>
                                   ))}
                                 </div>

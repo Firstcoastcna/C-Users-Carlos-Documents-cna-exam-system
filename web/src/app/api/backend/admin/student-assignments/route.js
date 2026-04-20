@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
-import { upsertClassGroupEnrollment } from "@/app/lib/backend/db/client";
+import { loadAppUser, upsertClassGroupEnrollment } from "@/app/lib/backend/db/client";
 
 export async function PATCH(request) {
   try {
@@ -12,6 +12,25 @@ export async function PATCH(request) {
     if (!userId || !classGroupId) {
       return NextResponse.json(
         { ok: false, service: "admin-student-assignments", error: "Student and class are required." },
+        { status: 400 }
+      );
+    }
+
+    const appUser = await loadAppUser(userId);
+    if (!appUser) {
+      return NextResponse.json(
+        { ok: false, service: "admin-student-assignments", error: "Student could not be found." },
+        { status: 404 }
+      );
+    }
+
+    if (String(appUser.account_role || "student").toLowerCase() !== "student") {
+      return NextResponse.json(
+        {
+          ok: false,
+          service: "admin-student-assignments",
+          error: "Only users with the student role can be assigned to a class as students.",
+        },
         { status: 400 }
       );
     }

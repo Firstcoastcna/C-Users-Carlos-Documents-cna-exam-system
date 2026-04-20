@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { assignOwnerStudentToClass, fetchOwnerOverview } from "../../lib/backend/auth/browserAuth";
+import { assignOwnerStudentToClass, fetchOwnerOverview, updateOwnerUserRole } from "../../lib/backend/auth/browserAuth";
 
 const EMPTY_ITEMS = [];
 
@@ -206,6 +206,8 @@ export default function OwnerIndependentClient() {
   const [openStudentId, setOpenStudentId] = useState("");
   const [showAssignForms, setShowAssignForms] = useState({});
   const [assignForms, setAssignForms] = useState({});
+  const [showRoleForms, setShowRoleForms] = useState({});
+  const [roleForms, setRoleForms] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -445,6 +447,17 @@ export default function OwnerIndependentClient() {
                         >
                           {showAssignForms[student.userId] ? "Close class assignment" : "Assign to class"}
                         </button>
+                        <button
+                          style={buttonSecondary}
+                          onClick={() =>
+                            setShowRoleForms((prev) => ({
+                              ...prev,
+                              [student.userId]: !prev[student.userId],
+                            }))
+                          }
+                        >
+                          {showRoleForms[student.userId] ? "Close role change" : "Change role"}
+                        </button>
                       </div>
                       {showAssignForms[student.userId] ? (
                         <div
@@ -548,6 +561,109 @@ export default function OwnerIndependentClient() {
                               }}
                             >
                               Assign to class
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                      {showRoleForms[student.userId] ? (
+                        <div
+                          style={{
+                            border: "1px solid var(--chrome-border)",
+                            borderRadius: 12,
+                            background: "white",
+                            padding: 12,
+                            display: "grid",
+                            gap: 8,
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Change role</div>
+                          <div style={metaText}>
+                            Use this for rare cases where an existing student login needs to become a teacher or school admin instead.
+                          </div>
+                          <label style={{ display: "grid", gap: 6 }}>
+                            <span style={statLabel}>Role</span>
+                            <select
+                              style={input}
+                              value={roleForms[student.userId]?.targetRole || ""}
+                              onChange={(e) =>
+                                setRoleForms((prev) => ({
+                                  ...prev,
+                                  [student.userId]: {
+                                    schoolId: "",
+                                    targetRole: e.target.value,
+                                  },
+                                }))
+                              }
+                            >
+                              <option value="">Select role</option>
+                              <option value="teacher">Teacher</option>
+                              <option value="school_admin">School admin</option>
+                            </select>
+                          </label>
+                          <label style={{ display: "grid", gap: 6 }}>
+                            <span style={statLabel}>School</span>
+                            <select
+                              style={input}
+                              value={roleForms[student.userId]?.schoolId || ""}
+                              onChange={(e) =>
+                                setRoleForms((prev) => ({
+                                  ...prev,
+                                  [student.userId]: {
+                                    ...(prev[student.userId] || {}),
+                                    schoolId: e.target.value,
+                                  },
+                                }))
+                              }
+                            >
+                              <option value="">Select school</option>
+                              {schools.map((school) => (
+                                <option key={school.id} value={school.id}>
+                                  {school.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <div style={actionsRow}>
+                            <button
+                              style={buttonSecondary}
+                              disabled={
+                                !roleForms[student.userId]?.targetRole ||
+                                !roleForms[student.userId]?.schoolId ||
+                                busyUserId === student.userId
+                              }
+                              onClick={async () => {
+                                try {
+                                  setBusyUserId(student.userId);
+                                  setError("");
+                                  setSuccess("");
+                                  await updateOwnerUserRole({
+                                    userId: student.userId,
+                                    targetRole: roleForms[student.userId]?.targetRole,
+                                    schoolId: roleForms[student.userId]?.schoolId,
+                                  });
+                                  setSuccess("User role updated.");
+                                  setRoleForms((prev) => ({
+                                    ...prev,
+                                    [student.userId]: { targetRole: "", schoolId: "" },
+                                  }));
+                                  setShowRoleForms((prev) => ({
+                                    ...prev,
+                                    [student.userId]: false,
+                                  }));
+                                  await (async () => {
+                                    setLoading(true);
+                                    const payload = await fetchOwnerOverview();
+                                    setOverview(payload);
+                                    setLoading(false);
+                                  })();
+                                } catch (nextError) {
+                                  setError(nextError instanceof Error ? nextError.message : "Unable to update role.");
+                                } finally {
+                                  setBusyUserId("");
+                                }
+                              }}
+                            >
+                              Save role change
                             </button>
                           </div>
                         </div>

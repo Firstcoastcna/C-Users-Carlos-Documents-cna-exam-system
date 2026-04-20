@@ -519,3 +519,7 @@ export async function assignOwnerTeacherToClass(input) {
 export async function deleteOwnerTeacherAssignment(id) {
   return deleteAuthenticatedJson(`/api/backend/admin/teacher-assignments?id=${encodeURIComponent(id)}`);
 }
+
+export async function updateOwnerUserRole(input) {
+  return patchAuthenticatedJson("/api/backend/admin/user-roles", input);
+}

@@ -961,12 +961,12 @@ export default function OwnerPage() {
 
             {overview?.owner?.appUser?.account_role === "owner" ? (
               <div style={navCard}>
-                <div style={sectionTitle}>Manage admins</div>
+                <div style={sectionTitle}>Manage school staff</div>
                 <div style={subText}>
-                  Review school admin assignments, move admins between schools, and remove admin access when needed.
+                  Review school admin and teacher assignments, move staff between schools, and adjust staff roles when needed.
                 </div>
                 <Link href="/owner/admins" style={buttonSecondary}>
-                  Open admins
+                  Open school staff
                 </Link>
               </div>
             ) : null}

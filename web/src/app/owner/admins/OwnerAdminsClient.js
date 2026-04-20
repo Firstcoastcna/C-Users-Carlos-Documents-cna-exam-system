@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   deleteOwnerSchoolAdmin,
   fetchOwnerOverview,
-  updateOwnerSchoolAdmin,
+  updateOwnerUserRole,
 } from "../../lib/backend/auth/browserAuth";
 
 const EMPTY_ITEMS = [];
@@ -214,14 +214,24 @@ function OpenHint({ isOpen }) {
   );
 }
 
+function toUiRole(staffRole) {
+  return String(staffRole || "").toLowerCase() === "admin" ? "school_admin" : "teacher";
+}
+
+function toRoleLabel(uiRole) {
+  if (uiRole === "school_admin") return "School admin";
+  if (uiRole === "teacher") return "Teacher";
+  return "Student";
+}
+
 export default function OwnerAdminsClient() {
   const [loading, setLoading] = useState(true);
   const [showLoadingNotice, setShowLoadingNotice] = useState(false);
   const [overview, setOverview] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [openAdminId, setOpenAdminId] = useState("");
-  const [busyAdminId, setBusyAdminId] = useState("");
+  const [openStaffId, setOpenStaffId] = useState("");
+  const [busyStaffId, setBusyStaffId] = useState("");
   const [showManageForms, setShowManageForms] = useState({});
   const [editForms, setEditForms] = useState({});
   const [removeConfirmId, setRemoveConfirmId] = useState("");
@@ -233,7 +243,7 @@ export default function OwnerAdminsClient() {
       const payload = await fetchOwnerOverview();
       setOverview(payload);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Unable to load admins.");
+      setError(nextError instanceof Error ? nextError.message : "Unable to load staff assignments.");
     } finally {
       setLoading(false);
     }
@@ -254,16 +264,18 @@ export default function OwnerAdminsClient() {
   }, [loading]);
 
   const schools = overview?.schools ?? EMPTY_ITEMS;
-  const schoolAdmins = useMemo(
+  const schoolAdmins = overview?.schoolAdmins ?? EMPTY_ITEMS;
+  const schoolTeachers = overview?.schoolTeachers ?? EMPTY_ITEMS;
+  const staffAssignments = useMemo(
     () =>
-      (overview?.schoolAdmins ?? EMPTY_ITEMS)
+      [...schoolAdmins, ...schoolTeachers]
         .slice()
         .sort((a, b) =>
           (a.user?.full_name || a.user?.email || "").localeCompare(b.user?.full_name || b.user?.email || "", undefined, {
             sensitivity: "base",
           })
         ),
-    [overview]
+    [schoolAdmins, schoolTeachers]
   );
   const ownerRole = overview?.owner?.appUser?.account_role || "";
 
@@ -272,18 +284,26 @@ export default function OwnerAdminsClient() {
       <div style={card}>
         <div style={header}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={title}>Manage admins</div>
+            <div style={title}>Manage School Staff</div>
             <div style={subText}>
-              Review current school admin assignments, move an admin to a different school, or remove admin access when needed.
+              Review teacher and school-admin assignments, move staff between schools, or reassign an existing user into a different role when needed.
             </div>
             <div style={statGrid}>
+              <div style={statCard}>
+                <div style={statLabel}>Staff</div>
+                <div style={statValue}>{staffAssignments.length}</div>
+              </div>
               <div style={statCard}>
                 <div style={statLabel}>Admins</div>
                 <div style={statValue}>{schoolAdmins.length}</div>
               </div>
               <div style={statCard}>
+                <div style={statLabel}>Teachers</div>
+                <div style={statValue}>{schoolTeachers.length}</div>
+              </div>
+              <div style={statCard}>
                 <div style={statLabel}>Schools</div>
-                <div style={statValue}>{new Set(schoolAdmins.map((item) => item.school_id)).size}</div>
+                <div style={statValue}>{new Set(staffAssignments.map((item) => item.school_id)).size}</div>
               </div>
             </div>
           </div>
@@ -295,58 +315,68 @@ export default function OwnerAdminsClient() {
         <div style={body}>
           {error ? <InlineMessage tone="error">{error}</InlineMessage> : null}
           {success ? <InlineMessage tone="success">{success}</InlineMessage> : null}
-          {showLoadingNotice ? <InlineMessage>Loading admins...</InlineMessage> : null}
+          {showLoadingNotice ? <InlineMessage>Loading staff assignments...</InlineMessage> : null}
 
           {ownerRole !== "owner" ? (
             <InlineMessage>
-              School admins can view this lane, but only the owner can change admin assignments.
+              School admins can view this lane, but only the owner can change staff assignments or reassign roles.
             </InlineMessage>
           ) : null}
 
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>School admin assignments</div>
-            {schoolAdmins.length ? (
+            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>School staff assignments</div>
+            {staffAssignments.length ? (
               <div style={listGrid}>
-                {schoolAdmins.map((admin) => {
-                  const isOpen = openAdminId === admin.id;
-                  const currentForm = editForms[admin.id] || { schoolId: admin.school_id };
+                {staffAssignments.map((staff) => {
+                  const isOpen = openStaffId === staff.id;
+                  const currentForm = editForms[staff.id] || {
+                    schoolId: staff.school_id,
+                    targetRole: toUiRole(staff.role),
+                  };
                   const canEdit = ownerRole === "owner";
+                  const currentRole = toUiRole(staff.role);
 
                   return (
-                    <details key={admin.id} style={listCard} open={isOpen}>
+                    <details key={staff.id} style={listCard} open={isOpen}>
                       <summary
                         style={detailsSummary}
                         onClick={(e) => {
                           e.preventDefault();
-                          setOpenAdminId((prev) => (prev === admin.id ? "" : admin.id));
+                          setOpenStaffId((prev) => (prev === staff.id ? "" : staff.id));
                           setRemoveConfirmId("");
                           setEditForms((prev) => ({
                             ...prev,
-                            [admin.id]: prev[admin.id] || { schoolId: admin.school_id },
+                            [staff.id]:
+                              prev[staff.id] || {
+                                schoolId: staff.school_id,
+                                targetRole: currentRole,
+                              },
                           }));
                         }}
                       >
                         <div style={summaryRow}>
                           <div style={{ display: "grid", gap: 2 }}>
                             <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                              {admin.user?.full_name || admin.user?.email || "School admin"}
+                              {staff.user?.full_name || staff.user?.email || "Staff user"}
                             </div>
-                            <div style={metaText}>{admin.school?.name || "School not found"}</div>
+                            <div style={metaText}>
+                              {toRoleLabel(currentRole)} | {staff.school?.name || "School not found"}
+                            </div>
                           </div>
                           <OpenHint isOpen={isOpen} />
                         </div>
                       </summary>
 
                       <div style={detailsBody}>
-                        <div style={metaText}>{admin.user?.email || "No email on record"}</div>
+                        <div style={metaText}>{staff.user?.email || "No email on record"}</div>
                         <div style={metaText}>
-                          Current school: {admin.school?.name || "School not found"} | Added{" "}
-                          {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : "Unknown date"}
+                          Current role: {toRoleLabel(currentRole)} | Current school: {staff.school?.name || "School not found"} | Added{" "}
+                          {staff.created_at ? new Date(staff.created_at).toLocaleDateString() : "Unknown date"}
                         </div>
 
                         <div style={actionsRow}>
                           <Link
-                            href={`/owner/schools?school_id=${encodeURIComponent(admin.school_id)}`}
+                            href={`/owner/schools?school_id=${encodeURIComponent(staff.school_id)}`}
                             style={buttonSecondary}
                           >
                             Open school
@@ -357,17 +387,17 @@ export default function OwnerAdminsClient() {
                               onClick={() => {
                                 setShowManageForms((prev) => ({
                                   ...prev,
-                                  [admin.id]: !prev[admin.id],
+                                  [staff.id]: !prev[staff.id],
                                 }));
                                 setRemoveConfirmId("");
                               }}
                             >
-                              {showManageForms[admin.id] ? "Close admin management" : "Manage admin"}
+                              {showManageForms[staff.id] ? "Close role management" : "Manage role"}
                             </button>
                           ) : null}
                         </div>
 
-                        {canEdit && showManageForms[admin.id] ? (
+                        {canEdit && showManageForms[staff.id] ? (
                           <div
                             style={{
                               border: "1px solid var(--chrome-border)",
@@ -378,24 +408,50 @@ export default function OwnerAdminsClient() {
                               gap: 8,
                             }}
                           >
-                            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Admin management</div>
+                            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Role management</div>
+                            <div style={metaText}>
+                              Use this for rare cases where an existing login needs to become a student, teacher, or school admin without creating a second account.
+                            </div>
 
                             <label style={{ display: "grid", gap: 6 }}>
-                              <span style={statLabel}>Move to school</span>
+                              <span style={statLabel}>Role</span>
                               <select
                                 style={input}
-                                value={currentForm.schoolId || ""}
+                                value={currentForm.targetRole || ""}
                                 onChange={(e) =>
                                   setEditForms((prev) => ({
                                     ...prev,
-                                    [admin.id]: {
+                                    [staff.id]: {
+                                      ...currentForm,
+                                      targetRole: e.target.value,
+                                      schoolId: e.target.value === "student" ? "" : currentForm.schoolId || staff.school_id,
+                                    },
+                                  }))
+                                }
+                              >
+                                <option value="school_admin">School admin</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="student">Student</option>
+                              </select>
+                            </label>
+
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={statLabel}>School</span>
+                              <select
+                                style={input}
+                                value={currentForm.schoolId || ""}
+                                disabled={currentForm.targetRole === "student"}
+                                onChange={(e) =>
+                                  setEditForms((prev) => ({
+                                    ...prev,
+                                    [staff.id]: {
                                       ...currentForm,
                                       schoolId: e.target.value,
                                     },
                                   }))
                                 }
                               >
-                                <option value="">Select school</option>
+                                <option value="">{currentForm.targetRole === "student" ? "Not needed for student" : "Select school"}</option>
                                 {schools.map((school) => (
                                   <option key={school.id} value={school.id}>
                                     {school.name}
@@ -407,67 +463,76 @@ export default function OwnerAdminsClient() {
                             <div style={actionsRow}>
                               <button
                                 style={buttonSecondary}
-                                disabled={!currentForm.schoolId || currentForm.schoolId === admin.school_id || busyAdminId === admin.id}
+                                disabled={
+                                  busyStaffId === staff.id ||
+                                  !currentForm.targetRole ||
+                                  ((currentForm.targetRole === "teacher" || currentForm.targetRole === "school_admin") &&
+                                    !currentForm.schoolId) ||
+                                  (currentForm.targetRole === currentRole &&
+                                    (currentForm.targetRole === "student" || currentForm.schoolId === staff.school_id))
+                                }
                                 onClick={async () => {
                                   try {
-                                    setBusyAdminId(admin.id);
+                                    setBusyStaffId(staff.id);
                                     setError("");
                                     setSuccess("");
-                                    await updateOwnerSchoolAdmin({
-                                      id: admin.id,
-                                      userId: admin.user_id,
-                                      schoolId: currentForm.schoolId,
+                                    await updateOwnerUserRole({
+                                      userId: staff.user_id,
+                                      targetRole: currentForm.targetRole,
+                                      schoolId: currentForm.targetRole === "student" ? "" : currentForm.schoolId,
                                     });
-                                    setSuccess("School admin updated.");
+                                    setSuccess("User role updated.");
+                                    setShowManageForms((prev) => ({
+                                      ...prev,
+                                      [staff.id]: false,
+                                    }));
+                                    setOpenStaffId("");
                                     await loadOverview();
                                   } catch (nextError) {
-                                    setError(nextError instanceof Error ? nextError.message : "Unable to update admin.");
+                                    setError(nextError instanceof Error ? nextError.message : "Unable to update role.");
                                   } finally {
-                                    setBusyAdminId("");
+                                    setBusyStaffId("");
                                   }
                                 }}
                               >
-                                Save school change
+                                Save role change
                               </button>
 
-                              {removeConfirmId === admin.id ? (
+                              {removeConfirmId === staff.id ? (
                                 <>
                                   <button
                                     style={buttonDanger}
-                                    disabled={busyAdminId === admin.id}
+                                    disabled={busyStaffId === staff.id}
                                     onClick={async () => {
                                       try {
-                                        setBusyAdminId(admin.id);
+                                        setBusyStaffId(staff.id);
                                         setError("");
                                         setSuccess("");
-                                        await deleteOwnerSchoolAdmin(admin.id);
-                                        setSuccess("Admin access removed.");
+                                        await deleteOwnerSchoolAdmin(staff.id);
+                                        setSuccess("School staff assignment removed.");
                                         setRemoveConfirmId("");
-                                        setOpenAdminId("");
+                                        setOpenStaffId("");
                                         await loadOverview();
                                       } catch (nextError) {
-                                        setError(nextError instanceof Error ? nextError.message : "Unable to remove admin.");
+                                        setError(nextError instanceof Error ? nextError.message : "Unable to remove assignment.");
                                       } finally {
-                                        setBusyAdminId("");
+                                        setBusyStaffId("");
                                       }
                                     }}
                                   >
-                                    Confirm remove admin
+                                    Confirm remove assignment
                                   </button>
-                                  <button
-                                    style={buttonSecondary}
-                                    onClick={() => setRemoveConfirmId("")}
-                                  >
+                                  <button style={buttonSecondary} onClick={() => setRemoveConfirmId("")}>
                                     Cancel
                                   </button>
                                 </>
                               ) : (
                                 <button
                                   style={buttonDangerOutline}
-                                  disabled={busyAdminId === admin.id}
-                                  onClick={() => setRemoveConfirmId(admin.id)}
+                                  disabled={busyStaffId === staff.id}
+                                  onClick={() => setRemoveConfirmId(staff.id)}
                                 >
-                                  Remove admin access
+                                  Remove school assignment
                                 </button>
                               )}
                             </div>
@@ -479,7 +544,7 @@ export default function OwnerAdminsClient() {
                 })}
               </div>
             ) : (
-              <div style={subText}>No school admins have been created yet.</div>
+              <div style={subText}>No school staff have been created yet.</div>
             )}
           </div>
         </div>

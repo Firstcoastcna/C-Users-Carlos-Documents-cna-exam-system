@@ -635,6 +635,30 @@ export async function loadAccessCodeByCode(code) {
   return data;
 }
 
+export async function loadClassGroupRecord(classGroupId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedId = String(classGroupId || "").trim();
+  if (!normalizedId) {
+    throw new Error("Class group id is required.");
+  }
+
+  const { data, error } = await supabase
+    .from("class_groups")
+    .select("id, school_id, name, code, status, starts_on, ends_on, created_at, updated_at")
+    .eq("id", normalizedId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase load class group failed: ${error.message}`);
+  }
+
+  return data;
+}
+
 export async function listSchoolStaffRecords(role = null) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -659,6 +683,30 @@ export async function listSchoolStaffRecords(role = null) {
   return Array.isArray(data) ? data : [];
 }
 
+export async function loadSchoolStaffForUser(userId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  const { data, error } = await supabase
+    .from("school_staff")
+    .select("id, school_id, user_id, role, created_at, updated_at")
+    .eq("user_id", normalizedUserId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Supabase load school staff for user failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 export async function deleteSchoolStaffRecord(recordId) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -677,6 +725,26 @@ export async function deleteSchoolStaffRecord(recordId) {
   }
 
   return { ok: true, id: normalizedId };
+}
+
+export async function deleteSchoolStaffRecordsForUser(userId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  const { error } = await supabase.from("school_staff").delete().eq("user_id", normalizedUserId);
+
+  if (error) {
+    throw new Error(`Supabase delete school staff for user failed: ${error.message}`);
+  }
+
+  return { ok: true, userId: normalizedUserId };
 }
 
 export async function loadAccessCodeRecord(accessCodeId) {
@@ -815,12 +883,39 @@ export async function upsertClassGroupEnrollment(record) {
     throw new Error("Supabase server config is not configured.");
   }
 
+  const normalizedClassGroupId = String(record.classGroupId || "").trim();
+  const normalizedUserId = String(record.userId || "").trim();
+  const normalizedRole = String(record.role || "student").trim().toLowerCase() || "student";
+  const normalizedStatus = String(record.status || "active").trim().toLowerCase() || "active";
+
+  if (!normalizedClassGroupId) {
+    throw new Error("Class group id is required.");
+  }
+
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  if (normalizedRole === "student" && normalizedStatus === "active") {
+    const { error: clearConflictError } = await supabase
+      .from("class_group_enrollments")
+      .delete()
+      .eq("user_id", normalizedUserId)
+      .eq("role", "student")
+      .eq("status", "active")
+      .neq("class_group_id", normalizedClassGroupId);
+
+    if (clearConflictError) {
+      throw new Error(`Supabase clear conflicting class enrollments failed: ${clearConflictError.message}`);
+    }
+  }
+
   const payload = {
     id: record.id,
-    class_group_id: record.classGroupId,
-    user_id: record.userId,
-    role: record.role || "student",
-    status: record.status || "active",
+    class_group_id: normalizedClassGroupId,
+    user_id: normalizedUserId,
+    role: normalizedRole,
+    status: normalizedStatus,
     updated_at: new Date().toISOString(),
   };
 
@@ -957,6 +1052,29 @@ export async function listClassGroupEnrollments() {
   return Array.isArray(data) ? data : [];
 }
 
+export async function deleteClassGroupEnrollmentsForUser(userId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  const { error } = await supabase
+    .from("class_group_enrollments")
+    .delete()
+    .eq("user_id", normalizedUserId);
+
+  if (error) {
+    throw new Error(`Supabase delete class enrollments for user failed: ${error.message}`);
+  }
+
+  return { ok: true, userId: normalizedUserId };
+}
+
 export async function upsertClassGroupStaff(record) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -1002,6 +1120,30 @@ export async function listClassGroupStaffRecords() {
   return Array.isArray(data) ? data : [];
 }
 
+export async function loadClassGroupStaffForUser(userId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  const { data, error } = await supabase
+    .from("class_group_staff")
+    .select("id, class_group_id, user_id, role, created_at, updated_at")
+    .eq("user_id", normalizedUserId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(`Supabase load class staff for user failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 export async function deleteClassGroupStaffRecord(recordId) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -1020,6 +1162,26 @@ export async function deleteClassGroupStaffRecord(recordId) {
   }
 
   return { ok: true, id: normalizedId };
+}
+
+export async function deleteClassGroupStaffRecordsForUser(userId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  const { error } = await supabase.from("class_group_staff").delete().eq("user_id", normalizedUserId);
+
+  if (error) {
+    throw new Error(`Supabase delete class staff for user failed: ${error.message}`);
+  }
+
+  return { ok: true, userId: normalizedUserId };
 }
 
 export async function deleteClassGroupEnrollments(classGroupId) {

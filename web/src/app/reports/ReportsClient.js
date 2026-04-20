@@ -101,32 +101,23 @@ function InlineMessage({ tone = "info", children }) {
 }
 
 function formatPercent(value) {
-  return Number.isFinite(value) ? `${value}%` : "No data yet";
+  return Number.isFinite(value) ? `${value}%` : null;
 }
 
 function buildStudentStrengths(summary) {
-  const strongestCategories = summary?.learningSignals?.strongestCategories || [];
-  const bestScore = summary?.exams?.bestScore;
-  const completedPractice = summary?.practice?.completedSessions ?? 0;
-  const completedRemediation = summary?.remediation?.completedSessions ?? 0;
-
   return {
-    strongestCategories,
-    bestScore,
-    completedPractice,
-    completedRemediation,
+    strongestCategories: summary?.learningSignals?.strongestCategories || [],
+    bestScore: summary?.exams?.bestScore,
+    completedPractice: summary?.practice?.completedSessions ?? 0,
+    completedRemediation: summary?.remediation?.completedSessions ?? 0,
   };
 }
 
 function buildStudentWeaknesses(summary) {
-  const categoriesNeedingWork = summary?.learningSignals?.categoriesNeedingWork || [];
-  const highRiskCategories = summary?.learningSignals?.highRiskCategories || [];
-  const chapterPriorities = summary?.learningSignals?.chapterPriorities || [];
-
   return {
-    categoriesNeedingWork,
-    highRiskCategories,
-    chapterPriorities,
+    categoriesNeedingWork: summary?.learningSignals?.categoriesNeedingWork || [],
+    highRiskCategories: summary?.learningSignals?.highRiskCategories || [],
+    chapterPriorities: summary?.learningSignals?.chapterPriorities || [],
   };
 }
 
@@ -138,49 +129,42 @@ function buildStudentNextActions(summary) {
   const topChapter = summary?.learningSignals?.chapterPriorities?.[0] || null;
 
   if (topHighRisk?.category) {
-    actions.push(`Start with ${topHighRisk.category}. It is showing the clearest high-risk signal right now.`);
+    actions.push({ kind: "highRisk", value: topHighRisk.category });
   } else if (topWeak?.category) {
-    actions.push(`Review ${topWeak.category} first before moving on to stronger areas.`);
+    actions.push({ kind: "weak", value: topWeak.category });
   }
 
   if (topChapter?.chapterId) {
-    actions.push(`Give extra attention to Chapter ${topChapter.chapterId}. It is the clearest chapter-level priority.`);
+    actions.push({ kind: "chapter", value: topChapter.chapterId });
   }
 
   if (overallStatus === "High Risk") {
-    actions.push("Stay with shorter practice and remediation cycles until readiness becomes more stable.");
+    actions.push({ kind: "status", value: "highRisk" });
   } else if (overallStatus === "Borderline") {
-    actions.push("Keep building consistency with another full exam after focused review.");
+    actions.push({ kind: "status", value: "borderline" });
   } else if (overallStatus === "On Track") {
-    actions.push("Keep momentum with full exams and targeted review only where weak signals still appear.");
+    actions.push({ kind: "status", value: "onTrack" });
   }
 
   if (!actions.length) {
-    actions.push("Build more activity through practice, exams, or remediation so the report can surface clearer next steps.");
+    actions.push({ kind: "buildActivity" });
   }
 
   return actions.slice(0, 4);
 }
 
 function buildStudentProgress(summary) {
-  const examAverage = summary?.exams?.averageScore;
-  const bestScore = summary?.exams?.bestScore;
-  const completedAttempts = summary?.exams?.completedAttempts ?? 0;
-  const totalPractice = summary?.practice?.totalSessions ?? 0;
-  const totalRemediation = summary?.remediation?.totalSessions ?? 0;
-  const totalExposure = summary?.questionHistory?.totalExposureRows ?? 0;
-
   return {
-    examAverage,
-    bestScore,
-    completedAttempts,
-    totalPractice,
-    totalRemediation,
-    totalExposure,
+    examAverage: summary?.exams?.averageScore,
+    bestScore: summary?.exams?.bestScore,
+    completedAttempts: summary?.exams?.completedAttempts ?? 0,
+    totalPractice: summary?.practice?.totalSessions ?? 0,
+    totalRemediation: summary?.remediation?.totalSessions ?? 0,
+    totalExposure: summary?.questionHistory?.totalExposureRows ?? 0,
   };
 }
 
-function OpenHint({ isOpen }) {
+function OpenHint({ isOpen, lang }) {
   const [isNarrow, setIsNarrow] = useState(false);
 
   useEffect(() => {
@@ -193,9 +177,22 @@ function OpenHint({ isOpen }) {
     return () => window.removeEventListener("resize", syncWidth);
   }, []);
 
+  function t(en, es, fr, ht) {
+    if (lang === "es") return es;
+    if (lang === "fr") return fr;
+    if (lang === "ht") return ht;
+    return en;
+  }
+
   return (
     <span style={{ color: "#607282", fontSize: 12.5, fontWeight: 700 }}>
-      {isNarrow ? (isOpen ? "Tap here to close" : "Tap here to open") : isOpen ? "Click here to close" : "Click here to open"}
+      {isNarrow
+        ? isOpen
+          ? t("Tap here to close", "Toque aqui para cerrar", "Touchez ici pour fermer", "Peze la a pou femen")
+          : t("Tap here to open", "Toque aqui para abrir", "Touchez ici pour ouvrir", "Peze la a pou louvri")
+        : isOpen
+          ? t("Click here to close", "Haga clic aqui para cerrar", "Cliquez ici pour fermer", "Klike la a pou femen")
+          : t("Click here to open", "Haga clic aqui para abrir", "Cliquez ici pour ouvrir", "Klike la a pou louvri")}
     </span>
   );
 }
@@ -213,6 +210,110 @@ export default function ReportsClient() {
   const [report, setReport] = useState(null);
   const [activityOpen, setActivityOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
+
+  function t(en, es, fr, ht) {
+    if (lang === "es") return es;
+    if (lang === "fr") return fr;
+    if (lang === "ht") return ht;
+    return en;
+  }
+
+  function noDataLabel() {
+    return t("No data yet", "Sin datos todavia", "Pas encore de donnees", "Poko gen done");
+  }
+
+  function formatStatusLabel(value) {
+    if (value === "On Track") return t("On Track", "En buen camino", "En bonne voie", "Sou bon chimen");
+    if (value === "Borderline") return t("Borderline", "Al limite", "Limite", "Sou limit la");
+    if (value === "High Risk") return t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk");
+    return value || t("No current signal", "Sin senal actual", "Aucun signal actuel", "Pa gen siyal aktyel");
+  }
+
+  function formatSourceTypeLabel(value) {
+    if (value === "exam") return t("Exam", "Examen", "Examen", "Egzamen");
+    if (value === "practice") return t("Practice", "Practica", "Pratique", "Pratik");
+    if (value === "remediation") return t("Remediation", "Remediacion", "Remediation", "Remedyasyon");
+    return value;
+  }
+
+  function formatCategoryLabel(value) {
+    const map = {
+      "Change in Condition": t("Change in Condition", "Cambio en la condicion", "Changement d'etat", "Chanjman nan kondisyon"),
+      "Scope of Practice & Reporting": t("Scope of Practice & Reporting", "Alcance de la practica y reporte", "Champ de pratique et signalement", "Wol mwen ak sa pou rapote"),
+      "Communication & Emotional Support": t("Communication & Emotional Support", "Comunicacion y apoyo emocional", "Communication et soutien emotionnel", "Kominikasyon ak sipo emosyonel"),
+      "Observation & Safety": t("Observation & Safety", "Observacion y seguridad", "Observation et securite", "Obsevasyon ak sekirite"),
+      "Personal Care & Comfort": t("Personal Care & Comfort", "Cuidado personal y comodidad", "Soins personnels et confort", "Swen pesonel ak konfo"),
+      "Mobility & Positioning": t("Mobility & Positioning", "Movilidad y posicionamiento", "Mobilite et positionnement", "Mobilite ak pozisyonman"),
+      "Environment & Safety": t("Environment & Safety", "Entorno y seguridad", "Environnement et securite", "Anviwonman ak sekirite"),
+      "Dignity & Resident Rights": t("Dignity & Resident Rights", "Dignidad y derechos del residente", "Dignite et droits du resident", "Diyite ak dwa rezidan an"),
+      "Infection Control": t("Infection Control", "Control de infecciones", "Controle des infections", "Kontwol enfeksyon"),
+    };
+    return map[value] || value;
+  }
+
+  function renderNextAction(item) {
+    if (item.kind === "highRisk") {
+      return t(
+        `Start with ${formatCategoryLabel(item.value)}. It is showing the clearest high-risk signal right now.`,
+        `Empiece con ${formatCategoryLabel(item.value)}. Es la senal de mayor riesgo en este momento.`,
+        `Commencez par ${formatCategoryLabel(item.value)}. C'est le signal a haut risque le plus clair pour le moment.`,
+        `Komanse ak ${formatCategoryLabel(item.value)}. Se li menm ki montre siyal gwo risk ki pi kle kounye a.`
+      );
+    }
+    if (item.kind === "weak") {
+      return t(
+        `Review ${formatCategoryLabel(item.value)} first before moving on to stronger areas.`,
+        `Revise primero ${formatCategoryLabel(item.value)} antes de pasar a areas mas fuertes.`,
+        `Revoyez d'abord ${formatCategoryLabel(item.value)} avant de passer aux domaines plus forts.`,
+        `Revize ${formatCategoryLabel(item.value)} an premye anvan ou pase nan zon ki pi fo yo.`
+      );
+    }
+    if (item.kind === "chapter") {
+      return t(
+        `Give extra attention to Chapter ${item.value}. It is the clearest chapter-level priority.`,
+        `Ponga atencion extra al Capitulo ${item.value}. Es la prioridad mas clara a nivel de capitulo.`,
+        `Accordez plus d'attention au Chapitre ${item.value}. C'est la priorite la plus claire au niveau du chapitre.`,
+        `Bay Chapit ${item.value} plis atansyon. Se li menm ki pi kle kom priyorite nan nivo chapit la.`
+      );
+    }
+    if (item.kind === "status" && item.value === "highRisk") {
+      return t(
+        "Stay with shorter practice and remediation cycles until readiness becomes more stable.",
+        "Mantengase con ciclos mas cortos de practica y remediacion hasta que su preparacion sea mas estable.",
+        "Restez sur des cycles plus courts de pratique et de remediation jusqu'a ce que votre niveau soit plus stable.",
+        "Kenbe sesyon pratik ak remedyasyon yo pi kout jiskaske preparasyon an vin pi estab."
+      );
+    }
+    if (item.kind === "status" && item.value === "borderline") {
+      return t(
+        "Keep building consistency with another full exam after focused review.",
+        "Siga construyendo consistencia con otro examen completo despues de una revision enfocada.",
+        "Continuez a construire votre constance avec un autre examen complet apres une revision ciblee.",
+        "Kontinye bati plis regilarite ak yon lot egzamen konple apre yon revizyon ki byen vize."
+      );
+    }
+    if (item.kind === "status" && item.value === "onTrack") {
+      return t(
+        "Keep momentum with full exams and targeted review only where weak signals still appear.",
+        "Mantenga el impulso con examenes completos y revision dirigida solo donde todavia aparezcan senales debiles.",
+        "Gardez votre elan avec des examens complets et une revision ciblee seulement la ou les signaux faibles apparaissent encore.",
+        "Kenbe bon ritm nan ak egzamen konple ak revizyon vize selman kote siyal feb yo toujou paret."
+      );
+    }
+    return t(
+      "Build more activity through practice, exams, or remediation so the report can surface clearer next steps.",
+      "Genere mas actividad con practica, examenes o remediacion para que el reporte pueda mostrar pasos siguientes mas claros.",
+      "Ajoutez plus d'activite par la pratique, les examens ou la remediation afin que le rapport puisse montrer des etapes suivantes plus claires.",
+      "Fe plis aktivite ak pratik, egzamen, oswa remedyasyon pou rapo a ka montre pwochen etap ki pi kle."
+    );
+  }
+
+  const loadErrorMessage = t(
+    "Unable to load your report.",
+    "No se pudo cargar su reporte.",
+    "Impossible de charger votre rapport.",
+    "Nou pa t kapab chaje rapo ou a."
+  );
 
   useEffect(() => {
     function syncWidth() {
@@ -239,9 +340,7 @@ export default function ReportsClient() {
           router.replace("/access");
           return;
         }
-      } catch {
-        // Let the report fetch surface the problem if needed.
-      }
+      } catch {}
     })();
 
     return () => {
@@ -277,7 +376,7 @@ export default function ReportsClient() {
         }
       } catch (error) {
         if (!cancelled) {
-          setMessage(error instanceof Error ? error.message : "Unable to load your report.");
+          setMessage(error instanceof Error ? error.message : loadErrorMessage);
         }
       } finally {
         if (!cancelled) {
@@ -289,7 +388,7 @@ export default function ReportsClient() {
     return () => {
       cancelled = true;
     };
-  }, [lang]);
+  }, [lang, loadErrorMessage]);
 
   useEffect(() => {
     if (!loading) {
@@ -302,7 +401,10 @@ export default function ReportsClient() {
   }, [loading]);
 
   const summary = report?.summary || null;
-  const studentName = report?.user?.appUser?.full_name || report?.user?.appUser?.email || "My Progress";
+  const studentName =
+    report?.user?.appUser?.full_name ||
+    report?.user?.appUser?.email ||
+    t("My Progress", "Mi progreso", "Mon progres", "Pwogre mwen");
   const strengths = buildStudentStrengths(summary);
   const weaknesses = buildStudentWeaknesses(summary);
   const nextActions = buildStudentNextActions(summary);
@@ -313,91 +415,118 @@ export default function ReportsClient() {
       <div style={card}>
         <div style={header}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={title}>My Progress</div>
+            <div style={title}>{t("My Progress", "Mi progreso", "Mon progres", "Pwogre mwen")}</div>
             <div style={subjectTitle}>{studentName}</div>
             <div style={subText}>
-              See your current readiness, strengths, weak areas, and what to do next.
+              {t(
+                "See your current readiness, strengths, weak areas, and what to do next.",
+                "Vea su preparacion actual, fortalezas, areas debiles y que hacer despues.",
+                "Voyez votre niveau actuel, vos forces, vos points faibles et la prochaine etape.",
+                "Gade nivo preparasyon ou, fos ou, febles ou, ak sa pou fe apre."
+              )}
             </div>
           </div>
           <button style={btnSecondary} onClick={() => router.push(`/start?lang=${lang}`)}>
-            Back to Main Menu
+            {t("Back to Main Menu", "Volver al menu principal", "Retour au menu principal", "Retounen nan meni prensipal la")}
           </button>
         </div>
 
         <div style={body}>
           {message ? <InlineMessage tone="error">{message}</InlineMessage> : null}
-          {showLoadingNotice ? <InlineMessage>Loading your report...</InlineMessage> : null}
+          {showLoadingNotice ? (
+            <InlineMessage>
+              {t("Loading your report...", "Cargando su reporte...", "Chargement de votre rapport...", "Ap chaje rapo ou a...")}
+            </InlineMessage>
+          ) : null}
 
           {!loading && summary ? (
             <>
               <div style={sectionCard}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Status summary</div>
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Status summary", "Resumen de estado", "Resume de situation", "Rezime sitiyasyon")}</div>
                 <div style={subText}>
-                  {summary.learningSignals?.overallStatus || "No current signal"} | Completed full exams:{" "}
-                  {summary.exams?.completedAttempts ?? 0} | Practice sessions: {summary.practice?.totalSessions ?? 0}
+                  {formatStatusLabel(summary.learningSignals?.overallStatus)}
+                  {" | "}
+                  {t("Completed full exams", "Examenes completos terminados", "Examens complets termines", "Egzamen konple fini")}: {summary.exams?.completedAttempts ?? 0}
+                  {" | "}
+                  {t("Practice sessions", "Sesiones de practica", "Sessions de pratique", "Sesyon pratik")}: {summary.practice?.totalSessions ?? 0}
                 </div>
                 <div style={subText}>
-                  Average exam score: {formatPercent(summary.exams?.averageScore)} | Best exam score:{" "}
-                  {formatPercent(summary.exams?.bestScore)} | Remediation sessions: {summary.remediation?.totalSessions ?? 0}
+                  {t("Average exam score", "Promedio del examen", "Score moyen a l'examen", "Mwayen egzamen")}: {formatPercent(summary.exams?.averageScore) || noDataLabel()}
+                  {" | "}
+                  {t("Best exam score", "Mejor puntaje del examen", "Meilleur score a l'examen", "Pi bon not egzamen")}: {formatPercent(summary.exams?.bestScore) || noDataLabel()}
+                  {" | "}
+                  {t("Remediation sessions", "Sesiones de remediacion", "Sessions de remediation", "Sesyon remedyasyon")}: {summary.remediation?.totalSessions ?? 0}
                 </div>
               </div>
 
               <div style={analysisGrid}>
                 <div style={sectionCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Strengths</div>
+                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Strengths", "Fortalezas", "Forces", "Fos")}</div>
                   <div style={subText}>
-                    Strongest categories:{" "}
-                    {strengths.strongestCategories.length ? strengths.strongestCategories.join(" | ") : "No clear strengths yet"}
+                    {t("Strongest categories", "Categorias mas fuertes", "Categories les plus fortes", "Kategori ki pi fo yo")}:{" "}
+                    {strengths.strongestCategories.length
+                      ? strengths.strongestCategories.map(formatCategoryLabel).join(" | ")
+                      : t("No clear strengths yet", "Aun no hay fortalezas claras", "Pas encore de forces claires", "Poko gen fos kle")}
                   </div>
-                  <div style={subText}>Best full exam score: {formatPercent(strengths.bestScore)}</div>
                   <div style={subText}>
-                    Completed practice: {strengths.completedPractice} | Completed remediation: {strengths.completedRemediation}
+                    {t("Best full exam score", "Mejor puntaje de examen completo", "Meilleur score d'examen complet", "Pi bon not egzamen konple")}: {formatPercent(strengths.bestScore) || noDataLabel()}
+                  </div>
+                  <div style={subText}>
+                    {t("Completed practice", "Practica completada", "Pratique terminee", "Pratik fini")}: {strengths.completedPractice}
+                    {" | "}
+                    {t("Completed remediation", "Remediacion completada", "Remediation terminee", "Remedyasyon fini")}: {strengths.completedRemediation}
                   </div>
                 </div>
 
                 <div style={sectionCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Priority weak areas</div>
+                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Priority weak areas", "Areas debiles prioritarias", "Faiblesses prioritaires", "Febles ki pi enpotan yo")}</div>
                   <div style={subText}>
-                    Categories needing work:{" "}
+                    {t("Categories needing work", "Categorias que necesitan trabajo", "Categories a renforcer", "Kategori ki bezwen travay")}:{" "}
                     {weaknesses.categoriesNeedingWork.length
-                      ? weaknesses.categoriesNeedingWork.map((item) => `${item.category} (${item.level})`).join(" | ")
-                      : "No repeated weak category yet"}
+                      ? weaknesses.categoriesNeedingWork.map((item) => `${formatCategoryLabel(item.category)} (${item.level})`).join(" | ")
+                      : t("No repeated weak category yet", "Todavia no hay una categoria debil repetida", "Pas encore de categorie faible repetee", "Poko gen kategori feb ki repete")}
                   </div>
                   <div style={subText}>
-                    High-risk categories:{" "}
+                    {t("High-risk categories", "Categorias de alto riesgo", "Categories a haut risque", "Kategori gwo risk")}:{" "}
                     {weaknesses.highRiskCategories.length
-                      ? weaknesses.highRiskCategories.map((item) => `${item.category} (${item.level})`).join(" | ")
-                      : "No current high-risk category signal"}
+                      ? weaknesses.highRiskCategories.map((item) => `${formatCategoryLabel(item.category)} (${item.level})`).join(" | ")
+                      : t("No current high-risk category signal", "Sin senal actual de categoria de alto riesgo", "Aucun signal actuel de categorie a haut risque", "Pa gen siyal kategori gwo risk kounye a")}
                   </div>
                   <div style={subText}>
-                    Priority chapters:{" "}
+                    {t("Priority chapters", "Capitulos prioritarios", "Chapitres prioritaires", "Chapit ki pi enpotan yo")}:{" "}
                     {weaknesses.chapterPriorities.length
-                      ? weaknesses.chapterPriorities.map((item) => `Chapter ${item.chapterId} (${item.priority})`).join(" | ")
-                      : "No clear chapter priority yet"}
+                      ? weaknesses.chapterPriorities.map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.chapterId} (${item.priority})`).join(" | ")
+                      : t("No clear chapter priority yet", "Todavia no hay una prioridad clara por capitulo", "Pas encore de priorite claire par chapitre", "Poko gen priyorite chapit ki kle")}
                   </div>
                 </div>
               </div>
 
               <div style={analysisGrid}>
                 <div style={sectionCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Progress over time</div>
+                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Progress over time", "Progreso en el tiempo", "Progression dans le temps", "Pwogre sou tan")}</div>
                   <div style={subText}>
-                    Average exam score: {formatPercent(progress.examAverage)} | Best score: {formatPercent(progress.bestScore)}
+                    {t("Average exam score", "Promedio del examen", "Score moyen a l'examen", "Mwayen egzamen")}: {formatPercent(progress.examAverage) || noDataLabel()}
+                    {" | "}
+                    {t("Best score", "Mejor puntaje", "Meilleur score", "Pi bon not")}: {formatPercent(progress.bestScore) || noDataLabel()}
                   </div>
                   <div style={subText}>
-                    Completed full exams: {progress.completedAttempts} | Practice sessions: {progress.totalPractice}
+                    {t("Completed full exams", "Examenes completos terminados", "Examens complets termines", "Egzamen konple fini")}: {progress.completedAttempts}
+                    {" | "}
+                    {t("Practice sessions", "Sesiones de practica", "Sessions de pratique", "Sesyon pratik")}: {progress.totalPractice}
                   </div>
                   <div style={subText}>
-                    Remediation sessions: {progress.totalRemediation} | Total delivered questions: {progress.totalExposure}
+                    {t("Remediation sessions", "Sesiones de remediacion", "Sessions de remediation", "Sesyon remedyasyon")}: {progress.totalRemediation}
+                    {" | "}
+                    {t("Total delivered questions", "Preguntas totales mostradas", "Questions totales affichees", "Total kestyon yo te montre")}: {progress.totalExposure}
                   </div>
                 </div>
 
                 <div style={sectionCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Next action</div>
+                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Next action", "Proximo paso", "Prochaine etape", "Pwochen etap")}</div>
                   <div style={{ display: "grid", gap: 6 }}>
-                    {nextActions.map((item) => (
-                      <div key={item} style={subText}>
-                        {item}
+                    {nextActions.map((item, index) => (
+                      <div key={`${item.kind}-${item.value || index}`} style={subText}>
+                        • {renderNextAction(item)}
                       </div>
                     ))}
                   </div>
@@ -413,11 +542,16 @@ export default function ReportsClient() {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Activity details</div>
-                    <OpenHint isOpen={activityOpen} />
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Activity details", "Detalles de actividad", "Details d'activite", "Detay aktivite")}</div>
+                    <OpenHint isOpen={activityOpen} lang={lang} />
                   </div>
                   <div style={subText}>
-                    Open to see exam activity, question exposure, practice focus, and remediation focus behind this report.
+                    {t(
+                      "Open to see exam activity, question exposure, practice focus, and remediation focus behind this report.",
+                      "Abra para ver la actividad de examenes, la exposicion a preguntas, el enfoque de practica y el enfoque de remediacion detras de este reporte.",
+                      "Ouvrez pour voir l'activite d'examen, l'exposition aux questions, l'axe de pratique et l'axe de remediation derriere ce rapport.",
+                      "Louvri pou we aktivite egzamen, kestyon yo ou deja we, konsantrasyon pratik la, ak konsantrasyon remedyasyon an deye rapo sa a."
+                    )}
                   </div>
                 </summary>
                 <div
@@ -429,59 +563,63 @@ export default function ReportsClient() {
                   }}
                 >
                   <div style={{ ...sectionCard, background: "white", padding: 12 }}>
-                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Exam activity</div>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Exam activity", "Actividad de examen", "Activite d'examen", "Aktivite egzamen")}</div>
                     <div style={subText}>
-                      Total attempts: {summary.exams?.totalAttempts ?? 0} | Completed: {summary.exams?.completedAttempts ?? 0}
+                      {t("Total attempts", "Intentos totales", "Tentatives totales", "Total tantativ")}: {summary.exams?.totalAttempts ?? 0}
+                      {" | "}
+                      {t("Completed", "Completados", "Termines", "Fini")}: {summary.exams?.completedAttempts ?? 0}
                     </div>
                     <div style={subText}>
-                      Average score: {formatPercent(summary.exams?.averageScore)} | Best score: {formatPercent(summary.exams?.bestScore)}
+                      {t("Average score", "Puntaje promedio", "Score moyen", "Not mwayen")}: {formatPercent(summary.exams?.averageScore) || noDataLabel()}
+                      {" | "}
+                      {t("Best score", "Mejor puntaje", "Meilleur score", "Pi bon not")}: {formatPercent(summary.exams?.bestScore) || noDataLabel()}
                     </div>
                     <div style={subText}>
-                      Current readiness signal: {summary.learningSignals?.overallStatus || "No current signal"}
+                      {t("Current readiness signal", "Senal actual de preparacion", "Signal actuel de preparation", "Siyal preparasyon aktyel")}: {formatStatusLabel(summary.learningSignals?.overallStatus)}
                     </div>
                   </div>
 
                   <div style={{ ...sectionCard, background: "white", padding: 12 }}>
-                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Question exposure</div>
-                    <div style={subText}>Total delivered: {summary.questionHistory?.totalExposureRows ?? 0}</div>
-                    <div style={subText}>Unique questions seen: {summary.questionHistory?.uniqueQuestionCount ?? 0}</div>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Question exposure", "Exposicion a preguntas", "Exposition aux questions", "Ekspozisyon kestyon yo")}</div>
+                    <div style={subText}>{t("Total delivered", "Total mostradas", "Total affiche", "Total kestyon yo te montre")}: {summary.questionHistory?.totalExposureRows ?? 0}</div>
+                    <div style={subText}>{t("Unique questions seen", "Preguntas unicas vistas", "Questions uniques vues", "K kestyon diferan ou te we")}: {summary.questionHistory?.uniqueQuestionCount ?? 0}</div>
                     <div style={subText}>
-                      By mode:{" "}
+                      {t("By mode", "Por modo", "Par mode", "Pa mod")}:{" "}
                       {Object.entries(summary.questionHistory?.bySourceType || {})
-                        .map(([key, value]) => `${key}: ${value}`)
-                        .join(" | ") || "No data yet"}
+                        .map(([key, value]) => `${formatSourceTypeLabel(key)}: ${value}`)
+                        .join(" | ") || noDataLabel()}
                     </div>
                   </div>
 
                   <div style={{ ...sectionCard, background: "white", padding: 12 }}>
-                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Practice focus</div>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Practice focus", "Enfoque de practica", "Axe de pratique", "Konsantrasyon pratik")}</div>
                     <div style={subText}>
-                      Chapters:{" "}
+                      {t("Chapters", "Capitulos", "Chapitres", "Chapit")}:{" "}
                       {Object.entries(summary.practiceFocus?.chapterCounts || {})
                         .map(([key, value]) => `${key}: ${value}`)
-                        .join(" | ") || "No chapter focus yet"}
+                        .join(" | ") || t("No chapter focus yet", "Todavia no hay enfoque por capitulo", "Pas encore d'axe par chapitre", "Poko gen konsantrasyon pa chapit")}
                     </div>
                     <div style={subText}>
-                      Categories:{" "}
+                      {t("Categories", "Categorias", "Categories", "Kategori")}:{" "}
                       {Object.entries(summary.practiceFocus?.categoryCounts || {})
-                        .map(([key, value]) => `${key}: ${value}`)
-                        .join(" | ") || "No category focus yet"}
+                        .map(([key, value]) => `${formatCategoryLabel(key)}: ${value}`)
+                        .join(" | ") || t("No category focus yet", "Todavia no hay enfoque por categoria", "Pas encore d'axe par categorie", "Poko gen konsantrasyon pa kategori")}
                     </div>
                   </div>
 
                   <div style={{ ...sectionCard, background: "white", padding: 12 }}>
-                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Remediation focus</div>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Remediation focus", "Enfoque de remediacion", "Axe de remediation", "Konsantrasyon remedyasyon")}</div>
                     <div style={subText}>
-                      Categories:{" "}
+                      {t("Categories", "Categorias", "Categories", "Kategori")}:{" "}
                       {Object.entries(summary.remediationFocus?.categoryCounts || {})
-                        .map(([key, value]) => `${key}: ${value}`)
-                        .join(" | ") || "No remediation focus yet"}
+                        .map(([key, value]) => `${formatCategoryLabel(key)}: ${value}`)
+                        .join(" | ") || t("No remediation focus yet", "Todavia no hay enfoque de remediacion", "Pas encore d'axe de remediation", "Poko gen konsantrasyon remedyasyon")}
                     </div>
                     <div style={subText}>
-                      Outcomes:{" "}
+                      {t("Outcomes", "Resultados", "Resultats", "Rezilta yo")}:{" "}
                       {Object.entries(summary.remediationFocus?.outcomeCounts || {})
-                        .map(([key, value]) => `${key}: ${value}`)
-                        .join(" | ") || "No remediation outcomes yet"}
+                        .map(([key, value]) => `${value}: ${formatStatusLabel(key)}`)
+                        .join(" | ") || t("No remediation outcomes yet", "Todavia no hay resultados de remediacion", "Pas encore de resultats de remediation", "Poko gen rezilta remedyasyon")}
                     </div>
                   </div>
                 </div>

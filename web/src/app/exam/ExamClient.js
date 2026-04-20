@@ -402,6 +402,22 @@ timeExpiredExplanation:
 
 // safe fallback
 const T = UI_TEXT[lang] || UI_TEXT.en;
+const remediationUnavailableAttemptText =
+  lang === "es"
+    ? "La remediación no está disponible porque no se encontró el attempt id."
+    : lang === "fr"
+      ? "La remédiation n'est pas disponible car l'identifiant de tentative est introuvable."
+      : lang === "ht"
+        ? "Remedyasyon an pa disponib paske attempt id la pa jwenn."
+        : "Remediation is unavailable because the attempt id was not found.";
+const remediationUnavailablePayloadText =
+  lang === "es"
+    ? "La remediación no está disponible porque no se encontró el paquete de resultados."
+    : lang === "fr"
+      ? "La remédiation n'est pas disponible car le paquet de résultats est introuvable."
+      : lang === "ht"
+        ? "Remedyasyon an pa disponib paske done rezilta yo pa jwenn."
+        : "Remediation is unavailable because the results payload was not found.";
 
 
 // ----------------------------
@@ -2753,12 +2769,12 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
             <button
               onClick={() => {
                 if (!attemptId) {
-                  alert("Remediation is unavailable because the attempt id was not found.");
+                  alert(remediationUnavailableAttemptText);
                   return;
                 }
 
                 if (!resultsPayload) {
-                  alert("Remediation is unavailable because the results payload was not found.");
+                  alert(remediationUnavailablePayloadText);
                   return;
                 }
 

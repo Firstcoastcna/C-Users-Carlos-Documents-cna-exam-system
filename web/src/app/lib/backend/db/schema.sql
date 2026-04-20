@@ -170,3 +170,22 @@ create table if not exists question_history (
 
 create index if not exists question_history_user_idx on question_history(user_id, created_at desc);
 create index if not exists question_history_lookup_idx on question_history(user_id, question_id);
+
+-- RLS safety baseline
+-- This app uses the Supabase service role on the server for database access,
+-- so public-schema tables should not be directly readable or writable from the
+-- browser unless we intentionally add policies later.
+
+alter table if exists app_users enable row level security;
+alter table if exists user_preferences enable row level security;
+alter table if exists schools enable row level security;
+alter table if exists school_staff enable row level security;
+alter table if exists class_groups enable row level security;
+alter table if exists access_codes enable row level security;
+alter table if exists access_code_redemptions enable row level security;
+alter table if exists class_group_enrollments enable row level security;
+alter table if exists class_group_staff enable row level security;
+alter table if exists exam_attempts enable row level security;
+alter table if exists practice_sessions enable row level security;
+alter table if exists remediation_sessions enable row level security;
+alter table if exists question_history enable row level security;

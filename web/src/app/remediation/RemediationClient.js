@@ -669,6 +669,43 @@ function getDisplayBlocks(q) {
 }
 
 const T = UI_TEXT[lang] || UI_TEXT.en;
+const runtimeText = {
+  missingAttemptId: lang === "es"
+    ? "Falta attemptId. Vuelve a resultados y abre la remediación otra vez."
+    : lang === "fr"
+      ? "attemptId manquant. Retournez aux résultats et rouvrez la remédiation."
+      : lang === "ht"
+        ? "attemptId pa la. Retounen nan rezilta yo epi relouvri remedyasyon an."
+        : "Missing attemptId. Return to results and open remediation again.",
+  missingQuestionBank: lang === "es"
+    ? "Falta el banco de preguntas. Actualiza e inténtalo otra vez."
+    : lang === "fr"
+      ? "La banque de questions est manquante. Actualisez puis réessayez."
+      : lang === "ht"
+        ? "Bank kestyon an pa la. Rafrechi epi eseye ankò."
+        : "Question bank is missing. Refresh and try again.",
+  missingQuestionPointer: lang === "es"
+    ? "Falta el puntero de pregunta para esta sesión."
+    : lang === "fr"
+      ? "Le pointeur de question manque pour cette session."
+      : lang === "ht"
+        ? "Pwent kestyon an manke pou sesyon sa a."
+        : "Missing question pointer for this session.",
+  missingQuestionData: lang === "es"
+    ? "Faltan los datos de pregunta para esta sesión."
+    : lang === "fr"
+      ? "Les données de question manquent pour cette session."
+      : lang === "ht"
+        ? "Done kestyon an manke pou sesyon sa a."
+        : "Missing question data for this session.",
+  missingEnglishVariant: lang === "es"
+    ? "Falta la variante en inglés para esta pregunta."
+    : lang === "fr"
+      ? "La variante anglaise manque pour cette question."
+      : lang === "ht"
+        ? "Vèsyon anglè kestyon sa a manke."
+        : "Missing English variant for this question.",
+};
 function outcomeLabel(outcome) {
   if (outcome === "Resolved") return T.outcomeResolved;
   if (outcome === "Improving") return T.outcomeImproving;
@@ -781,7 +818,7 @@ useEffect(() => {
   void (async () => {
     const s = await loadRemediationSessionRecord(sessionId, { forceServer, serverUser });
     if (!s) {
-      setError("Remediation session not found.");
+      setError(T.sessionNotFound);
       return;
     }
 
@@ -790,7 +827,7 @@ useEffect(() => {
       setView("session");
     }
   })();
-}, [forceServer, reviewMode, serverUser, sessionId, view]);
+}, [forceServer, reviewMode, serverUser, sessionId, view, T.sessionNotFound]);
 
 
   const questionId = useMemo(() => {
@@ -1060,7 +1097,7 @@ if (view === "intro") {
       <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
         <div style={{ fontWeight: "bold", marginBottom: 10 }}>{T.remediationTitle}</div>
         <div style={{ color: "crimson" }}>
-          Missing attemptId. Return to results and open remediation again.
+          {runtimeText.missingAttemptId}
         </div>
         <button onClick={() => router.push(examReturnUrl)} style={{ ...btnSecondary, marginTop: 12 }}>
           {T.btnBackToResults}
@@ -1294,13 +1331,13 @@ if (view === "intro") {
       // Otherwise: start a NEW attempt right here (create a new session now)
 try {
   if (!resultsPayload?.attempt_id) {
-    setError("Missing attemptId. Return to results and open remediation again.");
+    setError(runtimeText.missingAttemptId);
     return;
   }
 
   const questionBankSnapshot = Object.values(bankById || {});
   if (!questionBankSnapshot.length) {
-    setError("Question bank is missing. Refresh and try again.");
+    setError(runtimeText.missingQuestionBank);
     return;
   }
 
@@ -1393,7 +1430,7 @@ if (!questionId) {
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
       <div style={{ fontWeight: "bold", marginBottom: 10 }}>{T.remediationTitle}</div>
       <div style={{ marginBottom: 12, color: "crimson" }}>
-        Missing question pointer for this session.
+        {runtimeText.missingQuestionPointer}
       </div>
       <button onClick={() => setView("intro")} style={btnSecondary}>
         {T.btnBackToOverview}
@@ -1410,7 +1447,7 @@ if (!q) {
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
       <div style={{ fontWeight: "bold", marginBottom: 10 }}>{T.remediationTitle}</div>
       <div style={{ marginBottom: 12, color: "crimson" }}>
-        Missing question data for this session.
+        {runtimeText.missingQuestionData}
       </div>
       <button onClick={() => setView("intro")} style={btnSecondary}>
         {T.btnBackToOverview}
@@ -1427,7 +1464,7 @@ if (!variantEn) {
     <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
       <div style={{ fontWeight: "bold", marginBottom: 10 }}>{T.remediationTitle}</div>
       <div style={{ marginBottom: 12, color: "crimson" }}>
-        Missing English variant for this question.
+        {runtimeText.missingEnglishVariant}
       </div>
       <button onClick={() => setView("intro")} style={btnSecondary}>
         {T.btnBackToOverview}

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
 import {
   deleteClassGroupStaffRecord,
+  loadAppUser,
+  loadClassGroupRecord,
+  loadSchoolStaffForUser,
   upsertClassGroupStaff,
 } from "@/app/lib/backend/db/client";
 
@@ -19,6 +22,54 @@ export async function PATCH(request) {
           ok: false,
           service: "admin-teacher-assignments",
           error: "Teacher and class are required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const [appUser, classGroup, staffRows] = await Promise.all([
+      loadAppUser(teacherId),
+      loadClassGroupRecord(classGroupId),
+      loadSchoolStaffForUser(teacherId),
+    ]);
+
+    if (!appUser) {
+      return NextResponse.json(
+        { ok: false, service: "admin-teacher-assignments", error: "Teacher could not be found." },
+        { status: 404 }
+      );
+    }
+
+    if (String(appUser.account_role || "").toLowerCase() !== "teacher") {
+      return NextResponse.json(
+        {
+          ok: false,
+          service: "admin-teacher-assignments",
+          error: "Only users with the teacher role can be assigned to a class as teachers.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!classGroup) {
+      return NextResponse.json(
+        { ok: false, service: "admin-teacher-assignments", error: "Class could not be found." },
+        { status: 404 }
+      );
+    }
+
+    const matchingSchoolStaff = staffRows.find(
+      (row) =>
+        String(row.school_id || "") === String(classGroup.school_id || "") &&
+        String(row.role || "").toLowerCase() === "teacher"
+    );
+
+    if (!matchingSchoolStaff) {
+      return NextResponse.json(
+        {
+          ok: false,
+          service: "admin-teacher-assignments",
+          error: "This teacher is not assigned to the same school as that class.",
         },
         { status: 400 }
       );
