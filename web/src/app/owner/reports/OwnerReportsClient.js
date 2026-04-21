@@ -151,7 +151,7 @@ function OpenHint({ isOpen }) {
   }, []);
 
   return (
-    <span style={{ color: "#607282", fontSize: 12.5, fontWeight: 700 }}>
+    <span style={{ color: "#607282", fontSize: 11.5, fontWeight: 700 }}>
       {isNarrow ? (isOpen ? "Tap here to close" : "Tap here to open") : isOpen ? "Click here to close" : "Click here to open"}
     </span>
   );
@@ -189,10 +189,7 @@ function buildClassNextActions(summary, students) {
   const actions = [];
   const topWeakCategories = rankCounts(summary?.categoryWeaknessCounts, 2);
   const topWeakChapters = rankCounts(summary?.chapterPriorityCounts, 2);
-  const atRiskStudents = (students || []).filter((student) => {
-    const status = student?.latestExamAnalytics?.overallStatus || "";
-    return status === "High Risk" || status === "Borderline";
-  });
+  const atRiskStudents = buildInterventionStudents(students);
 
   if (topWeakCategories[0]) {
     actions.push(`Reinforce ${topWeakCategories[0][0]} with the whole class first.`);
@@ -228,25 +225,108 @@ function buildClassStrengths(summary) {
 }
 
 function buildInterventionStudents(students) {
+  function pickWeakestCategory(student) {
+    const ranked = Array.isArray(student?.latestExamAnalytics?.categoryPriority)
+      ? student.latestExamAnalytics.categoryPriority
+      : [];
+
+    return (
+      ranked.find((item) => item?.is_high_risk && item?.level !== "Strong") ||
+      ranked.find((item) => item?.level === "Weak" || item?.level === "Developing") ||
+      ranked.find((item) => item?.level !== "Strong") ||
+      ranked[0] ||
+      null
+    );
+  }
+
+  function pickWeakestChapter(student) {
+    const chapters = Array.isArray(student?.latestExamAnalytics?.chapterGuidance)
+      ? student.latestExamAnalytics.chapterGuidance
+      : [];
+
+    return chapters[0] || null;
+  }
+
+  function deriveInterventionSignal(student) {
+    const completedAttempts = Number(student?.exams?.completedAttempts || 0);
+    const averageScore = Number(student?.exams?.averageScore);
+    const latestStatus = student?.latestExamAnalytics?.overallStatus || "";
+
+    if (completedAttempts <= 0) {
+      return null;
+    }
+
+    if (Number.isFinite(averageScore) && averageScore < 70) {
+      return {
+        priority: "high",
+        label: "High Risk",
+        reason:
+          completedAttempts > 1
+            ? `Average exam score is ${averageScore}%, which is still in the high-risk range across multiple exams.`
+            : `The current exam signal is very low at ${averageScore}%, and this student needs a close follow-up.`,
+      };
+    }
+
+    if (
+      latestStatus === "High Risk" &&
+      (!Number.isFinite(averageScore) || averageScore < 80 || completedAttempts === 1)
+    ) {
+      return {
+        priority: "high",
+        label: "High Risk",
+        reason:
+          completedAttempts === 1
+            ? "Only one scored exam is on record, and it is currently showing a high-risk signal."
+            : `The latest exam is high risk and the average score is only ${averageScore}%.`,
+      };
+    }
+
+    if (Number.isFinite(averageScore) && averageScore >= 70 && averageScore < 80) {
+      return {
+        priority: "moderate",
+        label: "Borderline",
+        reason: `Average exam score is ${averageScore}%, which still needs support before it feels stable.`,
+      };
+    }
+
+    if (latestStatus === "Borderline" && (!Number.isFinite(averageScore) || averageScore < 85)) {
+      return {
+        priority: "moderate",
+        label: "Borderline",
+        reason:
+          completedAttempts === 1
+            ? "The first scored exam is already showing a borderline signal."
+            : "The latest exam is still borderline, so this student is worth watching even if the overall trend is mixed.",
+      };
+    }
+
+    return null;
+  }
+
   return (students || [])
     .map((student) => {
       const status = student?.latestExamAnalytics?.overallStatus || "No current signal";
-      const weakestCategory = student?.latestExamAnalytics?.categoryPriority?.find(
-        (item) => item?.level === "Weak" || item?.level === "Developing"
-      );
-      const weakestChapter = student?.latestExamAnalytics?.chapterGuidance?.[0];
+      const weakestCategory = pickWeakestCategory(student);
+      const weakestChapter = pickWeakestChapter(student);
+      const signal = deriveInterventionSignal(student);
 
       return {
         id: student?.user?.id || student?.user?.email || "",
         name: student?.user?.full_name || student?.user?.email || student?.user?.id,
-        status,
+        status: signal?.label || status,
         averageScore: student?.exams?.averageScore,
+        completedAttempts: student?.exams?.completedAttempts ?? 0,
         weakestCategory: weakestCategory?.category_id || null,
         weakestChapter: weakestChapter?.chapter_id ? `Chapter ${weakestChapter.chapter_id}` : null,
+        priority: signal?.priority || null,
+        reason: signal?.reason || "",
       };
     })
-    .filter((student) => student.status === "High Risk" || student.status === "Borderline")
+    .filter((student) => student.priority === "high" || student.priority === "moderate")
     .sort((a, b) => {
+      const priorityA = a.priority === "high" ? 0 : 1;
+      const priorityB = b.priority === "high" ? 0 : 1;
+      if (priorityA !== priorityB) return priorityA - priorityB;
       const scoreA = Number.isFinite(a.averageScore) ? a.averageScore : -1;
       const scoreB = Number.isFinite(b.averageScore) ? b.averageScore : -1;
       return scoreA - scoreB;
@@ -440,20 +520,33 @@ export default function OwnerReportsClient() {
         ["school_id", schoolId],
         ["class_group_id", classGroupId],
         ["class_name", className],
+        ["open", from === "schools-roster" ? "roster" : ""],
       ].filter(([, value]) => value)
     )
   ).toString();
   const backHref =
     from === "independent"
       ? `/owner/independent${studentId ? `?student_id=${encodeURIComponent(studentId)}` : ""}`
+      : from === "class-report"
+        ? `/owner/reports?scope=class&class_group_id=${encodeURIComponent(
+            classGroupId
+          )}&school_id=${encodeURIComponent(schoolId)}&class_name=${encodeURIComponent(
+            className
+          )}&lang=${encodeURIComponent(lang)}&from=schools`
       : from === "schools"
         ? `/owner/schools${schoolBackQuery ? `?${schoolBackQuery}` : ""}`
+        : from === "schools-roster"
+          ? `/owner/schools${schoolBackQuery ? `?${schoolBackQuery}` : ""}`
         : "/owner";
   const backLabel =
     from === "independent"
       ? "Back"
       : from === "schools"
         ? "Back"
+        : from === "schools-roster"
+          ? "Back"
+          : from === "class-report"
+            ? "Back"
         : "Return";
 
   const [loading, setLoading] = useState(true);
@@ -461,10 +554,11 @@ export default function OwnerReportsClient() {
   const [error, setError] = useState("");
   const [report, setReport] = useState(null);
   const [strengthsOpen, setStrengthsOpen] = useState(false);
-  const [rosterOpen, setRosterOpen] = useState(false);
   const [studentActivityOpen, setStudentActivityOpen] = useState(false);
   const [schoolClassesOpen, setSchoolClassesOpen] = useState(false);
+  const [interventionOpenById, setInterventionOpenById] = useState({});
   const [isNarrow, setIsNarrow] = useState(false);
+  const [studentReportView, setStudentReportView] = useState("exam");
 
   useEffect(() => {
     function syncWidth() {
@@ -540,19 +634,6 @@ export default function OwnerReportsClient() {
   const classStrengths = buildClassStrengths(classSummary);
   const interventionStudents = buildInterventionStudents(students);
   const weaknessMap = buildWeaknessMap(classSummary);
-  const topRosterStudents = students.map((student) => {
-    const weakestCategory = student?.latestExamAnalytics?.categoryPriority?.find(
-      (item) => item?.level === "Weak" || item?.level === "Developing"
-    );
-    const topChapter = student?.latestExamAnalytics?.chapterGuidance?.[0];
-
-    return {
-      ...student,
-      weakestCategory: weakestCategory?.category_id || null,
-      weakestChapter: topChapter?.chapter_id ? `Chapter ${topChapter.chapter_id}` : null,
-      latestStatus: student?.latestExamAnalytics?.overallStatus || "No current signal",
-    };
-  });
   const nextActions = buildClassNextActions(classSummary, students);
   const schoolStatus = deriveSchoolStatus(schoolSummary);
   const schoolNextActions = buildSchoolNextActions(schoolSummary, schoolClasses);
@@ -582,6 +663,129 @@ export default function OwnerReportsClient() {
   const studentWeaknesses = buildStudentWeaknesses(studentSummary);
   const studentNextActions = buildStudentNextActions(studentSummary);
   const studentProgress = buildStudentProgress(studentSummary);
+  const studentPracticeDiagnostics = studentSummary?.practiceDiagnostics || {};
+  const studentChapterPractice = studentPracticeDiagnostics.chapter || {};
+  const studentCategoryPractice = studentPracticeDiagnostics.category || {};
+  const studentPracticeModeCounts = studentSummary?.practiceFocus?.modeCounts || {};
+  const studentHasCompletedExam = Number(studentSummary?.exams?.completedAttempts || 0) > 0;
+  const studentExamQuestionsSeen = Number(studentSummary?.exams?.latestCompletedAttempt?.deliveredQuestionIds?.length || 0);
+  const studentPracticeChapterEntries = Array.isArray(studentChapterPractice?.entries) ? studentChapterPractice.entries : [];
+  const studentPracticeCategoryEntries = Array.isArray(studentCategoryPractice?.entries) ? studentCategoryPractice.entries : [];
+  const studentStrongestPracticeChapter = studentChapterPractice?.strongest || null;
+  const studentStrongestPracticeCategory =
+    Number.isFinite(Number(studentCategoryPractice?.strongest?.percent)) && Number(studentCategoryPractice.strongest.percent) >= 80
+      ? studentCategoryPractice.strongest
+      : null;
+  const studentPracticeNextSteps = [];
+
+  if (Number(studentPracticeModeCounts?.chapter || 0) > 0) {
+    if (studentChapterPractice?.weakest?.label != null) {
+      studentPracticeNextSteps.push(
+        `Keep working chapter practice around Chapter ${studentChapterPractice.weakest.label} until results become more consistent.`
+      );
+    } else {
+      studentPracticeNextSteps.push("Keep using chapter practice so this report can build a clearer chapter signal.");
+    }
+  }
+  if (Number(studentPracticeModeCounts?.category || 0) > 0) {
+    if (studentCategoryPractice?.weakest?.label) {
+      studentPracticeNextSteps.push(`Use category practice to reinforce ${studentCategoryPractice.weakest.label} before moving on.`);
+    } else {
+      studentPracticeNextSteps.push("Keep using category practice so this report can show a clearer category pattern.");
+    }
+  }
+  if (Number(studentPracticeModeCounts?.mixed || 0) > 0 && !Number(studentPracticeModeCounts?.chapter || 0) && !Number(studentPracticeModeCounts?.category || 0)) {
+    studentPracticeNextSteps.push(
+      "Mixed practice is helping with exposure. Add one chapter or category session next so the report can give more targeted guidance."
+    );
+  }
+  if (!studentPracticeNextSteps.length) {
+    studentPracticeNextSteps.push("Start with chapter or category practice so the report can show clearer strengths and review areas.");
+  }
+
+  const studentExamCategorySections = [
+    {
+      key: "strong",
+      title: "Strong",
+      tone: { border: "#bddfc6", bg: "#f7fff9", title: "#1f6f3d" },
+      items: studentStrengths.strongestCategories,
+      empty: "No clear strength yet",
+    },
+    {
+      key: "watch",
+      title: "Watch",
+      tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
+      items: studentWeaknesses.categoriesNeedingWork.map((item) => `${item.category}${item.level ? ` (${item.level})` : ""}`),
+      empty: "Nothing repeating yet",
+    },
+    {
+      key: "risk",
+      title: "High Risk",
+      tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
+      items: studentWeaknesses.highRiskCategories.map((item) => `${item.category}${item.level ? ` (${item.level})` : ""}`),
+      empty: "No high-risk signal now",
+    },
+  ];
+
+  const studentPracticeChapterSections = [
+    {
+      key: "strong",
+      title: "Strong",
+      tone: { border: "#bddfc6", bg: "#f7fff9", title: "#1f6f3d" },
+      items: studentPracticeChapterEntries
+        .filter((item) => Number(item?.percent) >= 80)
+        .map((item) => `Chapter ${item.label} (${item.percent}%)`),
+      empty: "No strong chapter signal yet",
+    },
+    {
+      key: "watch",
+      title: "Watch",
+      tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
+      items: studentPracticeChapterEntries
+        .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
+        .map((item) => `Chapter ${item.label} (${item.percent}%)`),
+      empty: "No developing chapter signal yet",
+    },
+    {
+      key: "risk",
+      title: "High Risk",
+      tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
+      items: studentPracticeChapterEntries
+        .filter((item) => Number(item?.percent) < 60)
+        .map((item) => `Chapter ${item.label} (${item.percent}%)`),
+      empty: "No high-risk chapter signal yet",
+    },
+  ];
+
+  const studentPracticeCategorySections = [
+    {
+      key: "strong",
+      title: "Strong",
+      tone: { border: "#bddfc6", bg: "#f7fff9", title: "#1f6f3d" },
+      items: studentPracticeCategoryEntries
+        .filter((item) => Number(item?.percent) >= 80)
+        .map((item) => `${item.label} (${item.percent}%)`),
+      empty: "No strong category signal yet",
+    },
+    {
+      key: "watch",
+      title: "Watch",
+      tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
+      items: studentPracticeCategoryEntries
+        .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
+        .map((item) => `${item.label} (${item.percent}%)`),
+      empty: "No developing category signal yet",
+    },
+    {
+      key: "risk",
+      title: "High Risk",
+      tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
+      items: studentPracticeCategoryEntries
+        .filter((item) => Number(item?.percent) < 60)
+        .map((item) => `${item.label} (${item.percent}%)`),
+      empty: "No high-risk category signal yet",
+    },
+  ];
 
   return (
     <main style={shell}>
@@ -658,28 +862,52 @@ export default function OwnerReportsClient() {
                   {interventionStudents.length ? (
                     <div style={{ display: "grid", gap: 10 }}>
                       {interventionStudents.map((student) => (
-                        <div key={student.id} style={{ ...listCard, background: "white", padding: 12 }}>
-                          <div style={{ fontWeight: 800, color: "var(--heading)" }}>{student.name}</div>
-                          <div style={subText}>
-                            Status: {student.status} | Avg exam: {formatPercent(student.averageScore)} | Weakest category:{" "}
-                            {student.weakestCategory || "No clear category yet"}
+                        <details
+                          key={student.id}
+                          style={{ ...listCard, background: "white", padding: 7 }}
+                          open={Boolean(interventionOpenById[student.id])}
+                        >
+                          <summary
+                            style={{ cursor: "pointer", listStyle: "none" }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setInterventionOpenById((prev) => ({
+                                ...prev,
+                                [student.id]: !prev[student.id],
+                              }));
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                              <div style={{ fontWeight: 800, color: "var(--heading)" }}>{student.name}</div>
+                              <OpenHint isOpen={Boolean(interventionOpenById[student.id])} />
+                            </div>
+                            <div style={{ ...subText, marginTop: 4, marginBottom: 0 }}>{student.status}</div>
+                          </summary>
+                          <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+                            <div style={subText}>
+                              Avg exam: {formatPercent(student.averageScore)} | Weakest category:{" "}
+                              {student.weakestCategory || "No clear category yet"}
+                            </div>
+                            <div style={subText}>
+                              Completed exams: {student.completedAttempts ?? 0} | Weakest chapter: {student.weakestChapter || "No clear chapter yet"}
+                            </div>
+                            <div style={subText}>{student.reason}</div>
+                            <div>
+                              <Link
+                                href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
+                                  student.id
+                                )}&lang=${encodeURIComponent(lang)}&from=${encodeURIComponent(
+                                  "class-report"
+                                )}&school_id=${encodeURIComponent(schoolId)}&class_group_id=${encodeURIComponent(
+                                  classGroupId
+                                )}&class_name=${encodeURIComponent(className)}`}
+                                style={buttonSecondary}
+                              >
+                                View student report
+                              </Link>
+                            </div>
                           </div>
-                          <div style={subText}>Weakest chapter: {student.weakestChapter || "No clear chapter yet"}</div>
-                          <div>
-                            <Link
-                              href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
-                                student.id
-                              )}&lang=${encodeURIComponent(lang)}&from=${encodeURIComponent(
-                                from || "schools"
-                              )}&school_id=${encodeURIComponent(schoolId)}&class_group_id=${encodeURIComponent(
-                                classGroupId
-                              )}&class_name=${encodeURIComponent(className)}`}
-                              style={buttonSecondary}
-                            >
-                              View student report
-                            </Link>
-                          </div>
-                        </div>
+                        </details>
                       ))}
                     </div>
                   ) : (
@@ -788,53 +1016,6 @@ export default function OwnerReportsClient() {
                   </div>
                 </div>
               </div>
-
-              <details style={listCard} open={rosterOpen}>
-                <summary
-                  style={detailsSummary}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setRosterOpen((prev) => !prev);
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Class roster</div>
-                    <OpenHint isOpen={rosterOpen} />
-                  </div>
-                  <div style={subText}>Open to review the full class list and move into individual student reports when needed.</div>
-                </summary>
-                <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-                  {topRosterStudents.map((student) => (
-                    <div key={student.user?.id || student.user?.email} style={{ ...listCard, background: "white", padding: 12 }}>
-                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                        {student.user?.full_name || student.user?.email || student.user?.id}
-                      </div>
-                      <div style={subText}>
-                        Status: {student.latestStatus} | Avg exam: {formatPercent(student.exams?.averageScore)} | Practice:{" "}
-                        {student.practice?.totalSessions ?? 0} | Remediation: {student.remediation?.totalSessions ?? 0}
-                      </div>
-                      <div style={subText}>
-                        Weakest category: {student.weakestCategory || "No clear category yet"} | Weakest chapter:{" "}
-                        {student.weakestChapter || "No clear chapter yet"}
-                      </div>
-                      <div>
-                        <Link
-                          href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
-                            student.user?.id || ""
-                          )}&lang=${encodeURIComponent(lang)}&from=${encodeURIComponent(
-                            from || "schools"
-                          )}&school_id=${encodeURIComponent(schoolId)}&class_group_id=${encodeURIComponent(
-                            classGroupId
-                          )}&class_name=${encodeURIComponent(className)}`}
-                          style={buttonSecondary}
-                        >
-                          View student report
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </details>
 
               <div style={listCard}>
                 <div style={{ fontWeight: 800, color: "var(--heading)" }}>Next action</div>
@@ -1038,92 +1219,240 @@ export default function OwnerReportsClient() {
 
           {!loading && !error && hasTarget && scope === "student" && studentSummary ? (
             <>
-              <div style={listCard}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Status summary</div>
-                <div style={subText}>
-                  {studentSummary.learningSignals?.overallStatus || "No current signal"} | Completed full exams:{" "}
-                  {studentSummary.exams?.completedAttempts ?? 0} | Practice sessions: {studentSummary.practice?.totalSessions ?? 0}
-                </div>
-                <div style={subText}>
-                  Average exam score: {formatPercent(studentSummary.exams?.averageScore)} | Best exam score:{" "}
-                  {formatPercent(studentSummary.exams?.bestScore)} | Remediation sessions:{" "}
-                  {studentSummary.remediation?.totalSessions ?? 0}
-                </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  style={{
+                    ...buttonSecondary,
+                    borderColor: studentReportView === "practice" ? "var(--brand-red)" : "#cfdde6",
+                    background: studentReportView === "practice" ? "var(--brand-red-soft)" : "white",
+                    color: studentReportView === "practice" ? "var(--brand-red)" : "#536779",
+                  }}
+                  onClick={() => setStudentReportView("practice")}
+                >
+                  Practice Progress
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    ...buttonSecondary,
+                    borderColor: studentReportView === "exam" ? "var(--brand-red)" : "#cfdde6",
+                    background: studentReportView === "exam" ? "var(--brand-red-soft)" : "white",
+                    color: studentReportView === "exam" ? "var(--brand-red)" : "#536779",
+                  }}
+                  onClick={() => setStudentReportView("exam")}
+                >
+                  Exam Readiness
+                </button>
               </div>
 
-              <div style={analysisGrid}>
-                <div style={listCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Strengths</div>
-                  <div style={subText}>
-                    Strongest categories:{" "}
-                    {studentStrengths.strongestCategories.length
-                      ? studentStrengths.strongestCategories.join(" | ")
-                      : "No clear strengths yet"}
+              {studentReportView === "practice" ? (
+                <>
+                  <div style={{ ...listCard, borderColor: "#d7e4ec", background: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)" }}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Practice progress</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: "#38556a" }}>
+                      {studentSummary.practice?.completedSessions > 0 ? "Building steadily" : "Just getting started"}
+                    </div>
+                    <div style={subText}>
+                      Completed practice: {studentSummary.practice?.completedSessions ?? 0} | All practice sessions:{" "}
+                      {studentSummary.practice?.totalSessions ?? 0} | Questions seen: {studentProgress.totalExposure}
+                    </div>
                   </div>
-                  <div style={subText}>Best full exam score: {formatPercent(studentStrengths.bestScore)}</div>
-                  <div style={subText}>
-                    Completed practice: {studentStrengths.completedPractice} | Completed remediation:{" "}
-                    {studentStrengths.completedRemediation}
-                  </div>
-                </div>
 
-                <div style={listCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Priority weak areas</div>
-                  <div style={subText}>
-                    Categories needing work:{" "}
-                    {studentWeaknesses.categoriesNeedingWork.length
-                      ? studentWeaknesses.categoriesNeedingWork
-                          .map((item) => `${item.category} (${item.level})`)
-                          .join(" | ")
-                      : "No repeated weak category yet"}
-                  </div>
-                  <div style={subText}>
-                    High-risk categories:{" "}
-                    {studentWeaknesses.highRiskCategories.length
-                      ? studentWeaknesses.highRiskCategories
-                          .map((item) => `${item.category} (${item.level})`)
-                          .join(" | ")
-                      : "No current high-risk category signal"}
-                  </div>
-                  <div style={subText}>
-                    Priority chapters:{" "}
-                    {studentWeaknesses.chapterPriorities.length
-                      ? studentWeaknesses.chapterPriorities
-                          .map((item) => `Chapter ${item.chapterId} (${item.priority})`)
-                          .join(" | ")
-                      : "No clear chapter priority yet"}
-                  </div>
-                </div>
-              </div>
-
-              <div style={analysisGrid}>
-                <div style={listCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Progress over time</div>
-                  <div style={subText}>
-                    Average exam score: {formatPercent(studentProgress.examAverage)} | Best score:{" "}
-                    {formatPercent(studentProgress.bestScore)}
-                  </div>
-                  <div style={subText}>
-                    Completed full exams: {studentProgress.completedAttempts} | Practice sessions:{" "}
-                    {studentProgress.totalPractice}
-                  </div>
-                  <div style={subText}>
-                    Remediation sessions: {studentProgress.totalRemediation} | Total delivered questions:{" "}
-                    {studentProgress.totalExposure}
-                  </div>
-                </div>
-
-                <div style={listCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Next action</div>
-                  <div style={{ display: "grid", gap: 6 }}>
-                    {studentNextActions.map((item) => (
-                      <div key={item} style={subText}>
-                        {item}
+                  <div style={analysisGrid}>
+                    <div style={{ ...listCard, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
+                      <div style={{ fontWeight: 800, color: "#476252" }}>Chapter work</div>
+                      <div style={subText}>
+                        Best current chapter:{" "}
+                        {studentStrongestPracticeChapter?.label != null
+                          ? `Chapter ${studentStrongestPracticeChapter.label}`
+                          : studentChapterPractice?.entries?.length
+                            ? "No clear strong chapter yet"
+                            : "Not enough chapter practice yet"}
                       </div>
-                    ))}
+                      <div style={subText}>
+                        Chapter to review:{" "}
+                        {studentChapterPractice?.weakest?.label != null ? `Chapter ${studentChapterPractice.weakest.label}` : "No data yet"}
+                      </div>
+                    </div>
+
+                    <div style={{ ...listCard, borderColor: "#eadba6", background: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)" }}>
+                      <div style={{ fontWeight: 800, color: "#6f6340" }}>Category work</div>
+                      <div style={subText}>
+                        Best current category:{" "}
+                        {studentStrongestPracticeCategory?.label != null
+                          ? studentStrongestPracticeCategory.label
+                          : studentCategoryPractice?.entries?.length
+                            ? "No clear strong category yet"
+                            : "Not enough category practice yet"}
+                      </div>
+                      <div style={subText}>
+                        Category to review: {studentCategoryPractice?.weakest?.label || "No data yet"}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+
+                  <div style={listCard}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>What to do next in practice</div>
+                    <div style={{ display: "grid", gap: 6 }}>
+                      {studentPracticeNextSteps.map((item) => (
+                        <div key={item} style={subText}>
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={listCard}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Practice chapter picture</div>
+                    <div style={subText}>This view only reflects chapters practiced in chapter mode so far.</div>
+                    <div style={analysisGrid}>
+                      {studentPracticeChapterSections.map((section) => (
+                        <div
+                          key={`owner-practice-chapter-${section.key}`}
+                          style={{ ...listCard, background: section.tone.bg, borderColor: section.tone.border, padding: 12 }}
+                        >
+                          <div style={{ fontWeight: 800, color: section.tone.title }}>{section.title}</div>
+                          <div style={subText}>{section.items.length ? section.items.join(" | ") : section.empty}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={listCard}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Practice category picture</div>
+                    <div style={subText}>This view only reflects categories practiced in category mode so far.</div>
+                    <div style={analysisGrid}>
+                      {studentPracticeCategorySections.map((section) => (
+                        <div
+                          key={`owner-practice-category-${section.key}`}
+                          style={{ ...listCard, background: section.tone.bg, borderColor: section.tone.border, padding: 12 }}
+                        >
+                          <div style={{ fontWeight: 800, color: section.tone.title }}>{section.title}</div>
+                          <div style={subText}>{section.items.length ? section.items.join(" | ") : section.empty}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      ...listCard,
+                      borderColor: studentHasCompletedExam ? "#efc2c2" : "#d7e4ec",
+                      background: studentHasCompletedExam
+                        ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
+                        : "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>My readiness</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: studentHasCompletedExam ? "var(--brand-red)" : "#38556a" }}>
+                      {studentHasCompletedExam ? studentSummary.learningSignals?.overallStatus || "No current signal" : "No exam signal yet"}
+                    </div>
+                    <div style={subText}>
+                      Average exam: {formatPercent(studentSummary.exams?.averageScore)} | Completed exams:{" "}
+                      {studentSummary.exams?.completedAttempts ?? 0} | Exam questions seen: {studentExamQuestionsSeen}
+                    </div>
+                    {!studentHasCompletedExam ? (
+                      <div style={subText}>Exam readiness will become more detailed after the first completed exam.</div>
+                    ) : null}
+                  </div>
+
+                  {studentHasCompletedExam ? (
+                    <>
+                      <div style={analysisGrid}>
+                        <div style={{ ...listCard, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
+                          <div style={{ fontWeight: 800, color: "#476252" }}>Strongest area</div>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: "#1f6f3d" }}>
+                            {studentStrengths.strongestCategories[0] || "Still forming"}
+                          </div>
+                          <div style={subText}>Best exam: {formatPercent(studentStrengths.bestScore)}</div>
+                        </div>
+
+                        <div style={{ ...listCard, borderColor: "#efc2c2", background: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)" }}>
+                          <div style={{ fontWeight: 800, color: "#6f4747" }}>Needs work now</div>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--brand-red)" }}>
+                            {studentWeaknesses.highRiskCategories[0]?.category ||
+                              studentWeaknesses.categoriesNeedingWork[0]?.category ||
+                              "No clear weak area yet"}
+                          </div>
+                          <div style={subText}>
+                            Priority chapter:{" "}
+                            {studentWeaknesses.chapterPriorities[0]?.chapterId
+                              ? `Chapter ${studentWeaknesses.chapterPriorities[0].chapterId}`
+                              : "No data yet"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={listCard}>
+                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>What to do next</div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {studentNextActions.slice(0, 3).map((item) => (
+                            <div key={item} style={subText}>
+                              {item}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={listCard}>
+                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>Your category picture</div>
+                        <div style={subText}>This gives a fast read of what looks strong, what to watch, and what feels urgent.</div>
+                        <div style={analysisGrid}>
+                          {studentExamCategorySections.map((section) => (
+                            <div
+                              key={`owner-exam-${section.key}`}
+                              style={{ ...listCard, background: section.tone.bg, borderColor: section.tone.border, padding: 12 }}
+                            >
+                              <div style={{ fontWeight: 800, color: section.tone.title }}>{section.title}</div>
+                              <div style={subText}>{section.items.length ? section.items.join(" | ") : section.empty}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={analysisGrid}>
+                        <div style={{ ...listCard, borderColor: "#d7e4ec", background: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)" }}>
+                          <div style={{ fontWeight: 800, color: "#607282" }}>Strongest area</div>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: "#38556a" }}>No exam strength yet</div>
+                          <div style={subText}>Complete one full exam to begin building this part of the report.</div>
+                        </div>
+
+                        <div style={{ ...listCard, borderColor: "#d7e4ec", background: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)" }}>
+                          <div style={{ fontWeight: 800, color: "#607282" }}>Needs work now</div>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: "#38556a" }}>No exam weak area yet</div>
+                          <div style={subText}>Exam weak areas will appear after the first completed exam.</div>
+                        </div>
+                      </div>
+
+                      <div style={listCard}>
+                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>What to do next</div>
+                        <div style={subText}>Take the first full exam when ready so this section can show true readiness guidance.</div>
+                      </div>
+
+                      <div style={listCard}>
+                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>Your category picture</div>
+                        <div style={subText}>The exam category picture will appear after the first completed exam.</div>
+                        <div style={analysisGrid}>
+                          {studentExamCategorySections.map((section) => (
+                            <div
+                              key={`owner-empty-exam-${section.key}`}
+                              style={{ ...listCard, background: section.tone.bg, borderColor: section.tone.border, padding: 12 }}
+                            >
+                              <div style={{ fontWeight: 800, color: section.tone.title }}>{section.title}</div>
+                              <div style={subText}>{section.empty}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
 
               <details style={listCard} open={studentActivityOpen}>
                 <summary
@@ -1191,6 +1520,9 @@ export default function OwnerReportsClient() {
                       {Object.entries(studentSummary.practiceFocus?.categoryCounts || {})
                         .map(([key, value]) => `${key}: ${value}`)
                         .join(" | ") || "No category focus yet"}
+                    </div>
+                    <div style={subText}>
+                      Mixed practice: {studentSummary.practiceFocus?.modeCounts?.mixed ?? 0}
                     </div>
                   </div>
 

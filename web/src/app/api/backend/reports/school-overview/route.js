@@ -31,6 +31,26 @@ function getExamAnalyticsPayload(attempt) {
   return attempt?.results_payload?.final || attempt?.results_payload || null;
 }
 
+function deriveOverallStatusFromScore(score) {
+  if (!Number.isFinite(score)) return null;
+  if (score >= 80) return "On Track";
+  if (score < 70) return "High Risk";
+  return "Borderline";
+}
+
+function getLatestScoredAttempt(attempts) {
+  return attempts.find((attempt) => Number.isFinite(attempt?.score)) || null;
+}
+
+function getLatestAttemptWithAnalytics(attempts) {
+  return (
+    attempts.find((attempt) => {
+      const analytics = getExamAnalyticsPayload(attempt);
+      return analytics && (Array.isArray(analytics.category_priority) || Array.isArray(analytics.chapter_guidance));
+    }) || null
+  );
+}
+
 function summarizePracticeSessions(sessions) {
   const completed = sessions.filter((session) => session?.status === "completed");
   const active = sessions.filter((session) => session?.status === "active");
@@ -67,8 +87,12 @@ function summarizeQuestionHistory(records) {
 }
 
 function buildStudentSummary({ member, examAttempts, practiceSessions, remediationSessions, questionHistory }) {
-  const latestExam = examAttempts[0] || null;
-  const latestExamAnalytics = getExamAnalyticsPayload(latestExam);
+  const latestAnalyticsExam = getLatestAttemptWithAnalytics(examAttempts);
+  const latestExamAnalytics = getExamAnalyticsPayload(latestAnalyticsExam);
+  const latestScoredExam = getLatestScoredAttempt(examAttempts);
+  const derivedOverallStatus =
+    latestExamAnalytics?.overall_status ||
+    deriveOverallStatusFromScore(Number(latestScoredExam?.score));
 
   return {
     user: member.user,
@@ -80,7 +104,7 @@ function buildStudentSummary({ member, examAttempts, practiceSessions, remediati
     exams: summarizeExamAttempts(examAttempts),
     latestExamAnalytics: latestExamAnalytics
       ? {
-          overallStatus: latestExamAnalytics.overall_status || null,
+          overallStatus: derivedOverallStatus,
           categoryPriority: Array.isArray(latestExamAnalytics.category_priority)
             ? latestExamAnalytics.category_priority
             : [],
@@ -88,7 +112,13 @@ function buildStudentSummary({ member, examAttempts, practiceSessions, remediati
             ? latestExamAnalytics.chapter_guidance
             : [],
         }
-      : null,
+      : derivedOverallStatus
+        ? {
+            overallStatus: derivedOverallStatus,
+            categoryPriority: [],
+            chapterGuidance: [],
+          }
+        : null,
     practice: summarizePracticeSessions(practiceSessions),
     remediation: summarizeRemediationSessions(remediationSessions),
     questionHistory: summarizeQuestionHistory(questionHistory),
@@ -267,10 +297,11 @@ export async function GET(request) {
         const studentSummaries = await Promise.all(
           roster.map(async (member) => {
             const [examAttempts, practiceSessions, remediationSessions, questionHistory] = await Promise.all([
-              loadExamAttemptRecords(member.user_id, lang),
-              loadPracticeSessionRecords(member.user_id, lang),
-              loadRemediationSessionRecords(member.user_id, lang),
-              loadQuestionHistoryRecords(member.user_id, { lang }),
+              // School-level reporting should aggregate all student activity, regardless of UI language.
+              loadExamAttemptRecords(member.user_id),
+              loadPracticeSessionRecords(member.user_id),
+              loadRemediationSessionRecords(member.user_id),
+              loadQuestionHistoryRecords(member.user_id),
             ]);
 
             return buildStudentSummary({

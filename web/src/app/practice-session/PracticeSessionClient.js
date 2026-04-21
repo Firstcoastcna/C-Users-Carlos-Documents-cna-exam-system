@@ -122,7 +122,7 @@ export default function PracticeSessionClient({ bankById }) {
   const [view, setView] = useState(sessionId ? "session" : "boot");
   const [isNarrow, setIsNarrow] = useState(false);
   const [error, setError] = useState("");
-  const bootAttemptedRef = useRef(false);
+  const lastBootKeyRef = useRef("");
 
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
@@ -162,8 +162,18 @@ export default function PracticeSessionClient({ bankById }) {
   }, []);
 
   useEffect(() => {
-    if (bootAttemptedRef.current) return;
-    bootAttemptedRef.current = true;
+    const bootKey = JSON.stringify({
+      sessionId: sessionId || null,
+      mode,
+      count,
+      chapter: chapter || null,
+      category: category || null,
+      lang,
+      forceServer,
+    });
+
+    if (lastBootKeyRef.current === bootKey) return;
+    lastBootKeyRef.current = bootKey;
 
     async function bootPracticeSession() {
       const state = await resolveStudentEntryState().catch(() => null);
@@ -203,6 +213,7 @@ export default function PracticeSessionClient({ bankById }) {
         queueMicrotask(() => {
           setSession(built);
           setView("session");
+          setError("");
         });
         router.replace(`/practice-session?lang=${lang}&session_id=${built.session_id}${forceServer ? "&storage=server" : ""}`);
       } catch (e) {
@@ -356,6 +367,30 @@ export default function PracticeSessionClient({ bankById }) {
     return `/practice-session?${next.toString()}`;
   }
 
+  async function startPracticeAgain() {
+    setError("");
+    setSession(null);
+    setView("boot");
+    try {
+      const built = await buildPracticeSessionRecord({
+        mode: session?.mode || "mixed",
+        questionCount: session?.totalQuestions || count,
+        selectedChapter: session?.mode === "chapter" ? session?.selectedChapter || null : null,
+        selectedCategory: session?.mode === "category" ? session?.selectedCategory || null : null,
+        questionBankSnapshot: Object.values(bankById || {}),
+        lang,
+        forceServer,
+        serverUser,
+      });
+
+      setSession(built);
+      setView("session");
+      router.replace(`/practice-session?lang=${lang}&session_id=${built.session_id}${forceServer ? "&storage=server" : ""}`);
+    } catch (e) {
+      setError(String(e?.message || e));
+    }
+  }
+
   if (view === "complete") {
     return (
       <div style={{ maxWidth: 900, margin: "20px auto", padding: 16 }}>
@@ -396,7 +431,7 @@ export default function PracticeSessionClient({ bankById }) {
           </div>
           <div style={{ padding: "14px 20px", background: "var(--surface-soft)", borderTop: "1px solid var(--chrome-border)", display: "flex", gap: 12, justifyContent: "flex-end", flexDirection: isNarrow ? "column" : "row" }}>
             <button style={{ ...btnSecondary, width: isNarrow ? "100%" : 220 }} onClick={() => router.push(`/practice?lang=${lang}${forceServer ? "&storage=server" : ""}`)}>{t("Back to Practice Hub", "Volver al Centro de Practica", "Retour au hub de pratique", "Retounen nan Hub Pratik la")}</button>
-            <button style={{ ...btnPrimary, width: isNarrow ? "100%" : 220 }} onClick={() => router.push(buildPracticeAgainHref())}>{t("Practice Again", "Practicar otra vez", "Pratiquer encore", "Pratike anko")}</button>
+            <button style={{ ...btnPrimary, width: isNarrow ? "100%" : 220 }} onClick={startPracticeAgain}>{t("Practice Again", "Practicar otra vez", "Pratiquer encore", "Pratike anko")}</button>
           </div>
         </div>
       </div>
@@ -481,8 +516,8 @@ export default function PracticeSessionClient({ bankById }) {
         </div>
 
         <div style={{ padding: 18 }}>
-          <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "var(--surface-soft)", padding: 18 }}>
-            <div style={{ marginBottom: 16 }}>
+          <div style={{ border: "1px solid var(--chrome-border)", borderRadius: 14, background: "var(--surface-soft)", padding: 18 }} translate="no">
+            <div style={{ marginBottom: 16 }} key={`question-${questionId}`}>
               {displayBlocks.map((block) => (
                 <div key={`${block.label || "primary"}-${block.v?.question_text || ""}`} style={{ marginTop: block.label === "" || block.label === "EN" || block.label === "ES" ? 0 : 12 }}>
                   <div style={{ fontSize: isNarrow ? 17 : 20, fontWeight: 600, lineHeight: isNarrow ? 1.42 : 1.5, color: "#1e3342" }}>
@@ -493,10 +528,10 @@ export default function PracticeSessionClient({ bankById }) {
               ))}
             </div>
 
-            <div>
+            <div key={`answers-${questionId}`}>
               {Object.entries(variantPrimary?.options || {}).map(([key, textPrimary]) => (
                 <div
-                  key={key}
+                  key={`${questionId}-${key}`}
                   style={{
                     padding: isNarrow ? "10px 12px" : "12px 14px",
                     marginBottom: 10,
@@ -519,7 +554,7 @@ export default function PracticeSessionClient({ bankById }) {
                   }}
                 >
                   <label style={{ display: "block", cursor: submitted ? "default" : "pointer" }}>
-                    <input type="radio" name={`practice-${session.session_id}`} value={key} checked={saved?.selected_answer_id === key} onChange={() => handleSelect(key)} style={{ marginRight: 10 }} disabled={submitted} />
+                    <input type="radio" name={`practice-${session.session_id}-${questionId}`} value={key} checked={saved?.selected_answer_id === key} onChange={() => handleSelect(key)} style={{ marginRight: 10 }} disabled={submitted} />
                     <strong style={{ marginRight: 8 }}>{key}.</strong>
                     {textPrimary}
                   </label>

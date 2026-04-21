@@ -70,6 +70,12 @@ const btnSecondary = {
   fontSize: 13,
 };
 
+const viewToggleWrap = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+};
+
 const sectionCard = {
   border: "1px solid #d6e1e8",
   borderRadius: 14,
@@ -89,6 +95,46 @@ const analysisGrid = {
 const detailsSummary = {
   cursor: "pointer",
   listStyle: "none",
+};
+
+const compactCard = {
+  borderRadius: 14,
+  padding: 14,
+  display: "grid",
+  gap: 8,
+  border: "1px solid #d6e1e8",
+  background: "white",
+};
+
+const metricValue = {
+  fontSize: 26,
+  fontWeight: 800,
+  color: "var(--heading)",
+  lineHeight: 1.1,
+};
+
+const metricLabel = {
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+  color: "#607282",
+};
+
+const rowLabel = {
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "#607282",
+};
+
+const bulletList = {
+  margin: 0,
+  paddingLeft: 18,
+  color: "#425564",
+  fontSize: 14,
+  lineHeight: 1.55,
 };
 
 function InlineMessage({ tone = "info", children }) {
@@ -164,6 +210,31 @@ function buildStudentProgress(summary) {
   };
 }
 
+function getStatusTone(status) {
+  if (status === "On Track") {
+    return {
+      border: "#bddfc6",
+      bg: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+      accent: "#1f6f3d",
+      muted: "#476252",
+    };
+  }
+  if (status === "High Risk") {
+    return {
+      border: "#efc2c2",
+      bg: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
+      accent: "var(--brand-red)",
+      muted: "#6f4747",
+    };
+  }
+  return {
+    border: "#eadba6",
+    bg: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+    accent: "#7a5a00",
+    muted: "#6f6340",
+  };
+}
+
 function OpenHint({ isOpen, lang }) {
   const [isNarrow, setIsNarrow] = useState(false);
 
@@ -210,6 +281,7 @@ export default function ReportsClient() {
   const [report, setReport] = useState(null);
   const [activityOpen, setActivityOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
+  const [activeView, setActiveView] = useState("exam");
 
   function t(en, es, fr, ht) {
     if (lang === "es") return es;
@@ -409,6 +481,223 @@ export default function ReportsClient() {
   const weaknesses = buildStudentWeaknesses(summary);
   const nextActions = buildStudentNextActions(summary);
   const progress = buildStudentProgress(summary);
+  const examQuestionsSeen = Number(summary?.exams?.latestCompletedAttempt?.deliveredQuestionIds?.length || 0);
+  const practiceDiagnostics = summary?.practiceDiagnostics || {};
+  const chapterPractice = practiceDiagnostics.chapter || {};
+  const categoryPractice = practiceDiagnostics.category || {};
+  const formatPracticePercentLabel = (value) =>
+    Number.isFinite(Number(value)) ? `${Math.round(Number(value))}%` : noDataLabel();
+  const strongestPracticeChapter = chapterPractice?.strongest || null;
+  const strongestPracticeCategory =
+    Number.isFinite(Number(categoryPractice?.strongest?.percent)) && Number(categoryPractice.strongest.percent) >= 80
+      ? categoryPractice.strongest
+      : null;
+  const overallStatus = summary?.learningSignals?.overallStatus || null;
+  const statusTone = getStatusTone(overallStatus);
+  const hasCompletedExam = Number(summary?.exams?.completedAttempts || 0) > 0;
+  const examStatusTone = hasCompletedExam
+    ? statusTone
+    : {
+        border: "#d7e4ec",
+        bg: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+        accent: "#38556a",
+        muted: "#607282",
+      };
+  const topStrength = strengths.strongestCategories[0] || null;
+  const topHighRisk = weaknesses.highRiskCategories[0] || null;
+  const topWeakCategory = topHighRisk?.category || weaknesses.categoriesNeedingWork[0]?.category || null;
+  const topWeakChapter = weaknesses.chapterPriorities[0]?.chapterId || null;
+  const strongestChapter = [...(weaknesses.chapterPriorities || [])]
+    .reverse()
+    .find((item) => Number.isFinite(item?.chapterId))?.chapterId || null;
+  const isPracticeLed = summary?.learningSignals?.source === "practice";
+  const categorySnapshotSections = [
+    {
+      key: "strong",
+      title: t("Strong", "Fuerte", "Fort", "Fo"),
+      tone: { border: "#bddfc6", bg: "#f7fff9", title: "#1f6f3d" },
+      items: strengths.strongestCategories.map((item) => formatCategoryLabel(item)),
+      empty: t("No clear strength yet", "Aun no hay fortaleza clara", "Pas encore de force claire", "Poko gen fos kle"),
+    },
+    {
+      key: "watch",
+      title: t("Watch", "Observe", "A surveiller", "Siveye"),
+      tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
+      items: weaknesses.categoriesNeedingWork.map((item) => `${formatCategoryLabel(item.category)}${item.level ? ` (${item.level})` : ""}`),
+      empty: t("Nothing repeating yet", "Nada repetido aun", "Rien de repete pour l'instant", "Pa gen anyen ki repete poko"),
+    },
+    {
+      key: "risk",
+      title: t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk"),
+      tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
+      items: weaknesses.highRiskCategories.map((item) => `${formatCategoryLabel(item.category)}${item.level ? ` (${item.level})` : ""}`),
+      empty: t("No high-risk signal now", "Sin senal de alto riesgo ahora", "Pas de signal a haut risque maintenant", "Pa gen siyal gwo risk kounye a"),
+    },
+  ];
+  const practiceCategoryEntries = Array.isArray(categoryPractice?.entries) ? categoryPractice.entries : [];
+  const practiceChapterEntries = Array.isArray(chapterPractice?.entries) ? chapterPractice.entries : [];
+  const practiceChapterSnapshotSections = [
+    {
+      key: "strong",
+      title: t("Strong", "Fuerte", "Fort", "Fo"),
+      tone: { border: "#bddfc6", bg: "#f7fff9", title: "#1f6f3d" },
+      items: practiceChapterEntries
+        .filter((item) => Number(item?.percent) >= 80)
+        .map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.label} (${formatPracticePercentLabel(item.percent)})`),
+      empty: t(
+        "No strong chapter signal yet",
+        "Aun no hay una senal fuerte por capitulo",
+        "Pas encore de signal fort par chapitre",
+        "Poko gen siyal chapit ki fò"
+      ),
+    },
+    {
+      key: "watch",
+      title: t("Watch", "Observe", "A surveiller", "Siveye"),
+      tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
+      items: practiceChapterEntries
+        .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
+        .map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.label} (${formatPracticePercentLabel(item.percent)})`),
+      empty: t(
+        "No developing chapter signal yet",
+        "Aun no hay una senal en desarrollo por capitulo",
+        "Pas encore de signal de chapitre en developpement",
+        "Poko gen siyal chapit k ap devlope"
+      ),
+    },
+    {
+      key: "risk",
+      title: t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk"),
+      tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
+      items: practiceChapterEntries
+        .filter((item) => Number(item?.percent) < 60)
+        .map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.label} (${formatPracticePercentLabel(item.percent)})`),
+      empty: t(
+        "No high-risk chapter signal yet",
+        "Aun no hay una senal de alto riesgo por capitulo",
+        "Pas encore de signal de chapitre a haut risque",
+        "Poko gen siyal chapit gwo risk"
+      ),
+    },
+  ];
+  const practiceCategorySnapshotSections = [
+    {
+      key: "strong",
+      title: t("Strong", "Fuerte", "Fort", "Fo"),
+      tone: { border: "#bddfc6", bg: "#f7fff9", title: "#1f6f3d" },
+      items: practiceCategoryEntries
+        .filter((item) => Number(item?.percent) >= 80)
+        .map((item) => `${formatCategoryLabel(item.label)} (${formatPracticePercentLabel(item.percent)})`),
+      empty: t(
+        "No strong category signal yet",
+        "Aun no hay una senal fuerte por categoria",
+        "Pas encore de signal fort par categorie",
+        "Poko gen siyal kategori ki fò"
+      ),
+    },
+    {
+      key: "watch",
+      title: t("Watch", "Observe", "A surveiller", "Siveye"),
+      tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
+      items: practiceCategoryEntries
+        .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
+        .map((item) => `${formatCategoryLabel(item.label)} (${formatPracticePercentLabel(item.percent)})`),
+      empty: t(
+        "No developing category signal yet",
+        "Aun no hay una senal en desarrollo por categoria",
+        "Pas encore de signal de categorie en developpement",
+        "Poko gen siyal kategori k ap devlope"
+      ),
+    },
+    {
+      key: "risk",
+      title: t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk"),
+      tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
+      items: practiceCategoryEntries
+        .filter((item) => Number(item?.percent) < 60)
+        .map((item) => `${formatCategoryLabel(item.label)} (${formatPracticePercentLabel(item.percent)})`),
+      empty: t(
+        "No high-risk category signal yet",
+        "Aun no hay una senal de alto riesgo por categoria",
+        "Pas encore de signal de categorie a haut risque",
+        "Poko gen siyal kategori gwo risk"
+      ),
+    },
+  ];
+
+  const practiceModeCounts = summary?.practiceFocus?.modeCounts || {};
+  const hasChapterPracticeSignals = Boolean(chapterPractice?.strongest || chapterPractice?.weakest);
+  const hasCategoryPracticeSignals = Boolean(categoryPractice?.strongest || categoryPractice?.weakest);
+  const mixedPracticeCount = Number(practiceModeCounts?.mixed || 0);
+  const chapterPracticeCount = Number(practiceModeCounts?.chapter || 0);
+  const categoryPracticeCount = Number(practiceModeCounts?.category || 0);
+  const practiceNextSteps = [];
+
+  if (chapterPracticeCount > 0) {
+    if (chapterPractice?.weakest?.label != null) {
+      practiceNextSteps.push(
+        t(
+          `Keep working chapter practice around Chapter ${chapterPractice.weakest.label} until your results become more consistent.`,
+          `Siga trabajando la practica por capitulo alrededor del Capitulo ${chapterPractice.weakest.label} hasta que sus resultados sean mas consistentes.`,
+          `Continuez la pratique par chapitre autour du Chapitre ${chapterPractice.weakest.label} jusqu'a ce que vos resultats deviennent plus reguliers.`,
+          `Kontinye travay pratik pa chapit sou Chapit ${chapterPractice.weakest.label} jiskaske rezilta ou vin pi regilye.`
+        )
+      );
+    } else {
+      practiceNextSteps.push(
+        t(
+          "Keep using chapter practice so your report can build a clearer chapter signal.",
+          "Siga usando la practica por capitulo para que su reporte construya una senal de capitulo mas clara.",
+          "Continuez la pratique par chapitre pour que votre rapport construise un signal de chapitre plus clair.",
+          "Kontinye itilize pratik pa chapit pou rapo ou bati yon siyal chapit ki pi klè."
+        )
+      );
+    }
+  }
+
+  if (categoryPracticeCount > 0) {
+    if (categoryPractice?.weakest?.label) {
+      practiceNextSteps.push(
+        t(
+          `Use category practice to reinforce ${formatCategoryLabel(categoryPractice.weakest.label)} before moving on.`,
+          `Use la practica por categoria para reforzar ${formatCategoryLabel(categoryPractice.weakest.label)} antes de seguir adelante.`,
+          `Utilisez la pratique par categorie pour renforcer ${formatCategoryLabel(categoryPractice.weakest.label)} avant de continuer.`,
+          `Sèvi ak pratik pa kategori pou ranfòse ${formatCategoryLabel(categoryPractice.weakest.label)} anvan ou kontinye.`
+        )
+      );
+    } else {
+      practiceNextSteps.push(
+        t(
+          "Keep using category practice so your report can show a clearer category pattern.",
+          "Siga usando la practica por categoria para que su reporte muestre un patron por categoria mas claro.",
+          "Continuez la pratique par categorie pour que votre rapport montre un schema par categorie plus clair.",
+          "Kontinye itilize pratik pa kategori pou rapo ou montre yon modèl kategori ki pi klè."
+        )
+      );
+    }
+  }
+
+  if (mixedPracticeCount > 0 && chapterPracticeCount === 0 && categoryPracticeCount === 0) {
+    practiceNextSteps.push(
+      t(
+        "Mixed practice is helping you see many questions. Add one chapter or category session next so your report can give more targeted guidance.",
+        "La practica mixta le ayuda a ver muchas preguntas. Agregue una sesion por capitulo o categoria para que su reporte pueda darle una guia mas dirigida.",
+        "La pratique mixte vous aide a voir de nombreuses questions. Ajoutez ensuite une session par chapitre ou par categorie pour obtenir des conseils plus cibles.",
+        "Pratik melanje ede ou wè anpil kestyon. Ajoute yon sesyon pa chapit oswa pa kategori apre sa pou rapo a ka ba ou konsèy pi vize."
+      )
+    );
+  }
+
+  if (!practiceNextSteps.length) {
+    practiceNextSteps.push(
+      t(
+        "Start with chapter or category practice so your report can show clearer strengths and review areas.",
+        "Empiece con practica por capitulo o categoria para que su reporte pueda mostrar fortalezas y areas de repaso mas claras.",
+        "Commencez par une pratique par chapitre ou par categorie pour que votre rapport puisse montrer des forces et des points a revoir plus clairs.",
+        "Kòmanse ak pratik pa chapit oswa pa kategori pou rapo ou ka montre fòs ak zòn pou revize ki pi klè."
+      )
+    );
+  }
 
   return (
     <main style={shell}>
@@ -440,88 +729,343 @@ export default function ReportsClient() {
           ) : null}
 
           {!loading && summary ? (
+            <div style={viewToggleWrap}>
+              <button
+                style={{
+                  ...btnSecondary,
+                  borderColor: activeView === "practice" ? "var(--brand-red)" : "#cfdde6",
+                  background: activeView === "practice" ? "var(--brand-red-soft)" : "white",
+                  color: activeView === "practice" ? "var(--brand-red)" : "#536779",
+                }}
+                onClick={() => setActiveView("practice")}
+              >
+                {t("Practice Progress", "Progreso de practica", "Progression en pratique", "Pwogrè pratik")}
+              </button>
+              <button
+                style={{
+                  ...btnSecondary,
+                  borderColor: activeView === "exam" ? "var(--brand-red)" : "#cfdde6",
+                  background: activeView === "exam" ? "var(--brand-red-soft)" : "white",
+                  color: activeView === "exam" ? "var(--brand-red)" : "#536779",
+                }}
+                onClick={() => setActiveView("exam")}
+              >
+                {t("Exam Readiness", "Preparacion para examen", "Preparation a l'examen", "Preparasyon pou egzamen")}
+              </button>
+            </div>
+          ) : null}
+
+          {!loading && summary ? (
             <>
-              <div style={sectionCard}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Status summary", "Resumen de estado", "Resume de situation", "Rezime sitiyasyon")}</div>
-                <div style={subText}>
-                  {formatStatusLabel(summary.learningSignals?.overallStatus)}
-                  {" | "}
-                  {t("Completed full exams", "Examenes completos terminados", "Examens complets termines", "Egzamen konple fini")}: {summary.exams?.completedAttempts ?? 0}
-                  {" | "}
-                  {t("Practice sessions", "Sesiones de practica", "Sessions de pratique", "Sesyon pratik")}: {summary.practice?.totalSessions ?? 0}
+              {activeView === "practice" ? (
+                <>
+                  <div
+                    style={{
+                      ...sectionCard,
+                      borderColor: "#d7e4ec",
+                      background: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ ...rowLabel, color: "#607282" }}>
+                      {t("Practice progress", "Progreso de practica", "Progression en pratique", "Pwogrè pratik")}
+                    </div>
+                    <div style={{ fontSize: isNarrow ? 28 : 32, fontWeight: 800, color: "#38556a" }}>
+                      {summary.practice?.completedSessions > 0
+                        ? t("Building steadily", "Avanzando de forma constante", "En progression constante", "Pwogrè ap fèt piti piti")
+                        : t("Just getting started", "Apenas empezando", "Tout commence", "Ou fèk kòmanse")}
+                    </div>
+                    <div style={{ ...subText, color: "#607282" }}>
+                      {t("Completed practice", "Practica completada", "Pratique terminee", "Pratik fini")}: {summary.practice?.completedSessions ?? 0}
+                      {" | "}
+                      {t("All practice sessions", "Todas las sesiones de practica", "Toutes les sessions de pratique", "Tout sesyon pratik yo")}: {summary.practice?.totalSessions ?? 0}
+                      {" | "}
+                      {t("Questions seen", "Preguntas vistas", "Questions vues", "K kestyon ou wè")}: {progress.totalExposure}
+                    </div>
+                  </div>
+
+                  <div style={analysisGrid}>
+                    <div
+                      style={{
+                        ...compactCard,
+                        borderColor: "#bddfc6",
+                        background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+                      }}
+                    >
+                      <div style={{ ...rowLabel, color: "#476252" }}>
+                        {t("Chapter work", "Trabajo por capitulo", "Travail par chapitre", "Travay pa chapit")}
+                      </div>
+                      <div style={{ ...subText, color: "#476252" }}>
+                        {t("Best current chapter", "Mejor capitulo actual", "Meilleur chapitre actuel", "Pi bon chapit pou kounye a")}:{" "}
+                        {strongestPracticeChapter?.label != null
+                          ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${strongestPracticeChapter.label}`
+                          : chapterPractice?.entries?.length
+                            ? t(
+                                "No clear strong chapter yet",
+                                "Aun no hay un capitulo fuerte claro",
+                                "Pas encore de chapitre fort clair",
+                                "Poko gen chapit fò ki klè"
+                              )
+                            : t("Not enough chapter practice yet", "Aun no hay suficiente practica por capitulo", "Pas assez de pratique par chapitre pour l'instant", "Poko gen ase pratik pa chapit")}
+                      </div>
+                      <div style={{ ...subText, color: "#476252" }}>
+                        {t("Chapter to review", "Capitulo para repasar", "Chapitre a revoir", "Chapit pou revize")}:{" "}
+                        {chapterPractice?.weakest?.label != null
+                          ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${chapterPractice.weakest.label}`
+                          : noDataLabel()}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        ...compactCard,
+                        borderColor: topHighRisk ? "#efc2c2" : "#eadba6",
+                        background: topHighRisk
+                          ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
+                          : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+                      }}
+                    >
+                      <div style={{ ...rowLabel, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
+                        {t("Category work", "Trabajo por categoria", "Travail par categorie", "Travay pa kategori")}
+                      </div>
+                      <div style={{ ...subText, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
+                        {t("Best current category", "Mejor categoria actual", "Meilleure categorie actuelle", "Pi bon kategori pou kounye a")}:{" "}
+                        {strongestPracticeCategory?.label != null
+                          ? formatCategoryLabel(strongestPracticeCategory.label)
+                          : categoryPractice?.entries?.length
+                            ? t(
+                                "No clear strong category yet",
+                                "Aun no hay una categoria fuerte clara",
+                                "Pas encore de categorie forte claire",
+                                "Poko gen kategori fò ki klè"
+                              )
+                            : t("Not enough category practice yet", "Aun no hay suficiente practica por categoria", "Pas assez de pratique par categorie pour l'instant", "Poko gen ase pratik pa kategori")}
+                      </div>
+                      <div style={{ ...subText, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
+                        {t("Category to review", "Categoria para repasar", "Categorie a revoir", "Kategori pou revize")}:{" "}
+                        {categoryPractice?.weakest?.label != null
+                          ? formatCategoryLabel(categoryPractice.weakest.label)
+                          : noDataLabel()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={compactCard}>
+                    <div style={{ ...metricLabel, color: "#607282" }}>
+                      {t("What to do next in practice", "Que hacer ahora en practica", "Que faire maintenant en pratique", "Sa pou fè kounye a nan pratik")}
+                    </div>
+                    <ul style={bulletList}>
+                      {practiceNextSteps.map((item, index) => (
+                        <li key={`student-practice-next-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div style={sectionCard}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                      {t("Practice chapter picture", "Panorama de practica por capitulos", "Panorama de pratique par chapitres", "Foto pratik pa chapit")}
+                    </div>
+                    <div style={subText}>
+                      {t(
+                        "This view only reflects chapters you practiced in chapter mode so far.",
+                        "Esta vista solo refleja los capitulos que ha practicado en modo capitulo hasta ahora.",
+                        "Cette vue ne reflète que les chapitres que vous avez pratiques en mode chapitre jusqu'ici.",
+                        "View sa a montre sèlman chapit ou te pratike nan mòd chapit jiska kounye a."
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                        gap: 10,
+                      }}
+                    >
+                      {practiceChapterSnapshotSections.map((section) => (
+                        <div
+                          key={`practice-chapter-${section.key}`}
+                          style={{
+                            ...compactCard,
+                            borderColor: section.tone.border,
+                            background: section.tone.bg,
+                            padding: 12,
+                          }}
+                        >
+                          <div style={{ ...rowLabel, color: section.tone.title }}>{section.title}</div>
+                          {section.items.length ? (
+                            <ul style={bulletList}>
+                              {section.items.slice(0, 4).map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div style={subText}>{section.empty}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={sectionCard}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                      {t("Practice category picture", "Panorama de practica por categorias", "Panorama de pratique par categories", "Foto pratik pa kategori")}
+                    </div>
+                    <div style={subText}>
+                      {t(
+                        "This view only reflects categories you practiced in category mode so far.",
+                        "Esta vista solo refleja las categorias que ha practicado en modo categoria hasta ahora.",
+                        "Cette vue ne reflète que les categories que vous avez pratiquees en mode categorie jusqu'ici.",
+                        "View sa a montre sèlman kategori ou te pratike nan mòd kategori jiska kounye a."
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                        gap: 10,
+                      }}
+                    >
+                      {practiceCategorySnapshotSections.map((section) => (
+                        <div
+                          key={`practice-${section.key}`}
+                          style={{
+                            ...compactCard,
+                            borderColor: section.tone.border,
+                            background: section.tone.bg,
+                            padding: 12,
+                          }}
+                        >
+                          <div style={{ ...rowLabel, color: section.tone.title }}>{section.title}</div>
+                          {section.items.length ? (
+                            <ul style={bulletList}>
+                              {section.items.slice(0, 4).map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div style={subText}>{section.empty}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              {activeView === "exam" ? (
+                <>
+              <div
+                style={{
+                  ...sectionCard,
+                  borderColor: examStatusTone.border,
+                  background: examStatusTone.bg,
+                  gap: 12,
+                }}
+              >
+                <div style={{ ...rowLabel, color: examStatusTone.muted }}>
+                  {t("My readiness", "Mi preparacion", "Mon niveau", "Preparasyon mwen")}
                 </div>
-                <div style={subText}>
-                  {t("Average exam score", "Promedio del examen", "Score moyen a l'examen", "Mwayen egzamen")}: {formatPercent(summary.exams?.averageScore) || noDataLabel()}
+                <div style={{ fontSize: isNarrow ? 28 : 32, fontWeight: 800, color: examStatusTone.accent }}>
+                  {hasCompletedExam
+                    ? formatStatusLabel(overallStatus)
+                    : t("No exam signal yet", "Aun no hay senal de examen", "Pas encore de signal d'examen", "Poko gen siyal egzamen")}
+                </div>
+                <div style={{ ...subText, color: examStatusTone.muted }}>
+                  {t("Average exam", "Promedio de examen", "Moyenne d'examen", "Mwayen egzamen")}:{" "}
+                  {formatPercent(summary.exams?.averageScore) || noDataLabel()}
                   {" | "}
-                  {t("Best exam score", "Mejor puntaje del examen", "Meilleur score a l'examen", "Pi bon not egzamen")}: {formatPercent(summary.exams?.bestScore) || noDataLabel()}
+                  {t("Completed exams", "Examenes completados", "Examens termines", "Egzamen fini")}: {summary.exams?.completedAttempts ?? 0}
                   {" | "}
-                  {t("Remediation sessions", "Sesiones de remediacion", "Sessions de remediation", "Sesyon remedyasyon")}: {summary.remediation?.totalSessions ?? 0}
+                  {t("Exam questions seen", "Preguntas de examen vistas", "Questions d'examen vues", "K kestyon egzamen ou wè")}: {examQuestionsSeen}
+                </div>
+                {!hasCompletedExam ? (
+                  <div style={{ ...subText, color: examStatusTone.muted }}>
+                    {t(
+                      "Exam readiness will become more detailed after your first completed exam.",
+                      "La preparacion para examen sera mas detallada despues de su primer examen completado.",
+                      "La preparation a l'examen deviendra plus detaillee apres votre premier examen termine.",
+                      "Preparasyon pou egzamen ap vin pi detaye apre premye egzamen ou fini."
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {hasCompletedExam ? (
+              <>
+              <div style={analysisGrid}>
+                <div
+                  style={{
+                    ...compactCard,
+                    borderColor: "#bddfc6",
+                    background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+                  }}
+                >
+                  <div style={{ ...rowLabel, color: "#476252" }}>
+                    {t("Strongest area", "Area mas fuerte", "Zone la plus forte", "Zon ki pi fo")}
+                  </div>
+                  <div style={{ ...metricValue, color: "#1f6f3d", fontSize: 20 }}>
+                    {topStrength ? formatCategoryLabel(topStrength) : t("Still forming", "Aun formandose", "Encore en formation", "Li poko byen klè")}
+                  </div>
+                  <div style={{ ...subText, color: "#476252" }}>
+                    {t("Best exam", "Mejor examen", "Meilleur examen", "Pi bon egzamen")}: {formatPercent(strengths.bestScore) || noDataLabel()}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    ...compactCard,
+                    borderColor: topHighRisk ? "#efc2c2" : "#eadba6",
+                    background: topHighRisk
+                      ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
+                      : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+                  }}
+                >
+                  <div style={{ ...rowLabel, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
+                    {t("Needs work now", "Necesita trabajo ahora", "A travailler maintenant", "Sa bezwen travay kounye a")}
+                  </div>
+                  <div style={{ ...metricValue, color: topHighRisk ? "var(--brand-red)" : "#7a5a00", fontSize: 20 }}>
+                    {topWeakCategory ? formatCategoryLabel(topWeakCategory) : t("No clear weak area yet", "Aun no hay area debil clara", "Pas encore de faiblesse claire", "Poko gen febles ki byen klè")}
+                  </div>
+                  <div style={{ ...subText, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
+                    {t("Priority chapter", "Capitulo prioritario", "Chapitre prioritaire", "Chapit priyorite")}:{" "}
+                    {topWeakChapter ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${topWeakChapter}` : noDataLabel()}
+                  </div>
                 </div>
               </div>
 
-              <div style={analysisGrid}>
-                <div style={sectionCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Strengths", "Fortalezas", "Forces", "Fos")}</div>
-                  <div style={subText}>
-                    {t("Strongest categories", "Categorias mas fuertes", "Categories les plus fortes", "Kategori ki pi fo yo")}:{" "}
-                    {strengths.strongestCategories.length
-                      ? strengths.strongestCategories.map(formatCategoryLabel).join(" | ")
-                      : t("No clear strengths yet", "Aun no hay fortalezas claras", "Pas encore de forces claires", "Poko gen fos kle")}
-                  </div>
-                  <div style={subText}>
-                    {t("Best full exam score", "Mejor puntaje de examen completo", "Meilleur score d'examen complet", "Pi bon not egzamen konple")}: {formatPercent(strengths.bestScore) || noDataLabel()}
-                  </div>
-                  <div style={subText}>
-                    {t("Completed practice", "Practica completada", "Pratique terminee", "Pratik fini")}: {strengths.completedPractice}
-                    {" | "}
-                    {t("Completed remediation", "Remediacion completada", "Remediation terminee", "Remedyasyon fini")}: {strengths.completedRemediation}
-                  </div>
+              <div
+                style={{
+                  ...compactCard,
+                  borderColor: statusTone.border,
+                  background: statusTone.bg,
+                }}
+              >
+                <div style={{ ...metricLabel, color: statusTone.muted }}>
+                  {t("What to do next", "Que hacer ahora", "Que faire maintenant", "Sa pou fè kounye a")}
                 </div>
-
-                <div style={sectionCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Priority weak areas", "Areas debiles prioritarias", "Faiblesses prioritaires", "Febles ki pi enpotan yo")}</div>
-                  <div style={subText}>
-                    {t("Categories needing work", "Categorias que necesitan trabajo", "Categories a renforcer", "Kategori ki bezwen travay")}:{" "}
-                    {weaknesses.categoriesNeedingWork.length
-                      ? weaknesses.categoriesNeedingWork.map((item) => `${formatCategoryLabel(item.category)} (${item.level})`).join(" | ")
-                      : t("No repeated weak category yet", "Todavia no hay una categoria debil repetida", "Pas encore de categorie faible repetee", "Poko gen kategori feb ki repete")}
-                  </div>
-                  <div style={subText}>
-                    {t("High-risk categories", "Categorias de alto riesgo", "Categories a haut risque", "Kategori gwo risk")}:{" "}
-                    {weaknesses.highRiskCategories.length
-                      ? weaknesses.highRiskCategories.map((item) => `${formatCategoryLabel(item.category)} (${item.level})`).join(" | ")
-                      : t("No current high-risk category signal", "Sin senal actual de categoria de alto riesgo", "Aucun signal actuel de categorie a haut risque", "Pa gen siyal kategori gwo risk kounye a")}
-                  </div>
-                  <div style={subText}>
-                    {t("Priority chapters", "Capitulos prioritarios", "Chapitres prioritaires", "Chapit ki pi enpotan yo")}:{" "}
-                    {weaknesses.chapterPriorities.length
-                      ? weaknesses.chapterPriorities.map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.chapterId} (${item.priority})`).join(" | ")
-                      : t("No clear chapter priority yet", "Todavia no hay una prioridad clara por capitulo", "Pas encore de priorite claire par chapitre", "Poko gen priyorite chapit ki kle")}
-                  </div>
-                </div>
+                <ul style={bulletList}>
+                  {nextActions.slice(0, 3).map((item, index) => (
+                    <li key={`student-next-${item.kind}-${item.value || index}`}>{renderNextAction(item)}</li>
+                  ))}
+                </ul>
               </div>
 
-              <div style={analysisGrid}>
-                <div style={sectionCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Progress over time", "Progreso en el tiempo", "Progression dans le temps", "Pwogre sou tan")}</div>
+              <div style={{ display: "none" }}>
+                <div style={compactCard}>
+                  <div style={metricLabel}>{t("Progress", "Progreso", "Progression", "Pwogre")}</div>
                   <div style={subText}>
-                    {t("Average exam score", "Promedio del examen", "Score moyen a l'examen", "Mwayen egzamen")}: {formatPercent(progress.examAverage) || noDataLabel()}
-                    {" | "}
-                    {t("Best score", "Mejor puntaje", "Meilleur score", "Pi bon not")}: {formatPercent(progress.bestScore) || noDataLabel()}
+                    {t("Average exam", "Promedio de examen", "Moyenne d'examen", "Mwayen egzamen")}: {formatPercent(progress.examAverage) || noDataLabel()}
                   </div>
                   <div style={subText}>
-                    {t("Completed full exams", "Examenes completos terminados", "Examens complets termines", "Egzamen konple fini")}: {progress.completedAttempts}
+                    {t("Practice done", "Practica hecha", "Pratique faite", "Pratik fèt")}: {strengths.completedPractice}
                     {" | "}
-                    {t("Practice sessions", "Sesiones de practica", "Sessions de pratique", "Sesyon pratik")}: {progress.totalPractice}
+                    {t("Remediation done", "Remediacion hecha", "Remediation faite", "Remedyasyon fèt")}: {strengths.completedRemediation}
                   </div>
                   <div style={subText}>
-                    {t("Remediation sessions", "Sesiones de remediacion", "Sessions de remediation", "Sesyon remedyasyon")}: {progress.totalRemediation}
-                    {" | "}
-                    {t("Total delivered questions", "Preguntas totales mostradas", "Questions totales affichees", "Total kestyon yo te montre")}: {progress.totalExposure}
+                    {t("Questions seen", "Preguntas vistas", "Questions vues", "K kestyon ou wè")}: {progress.totalExposure}
                   </div>
                 </div>
 
-                <div style={sectionCard}>
+                <div style={{ ...sectionCard, display: "none" }}>
                   <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Next action", "Proximo paso", "Prochaine etape", "Pwochen etap")}</div>
                   <div style={{ display: "grid", gap: 6 }}>
                     {nextActions.map((item, index) => (
@@ -531,7 +1075,180 @@ export default function ReportsClient() {
                     ))}
                   </div>
                 </div>
+
+                <div
+                  style={{
+                    ...compactCard,
+                    borderColor: statusTone.border,
+                    background: statusTone.bg,
+                  }}
+                >
+                  <div style={{ ...metricLabel, color: statusTone.muted }}>
+                    {t("What to do next", "Que hacer ahora", "Que faire maintenant", "Sa pou fè kounye a")}
+                  </div>
+                  <ul style={bulletList}>
+                    {nextActions.slice(0, 3).map((item, index) => (
+                      <li key={`${item.kind}-${item.value || index}`}>{renderNextAction(item)}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
+
+              <div style={sectionCard}>
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                  {t("Your category picture", "Tu panorama por categorias", "Votre panorama par categories", "Foto kategori ou yo")}
+                </div>
+                <div style={subText}>
+                  {t(
+                    "This gives you a fast read of what looks strong, what to watch, and what feels urgent.",
+                    "Esto le da una lectura rapida de lo que se ve fuerte, lo que hay que vigilar y lo que se siente urgente.",
+                    "Cela donne une lecture rapide de ce qui semble fort, de ce qu'il faut surveiller et de ce qui parait urgent.",
+                    "Sa ba ou yon lekti rapid sou sa ki fò, sa pou siveye, ak sa ki pi ijan."
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {categorySnapshotSections.map((section) => (
+                    <div
+                      key={section.key}
+                      style={{
+                        ...compactCard,
+                        borderColor: section.tone.border,
+                        background: section.tone.bg,
+                        padding: 12,
+                      }}
+                    >
+                      <div style={{ ...rowLabel, color: section.tone.title }}>{section.title}</div>
+                      {section.items.length ? (
+                        <ul style={bulletList}>
+                          {section.items.slice(0, 4).map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div style={subText}>{section.empty}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              </>
+              ) : (
+              <>
+              <div style={analysisGrid}>
+                <div
+                  style={{
+                    ...compactCard,
+                    borderColor: "#d7e4ec",
+                    background: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+                  }}
+                >
+                  <div style={{ ...rowLabel, color: "#607282" }}>
+                    {t("Strongest area", "Area mas fuerte", "Zone la plus forte", "Zon ki pi fo")}
+                  </div>
+                  <div style={{ ...metricValue, color: "#38556a", fontSize: 20 }}>
+                    {t("No exam strength yet", "Aun no hay fortaleza de examen", "Pas encore de force d'examen", "Poko gen fos egzamen")}
+                  </div>
+                  <div style={{ ...subText, color: "#607282" }}>
+                    {t(
+                      "Complete one full exam to begin building this part of your report.",
+                      "Complete un examen completo para empezar a construir esta parte de su reporte.",
+                      "Completez un examen complet pour commencer a construire cette partie de votre rapport.",
+                      "Fini yon egzamen konple pou kòmanse bati pati sa a nan rapo ou."
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    ...compactCard,
+                    borderColor: "#d7e4ec",
+                    background: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+                  }}
+                >
+                  <div style={{ ...rowLabel, color: "#607282" }}>
+                    {t("Needs work now", "Necesita trabajo ahora", "A travailler maintenant", "Sa bezwen travay kounye a")}
+                  </div>
+                  <div style={{ ...metricValue, color: "#38556a", fontSize: 20 }}>
+                    {t("No exam weak area yet", "Aun no hay area debil de examen", "Pas encore de faiblesse d'examen", "Poko gen febles egzamen")}
+                  </div>
+                  <div style={{ ...subText, color: "#607282" }}>
+                    {t(
+                      "Exam weak areas will appear after your first completed exam.",
+                      "Las areas debiles del examen apareceran despues de su primer examen completado.",
+                      "Les faiblesses de l'examen apparaitront apres votre premier examen termine.",
+                      "Zon feb egzamen yo ap parèt apre premye egzamen ou fini."
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  ...compactCard,
+                  borderColor: examStatusTone.border,
+                  background: examStatusTone.bg,
+                }}
+              >
+                <div style={{ ...metricLabel, color: examStatusTone.muted }}>
+                  {t("What to do next", "Que hacer ahora", "Que faire maintenant", "Sa pou fè kounye a")}
+                </div>
+                <ul style={bulletList}>
+                  <li>
+                    {t(
+                      "Take your first full exam when you feel ready so this section can show true readiness guidance.",
+                      "Tome su primer examen completo cuando se sienta listo para que esta seccion pueda mostrar una guia real de preparacion.",
+                      "Passez votre premier examen complet quand vous vous sentez pret afin que cette section puisse montrer de vrais conseils de preparation.",
+                      "Fè premye egzamen konplè ou lè ou santi ou pare pou seksyon sa a ka montre vrè konsèy preparasyon."
+                    )}
+                  </li>
+                </ul>
+              </div>
+
+              <div style={sectionCard}>
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                  {t("Your category picture", "Tu panorama por categorias", "Votre panorama par categories", "Foto kategori ou yo")}
+                </div>
+                <div style={subText}>
+                  {t(
+                    "Your exam category picture will appear after your first completed exam.",
+                    "Su panorama por categorias del examen aparecera despues de su primer examen completado.",
+                    "Votre panorama par categories d'examen apparaitra apres votre premier examen termine.",
+                    "Foto kategori egzamen ou yo ap parèt apre premye egzamen ou fini."
+                  )}
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {categorySnapshotSections.map((section) => (
+                    <div
+                      key={`empty-${section.key}`}
+                      style={{
+                        ...compactCard,
+                        borderColor: section.tone.border,
+                        background: section.tone.bg,
+                        padding: 12,
+                      }}
+                    >
+                      <div style={{ ...rowLabel, color: section.tone.title }}>{section.title}</div>
+                      <div style={subText}>{section.empty}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              </>
+              )}
+                </>
+              ) : null}
 
               <details style={sectionCard} open={activityOpen}>
                 <summary
@@ -547,10 +1264,10 @@ export default function ReportsClient() {
                   </div>
                   <div style={subText}>
                     {t(
-                      "Open to see exam activity, question exposure, practice focus, and remediation focus behind this report.",
-                      "Abra para ver la actividad de examenes, la exposicion a preguntas, el enfoque de practica y el enfoque de remediacion detras de este reporte.",
-                      "Ouvrez pour voir l'activite d'examen, l'exposition aux questions, l'axe de pratique et l'axe de remediation derriere ce rapport.",
-                      "Louvri pou we aktivite egzamen, kestyon yo ou deja we, konsantrasyon pratik la, ak konsantrasyon remedyasyon an deye rapo sa a."
+                      "Open for the deeper numbers behind this report.",
+                      "Abra para ver los numeros mas detallados detras de este reporte.",
+                      "Ouvrez pour voir les chiffres plus detailles derriere ce rapport.",
+                      "Louvri pou wè chif ki pi detaye dèyè rapo sa a."
                     )}
                   </div>
                 </summary>
@@ -604,6 +1321,10 @@ export default function ReportsClient() {
                       {Object.entries(summary.practiceFocus?.categoryCounts || {})
                         .map(([key, value]) => `${formatCategoryLabel(key)}: ${value}`)
                         .join(" | ") || t("No category focus yet", "Todavia no hay enfoque por categoria", "Pas encore d'axe par categorie", "Poko gen konsantrasyon pa kategori")}
+                    </div>
+                    <div style={subText}>
+                      {t("Mixed practice", "Practica mixta", "Pratique mixte", "Pratik melanje")}:{" "}
+                      {summary.practiceFocus?.modeCounts?.mixed ?? 0}
                     </div>
                   </div>
 

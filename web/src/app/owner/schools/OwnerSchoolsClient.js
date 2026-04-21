@@ -351,6 +351,7 @@ export default function OwnerSchoolsClient() {
   useEffect(() => {
     const schoolId = searchParams.get("school_id");
     const classId = searchParams.get("class_group_id");
+    const openPanel = searchParams.get("open");
     if (!schoolId && !classId) {
       return;
     }
@@ -365,6 +366,9 @@ export default function OwnerSchoolsClient() {
         setOpenSchoolId(matchedClass.school_id);
       }
       setOpenClassPanels((prev) => ({ ...prev, [classId]: true }));
+      if (openPanel === "roster") {
+        setOpenRosterPanels((prev) => ({ ...prev, [classId]: true }));
+      }
     }
 
     const targetId = classId ? `owner-class-${classId}` : schoolId ? `owner-school-${schoolId}` : "";
@@ -1012,148 +1016,178 @@ export default function OwnerSchoolsClient() {
                             {openRosterPanels[item.id] ? (
                               item.roster?.length ? (
                                 <div style={{ display: "grid", gap: 8 }}>
-                                  {item.roster.map((row) => (
-                                    <div key={row.id} style={{ ...listCard, background: "#f9fcfe" }}>
-                                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                                        {row.user?.full_name || row.user?.email || row.user_id}
-                                      </div>
-                                      <div style={listMeta}>
-                                        {row.user?.email || "No email on file"} | {row.status || "active"}
-                                      </div>
-                                    <div style={actionsRow}>
-                                      <Link
-                                        href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
-                                          row.user_id
-                                          )}&school_id=${encodeURIComponent(school.id)}&class_group_id=${encodeURIComponent(
-                                            item.id
-                                          )}&class_name=${encodeURIComponent(
-                                            item.name || ""
-                                          )}&lang=en&from=schools`}
-                                          style={buttonTiny}
-                                        >
-                                          View student report
-                                        </Link>
-                                      <button
-                                        style={buttonTiny}
-                                        disabled={busy}
-                                        onClick={() =>
-                                          setMoveStudentForms((prev) => ({
-                                            ...prev,
-                                            [row.id]: {
-                                              open: !prev[row.id]?.open,
-                                              targetClassGroupId: "",
-                                            },
-                                          }))
-                                        }
-                                      >
-                                        {moveStudentForms[row.id]?.open ? "Close move" : "Move class"}
-                                      </button>
-                                      <button
-                                        style={confirmRemoveEnrollmentId === row.id ? buttonTinyDanger : buttonTinyWarning}
-                                        disabled={busy}
-                                        onClick={() => {
-                                          if (confirmRemoveEnrollmentId === row.id) {
-                                            void runClassAction(async () => {
-                                              await removeOwnerClassEnrollment(row.id);
-                                              setConfirmRemoveEnrollmentId("");
-                                            }, "Student removed from class.");
-                                            return;
-                                          }
+                                  {item.roster.map((row) => {
+                                    const rankedCategories = Array.isArray(row.studentSummary?.latestExamAnalytics?.categoryPriority)
+                                      ? row.studentSummary.latestExamAnalytics.categoryPriority
+                                      : [];
+                                    const weakestCategory =
+                                      rankedCategories.find((entry) => entry?.is_high_risk && entry?.level !== "Strong") ||
+                                      rankedCategories.find((entry) => entry?.level === "Weak" || entry?.level === "Developing") ||
+                                      rankedCategories.find((entry) => entry?.level !== "Strong") ||
+                                      rankedCategories[0] ||
+                                      null;
+                                    const chapterGuidance = Array.isArray(row.studentSummary?.latestExamAnalytics?.chapterGuidance)
+                                      ? row.studentSummary.latestExamAnalytics.chapterGuidance
+                                      : [];
+                                    const topChapter = chapterGuidance[0] || null;
+                                    const overallStatus =
+                                      row.studentSummary?.latestExamAnalytics?.overallStatus || "No exam signal yet";
 
-                                          setConfirmRemoveEnrollmentId(row.id);
-                                        }}
-                                      >
-                                        {confirmRemoveEnrollmentId === row.id ? "Confirm remove" : "Remove from class"}
-                                      </button>
-                                      {confirmRemoveEnrollmentId === row.id ? (
-                                        <button
-                                          style={buttonTiny}
-                                          disabled={busy}
-                                          onClick={() => setConfirmRemoveEnrollmentId("")}
-                                        >
-                                          Cancel
-                                        </button>
-                                      ) : null}
-                                      </div>
-                                      {moveStudentForms[row.id]?.open ? (
-                                        <div
-                                          style={{
-                                            border: "1px solid #d6e1e8",
-                                            borderRadius: 12,
-                                            background: "white",
-                                            padding: 10,
-                                            display: "grid",
-                                            gap: 8,
-                                          }}
-                                        >
-                                          <div style={{ ...listMeta, fontWeight: 700, color: "var(--heading)" }}>
-                                            Move student to another class in this school
-                                          </div>
-                                          <select
-                                            style={input}
-                                            value={moveStudentForms[row.id]?.targetClassGroupId || ""}
-                                            onChange={(e) =>
+                                    return (
+                                      <div key={row.id} style={{ ...listCard, background: "#f9fcfe" }}>
+                                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                          {row.user?.full_name || row.user?.email || row.user_id}
+                                        </div>
+                                        <div style={listMeta}>
+                                          {row.user?.email || "No email on file"} | {row.status || "active"}
+                                        </div>
+                                        <div style={listMeta}>
+                                          Status: {overallStatus} | Avg exam:{" "}
+                                          {Number.isFinite(row.studentSummary?.exams?.averageScore)
+                                            ? `${row.studentSummary.exams.averageScore}%`
+                                            : "No data yet"}{" "}
+                                          | Practice: {row.studentSummary?.practice?.totalSessions ?? 0} | Remediation:{" "}
+                                          {row.studentSummary?.remediation?.totalSessions ?? 0}
+                                        </div>
+                                        <div style={listMeta}>
+                                          Weakest category: {weakestCategory?.category_id || "No clear category yet"} | Weakest chapter:{" "}
+                                          {topChapter?.chapter_id ? `Chapter ${topChapter.chapter_id}` : "No clear chapter yet"}
+                                        </div>
+                                        <div style={actionsRow}>
+                                          <Link
+                                            href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
+                                              row.user_id
+                                            )}&school_id=${encodeURIComponent(school.id)}&class_group_id=${encodeURIComponent(
+                                              item.id
+                                            )}&class_name=${encodeURIComponent(
+                                              item.name || ""
+                                            )}&lang=en&from=schools-roster`}
+                                            style={buttonTiny}
+                                          >
+                                            View student report
+                                          </Link>
+                                          <button
+                                            style={buttonTiny}
+                                            disabled={busy}
+                                            onClick={() =>
                                               setMoveStudentForms((prev) => ({
                                                 ...prev,
                                                 [row.id]: {
-                                                  ...(prev[row.id] || {}),
-                                                  open: true,
-                                                  targetClassGroupId: e.target.value,
+                                                  open: !prev[row.id]?.open,
+                                                  targetClassGroupId: "",
                                                 },
                                               }))
                                             }
                                           >
-                                            <option value="">Select class</option>
-                                            {(classGroupsBySchool[school.id] || [])
-                                              .filter((classItem) => classItem.id !== item.id)
-                                              .map((classItem) => (
-                                                <option key={classItem.id} value={classItem.id}>
-                                                  {classItem.name}
-                                                </option>
-                                              ))}
-                                          </select>
-                                          <div style={actionsRow}>
+                                            {moveStudentForms[row.id]?.open ? "Close move" : "Move class"}
+                                          </button>
+                                          <button
+                                            style={confirmRemoveEnrollmentId === row.id ? buttonTinyDanger : buttonTinyWarning}
+                                            disabled={busy}
+                                            onClick={() => {
+                                              if (confirmRemoveEnrollmentId === row.id) {
+                                                void runClassAction(async () => {
+                                                  await removeOwnerClassEnrollment(row.id);
+                                                  setConfirmRemoveEnrollmentId("");
+                                                }, "Student removed from class.");
+                                                return;
+                                              }
+
+                                              setConfirmRemoveEnrollmentId(row.id);
+                                            }}
+                                          >
+                                            {confirmRemoveEnrollmentId === row.id ? "Confirm remove" : "Remove from class"}
+                                          </button>
+                                          {confirmRemoveEnrollmentId === row.id ? (
                                             <button
                                               style={buttonTiny}
-                                              disabled={!moveStudentForms[row.id]?.targetClassGroupId || busy}
-                                              onClick={() =>
-                                                runClassAction(async () => {
-                                                  await assignOwnerStudentToClass({
-                                                    userId: row.user_id,
-                                                    classGroupId: moveStudentForms[row.id]?.targetClassGroupId,
-                                                  });
+                                              disabled={busy}
+                                              onClick={() => setConfirmRemoveEnrollmentId("")}
+                                            >
+                                              Cancel
+                                            </button>
+                                          ) : null}
+                                        </div>
+                                        {moveStudentForms[row.id]?.open ? (
+                                          <div
+                                            style={{
+                                              border: "1px solid #d6e1e8",
+                                              borderRadius: 12,
+                                              background: "white",
+                                              padding: 10,
+                                              display: "grid",
+                                              gap: 8,
+                                            }}
+                                          >
+                                            <div style={{ ...listMeta, fontWeight: 700, color: "var(--heading)" }}>
+                                              Move student to another class in this school
+                                            </div>
+                                            <select
+                                              style={input}
+                                              value={moveStudentForms[row.id]?.targetClassGroupId || ""}
+                                              onChange={(e) =>
+                                                setMoveStudentForms((prev) => ({
+                                                  ...prev,
+                                                  [row.id]: {
+                                                    ...(prev[row.id] || {}),
+                                                    open: true,
+                                                    targetClassGroupId: e.target.value,
+                                                  },
+                                                }))
+                                              }
+                                            >
+                                              <option value="">Select class</option>
+                                              {(classGroupsBySchool[school.id] || [])
+                                                .filter((classItem) => classItem.id !== item.id)
+                                                .map((classItem) => (
+                                                  <option key={classItem.id} value={classItem.id}>
+                                                    {classItem.name}
+                                                  </option>
+                                                ))}
+                                            </select>
+                                            <div style={actionsRow}>
+                                              <button
+                                                style={buttonTiny}
+                                                disabled={!moveStudentForms[row.id]?.targetClassGroupId || busy}
+                                                onClick={() =>
+                                                  runClassAction(async () => {
+                                                    await assignOwnerStudentToClass({
+                                                      userId: row.user_id,
+                                                      classGroupId: moveStudentForms[row.id]?.targetClassGroupId,
+                                                    });
+                                                    setMoveStudentForms((prev) => ({
+                                                      ...prev,
+                                                      [row.id]: {
+                                                        open: false,
+                                                        targetClassGroupId: "",
+                                                      },
+                                                    }));
+                                                  }, "Student moved to the new class.")
+                                                }
+                                              >
+                                                Save move
+                                              </button>
+                                              <button
+                                                style={buttonTiny}
+                                                disabled={busy}
+                                                onClick={() =>
                                                   setMoveStudentForms((prev) => ({
                                                     ...prev,
                                                     [row.id]: {
                                                       open: false,
                                                       targetClassGroupId: "",
                                                     },
-                                                  }));
-                                                }, "Student moved to the new class.")
-                                              }
-                                            >
-                                              Save move
-                                            </button>
-                                            <button
-                                              style={buttonTiny}
-                                              disabled={busy}
-                                              onClick={() =>
-                                                setMoveStudentForms((prev) => ({
-                                                  ...prev,
-                                                  [row.id]: {
-                                                    open: false,
-                                                    targetClassGroupId: "",
-                                                  },
-                                                }))
-                                              }
-                                            >
-                                              Cancel
-                                            </button>
+                                                  }))
+                                                }
+                                              >
+                                                Cancel
+                                              </button>
+                                            </div>
                                           </div>
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                  ))}
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               ) : (
                                 <div style={listMeta}>No enrolled students.</div>

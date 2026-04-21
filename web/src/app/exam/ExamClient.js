@@ -28,6 +28,7 @@ export default function ExamClient({ form, bankById, lang }) {
   const queryAttemptId = sp.get("attempt_id");
   const queryTestId = Number(sp.get("test_id") || 0) || null;
   const bootAttemptedRef = useRef(false);
+  const persistedFinalPayloadRef = useRef(null);
 
   function buildQuestionUsageCountsFromAttempts(attempts) {
     const counts = {};
@@ -1117,6 +1118,65 @@ useEffect(() => {
   mode,
   deliveredQuestionIds,
   answersByQid,
+  bankById,
+]);
+
+useEffect(() => {
+  if (!useServer || !attemptId || !resultsPayload) return;
+
+  const payloadKey = JSON.stringify(resultsPayload);
+  if (persistedFinalPayloadRef.current === payloadKey) return;
+
+  let persistedScore = null;
+  if (deliveredQuestionIds.length) {
+    const formForScoring = { ...form, question_ids: deliveredQuestionIds };
+    const result = scoreExam({ form: formForScoring, bankById, answersByQid });
+    if (result?.total) {
+      persistedScore = Math.round((result.correct / result.total) * 100);
+    }
+  }
+
+  persistedFinalPayloadRef.current = payloadKey;
+
+  void saveExamAttemptRecord(
+    {
+      attempt_id: attemptId,
+      exam_form_id: form.exam_form_id,
+      question_ids: deliveredQuestionIds,
+      lang,
+      index,
+      answersByQid,
+      reviewByQid,
+      mode,
+      summaryPage,
+      summaryFilter,
+      endAtMs,
+      test_id: testId,
+      score: persistedScore,
+      resultsPayload,
+    },
+    { forceServer: true, serverUser }
+  ).catch((error) => {
+    persistedFinalPayloadRef.current = null;
+    console.error("Failed to persist final exam analytics to server:", error);
+  });
+}, [
+  useServer,
+  attemptId,
+  resultsPayload,
+  form,
+  form.exam_form_id,
+  deliveredQuestionIds,
+  lang,
+  index,
+  answersByQid,
+  reviewByQid,
+  mode,
+  summaryPage,
+  summaryFilter,
+  endAtMs,
+  testId,
+  serverUser,
   bankById,
 ]);
 

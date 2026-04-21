@@ -6,11 +6,133 @@ import {
   listAccessGrantedPreferences,
   listClassGroupStaffRecords,
   listClassGroupRecords,
+  loadExamAttemptRecords,
+  loadPracticeSessionRecords,
+  loadQuestionHistoryRecords,
+  loadRemediationSessionRecords,
   listSchoolRecords,
   listSchoolStaffRecords,
   loadAppUser,
   loadClassGroupRoster,
 } from "@/app/lib/backend/db/client";
+
+function summarizeExamAttempts(attempts) {
+  const completed = attempts.filter((attempt) => Number.isFinite(attempt?.score));
+  const scores = completed.map((attempt) => Number(attempt.score)).filter(Number.isFinite);
+  const averageScore = scores.length
+    ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
+    : null;
+  const bestScore = scores.length ? Math.max(...scores) : null;
+
+  return {
+    totalAttempts: attempts.length,
+    completedAttempts: completed.length,
+    averageScore,
+    bestScore,
+  };
+}
+
+function getExamAnalyticsPayload(attempt) {
+  return attempt?.results_payload?.final || attempt?.results_payload || null;
+}
+
+function deriveOverallStatusFromScore(score) {
+  if (!Number.isFinite(score)) return null;
+  if (score >= 80) return "On Track";
+  if (score < 70) return "High Risk";
+  return "Borderline";
+}
+
+function getLatestScoredAttempt(attempts) {
+  return attempts.find((attempt) => Number.isFinite(attempt?.score)) || null;
+}
+
+function getLatestAttemptWithAnalytics(attempts) {
+  return (
+    attempts.find((attempt) => {
+      const analytics = getExamAnalyticsPayload(attempt);
+      return analytics && (Array.isArray(analytics.category_priority) || Array.isArray(analytics.chapter_guidance));
+    }) || null
+  );
+}
+
+function summarizePracticeSessions(sessions) {
+  const completed = sessions.filter((session) => session?.status === "completed");
+  const active = sessions.filter((session) => session?.status === "active");
+  return {
+    totalSessions: sessions.length,
+    completedSessions: completed.length,
+    activeSessions: active.length,
+  };
+}
+
+function summarizeRemediationSessions(sessions) {
+  const completed = sessions.filter((session) => session?.status === "completed");
+  const active = sessions.filter((session) => session?.status === "active");
+  return {
+    totalSessions: sessions.length,
+    completedSessions: completed.length,
+    activeSessions: active.length,
+  };
+}
+
+function summarizeQuestionHistory(records) {
+  const uniqueQuestionCount = new Set(records.map((record) => record?.question_id).filter(Boolean)).size;
+  const bySourceType = records.reduce((acc, record) => {
+    const key = record?.source_type || "unknown";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    totalExposureRows: records.length,
+    uniqueQuestionCount,
+    bySourceType,
+  };
+}
+
+async function enrichRosterMember(member) {
+  const [examAttempts, practiceSessions, remediationSessions, questionHistory] = await Promise.all([
+    loadExamAttemptRecords(member.user_id),
+    loadPracticeSessionRecords(member.user_id),
+    loadRemediationSessionRecords(member.user_id),
+    loadQuestionHistoryRecords(member.user_id),
+  ]);
+
+  const latestAnalyticsExam = getLatestAttemptWithAnalytics(examAttempts);
+  const latestExamAnalytics = getExamAnalyticsPayload(latestAnalyticsExam);
+  const latestScoredExam = getLatestScoredAttempt(examAttempts);
+  const derivedOverallStatus =
+    latestExamAnalytics?.overall_status ||
+    deriveOverallStatusFromScore(Number(latestScoredExam?.score));
+
+  return {
+    ...member,
+    studentSummary: {
+      exams: summarizeExamAttempts(examAttempts),
+      latestExamAnalytics: latestExamAnalytics
+        ? {
+            overallStatus: derivedOverallStatus,
+            categoryPriority: Array.isArray(latestExamAnalytics.category_priority)
+              ? latestExamAnalytics.category_priority
+              : [],
+            chapterGuidance: Array.isArray(latestExamAnalytics.chapter_guidance)
+              ? latestExamAnalytics.chapter_guidance
+              : [],
+          }
+        : derivedOverallStatus
+          ? {
+              overallStatus: derivedOverallStatus,
+              categoryPriority: [],
+              chapterGuidance: [],
+            }
+          : null,
+      practice: summarizePracticeSessions(practiceSessions),
+      remediation: summarizeRemediationSessions(remediationSessions),
+      questionHistory: summarizeQuestionHistory(questionHistory),
+    },
+  };
+}
 
 function summarizeAccessCodes(codes, redemptions, usersById) {
   const redemptionsByCodeId = redemptions.reduce((acc, row) => {
@@ -55,7 +177,7 @@ export async function GET(request) {
     const rosterEntries = await Promise.all(
       classGroups.map(async (group) => ({
         classGroupId: group.id,
-        roster: await loadClassGroupRoster(group.id),
+        roster: await Promise.all((await loadClassGroupRoster(group.id)).map((member) => enrichRosterMember(member))),
       }))
     );
     const rosterByClassId = Object.fromEntries(
