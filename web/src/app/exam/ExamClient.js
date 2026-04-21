@@ -1128,6 +1128,7 @@ useEffect(() => {
   if (persistedFinalPayloadRef.current === payloadKey) return;
 
   let persistedScore = null;
+  const completedAt = mode === "finished" || mode === "time_expired" ? new Date().toISOString() : null;
   if (deliveredQuestionIds.length) {
     const formForScoring = { ...form, question_ids: deliveredQuestionIds };
     const result = scoreExam({ form: formForScoring, bankById, answersByQid });
@@ -1153,6 +1154,7 @@ useEffect(() => {
       endAtMs,
       test_id: testId,
       score: persistedScore,
+      completedAt,
       resultsPayload,
     },
     { forceServer: true, serverUser }

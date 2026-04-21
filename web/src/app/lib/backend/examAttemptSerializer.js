@@ -6,6 +6,7 @@ export function toExamAttemptIndexEntry(attempt) {
     lang: attempt.lang || null,
     mode: attempt.mode || "exam",
     score: Number.isFinite(attempt.score) ? attempt.score : null,
+    completed_at: attempt.completed_at || null,
     created_at: attempt.created_at || null,
     updated_at: attempt.updated_at || null,
   };
@@ -31,6 +32,7 @@ export function toServerExamAttemptRecord(attempt) {
     lang: attempt.lang || null,
     mode: attempt.mode || "exam",
     score: Number.isFinite(attempt.score) ? attempt.score : null,
+    completedAt: attempt.completedAt || attempt.completed_at || null,
     deliveredQuestionIds: Array.isArray(attempt.question_ids) ? attempt.question_ids : [],
     answersByQid: attempt.answersByQid || {},
     reviewByQid: attempt.reviewByQid || {},
@@ -53,6 +55,7 @@ export function fromServerExamAttemptRecord(record) {
     lang: record.lang || null,
     mode: record.mode || "exam",
     score: Number.isFinite(record.score) ? record.score : null,
+    completed_at: record.completed_at || null,
     question_ids: Array.isArray(record.delivered_question_ids) ? record.delivered_question_ids : [],
     answersByQid: record.answers_by_qid || {},
     reviewByQid: record.review_by_qid || {},
@@ -63,6 +66,7 @@ export function fromServerExamAttemptRecord(record) {
     endAtMs: Number.isFinite(state.endAtMs) ? state.endAtMs : null,
     pausedRemainingSec: Number.isFinite(state.pausedRemainingSec) ? state.pausedRemainingSec : null,
     resultsPayload: finalResults,
+    completed_at: record.completed_at || null,
     created_at: record.created_at || null,
     updated_at: record.updated_at || null,
   };

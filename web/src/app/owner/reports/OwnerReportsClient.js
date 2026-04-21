@@ -161,6 +161,47 @@ function formatPercent(value) {
   return Number.isFinite(value) ? `${value}%` : "No data yet";
 }
 
+function formatDateTime(value) {
+  if (!value) return "No date yet";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No date yet";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatCategoryLabel(value) {
+  const map = {
+    "Change in Condition": "Change in Condition",
+    "Scope of Practice & Reporting": "Scope of Practice & Reporting",
+    "Communication & Emotional Support": "Communication & Emotional Support",
+    "Observation & Safety": "Observation & Safety",
+    "Personal Care & Comfort": "Personal Care & Comfort",
+    "Mobility & Positioning": "Mobility & Positioning",
+    "Environment & Safety": "Environment & Safety",
+    "Dignity & Resident Rights": "Dignity & Resident Rights",
+    "Infection Control": "Infection Control",
+  };
+  return map[value] || value || "No data yet";
+}
+
+function getScoreTone(score) {
+  if (!Number.isFinite(score)) {
+    return { color: "#607282", bg: "#eef3f6", border: "#d6e1e8" };
+  }
+  if (score >= 80) {
+    return { color: "#1f6f3d", bg: "#eef8f1", border: "#bddfc6" };
+  }
+  if (score >= 70) {
+    return { color: "#7a5a00", bg: "#f8f3df", border: "#eadba6" };
+  }
+  return { color: "var(--brand-red)", bg: "#fff0f0", border: "#efc2c2" };
+}
+
 function rankCounts(mapLike, limit = 3) {
   return Object.entries(mapLike || {})
     .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
@@ -559,6 +600,7 @@ export default function OwnerReportsClient() {
   const [interventionOpenById, setInterventionOpenById] = useState({});
   const [isNarrow, setIsNarrow] = useState(false);
   const [studentReportView, setStudentReportView] = useState("exam");
+  const [selectedExamAttemptId, setSelectedExamAttemptId] = useState(null);
 
   useEffect(() => {
     function syncWidth() {
@@ -620,6 +662,11 @@ export default function OwnerReportsClient() {
     return () => window.clearTimeout(timer);
   }, [loading]);
 
+  useEffect(() => {
+    const history = Array.isArray(report?.summary?.examHistory) ? report.summary.examHistory : [];
+    setSelectedExamAttemptId(history[0]?.attemptId || null);
+  }, [report]);
+
   const classSummary = report?.summary?.aggregate || null;
   const students = report?.summary?.students || [];
   const schoolSummary = report?.summary?.aggregate || null;
@@ -668,7 +715,14 @@ export default function OwnerReportsClient() {
   const studentCategoryPractice = studentPracticeDiagnostics.category || {};
   const studentPracticeModeCounts = studentSummary?.practiceFocus?.modeCounts || {};
   const studentHasCompletedExam = Number(studentSummary?.exams?.completedAttempts || 0) > 0;
-  const studentExamQuestionsSeen = Number(studentSummary?.exams?.latestCompletedAttempt?.deliveredQuestionIds?.length || 0);
+  const studentExamQuestionsSeen = Number(studentSummary?.questionHistory?.bySourceType?.exam || 0);
+  const studentPracticeQuestionsSeen = Number(studentSummary?.questionHistory?.bySourceType?.practice || 0);
+  const studentExamHistory = Array.isArray(studentSummary?.examHistory) ? studentSummary.examHistory : [];
+  const studentLatestExamResults = studentSummary?.latestExamResults || null;
+  const selectedExamResults =
+    studentExamHistory.find((attempt) => String(attempt?.attemptId) === String(selectedExamAttemptId)) ||
+    studentLatestExamResults ||
+    null;
   const studentPracticeChapterEntries = Array.isArray(studentChapterPractice?.entries) ? studentChapterPractice.entries : [];
   const studentPracticeCategoryEntries = Array.isArray(studentCategoryPractice?.entries) ? studentCategoryPractice.entries : [];
   const studentStrongestPracticeChapter = studentChapterPractice?.strongest || null;
@@ -735,7 +789,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeChapterEntries
         .filter((item) => Number(item?.percent) >= 80)
         .map((item) => `Chapter ${item.label} (${item.percent}%)`),
-      empty: "No strong chapter signal yet",
+      empty: "Not enough strong chapter information yet",
     },
     {
       key: "watch",
@@ -744,7 +798,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeChapterEntries
         .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
         .map((item) => `Chapter ${item.label} (${item.percent}%)`),
-      empty: "No developing chapter signal yet",
+      empty: "Not enough chapter information yet",
     },
     {
       key: "risk",
@@ -753,7 +807,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeChapterEntries
         .filter((item) => Number(item?.percent) < 60)
         .map((item) => `Chapter ${item.label} (${item.percent}%)`),
-      empty: "No high-risk chapter signal yet",
+      empty: "Not enough high-risk chapter information yet",
     },
   ];
 
@@ -765,7 +819,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeCategoryEntries
         .filter((item) => Number(item?.percent) >= 80)
         .map((item) => `${item.label} (${item.percent}%)`),
-      empty: "No strong category signal yet",
+      empty: "Not enough strong category information yet",
     },
     {
       key: "watch",
@@ -774,7 +828,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeCategoryEntries
         .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
         .map((item) => `${item.label} (${item.percent}%)`),
-      empty: "No developing category signal yet",
+      empty: "Not enough category information yet",
     },
     {
       key: "risk",
@@ -783,7 +837,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeCategoryEntries
         .filter((item) => Number(item?.percent) < 60)
         .map((item) => `${item.label} (${item.percent}%)`),
-      empty: "No high-risk category signal yet",
+      empty: "Not enough high-risk category information yet",
     },
   ];
 
@@ -1255,7 +1309,7 @@ export default function OwnerReportsClient() {
                     </div>
                     <div style={subText}>
                       Completed practice: {studentSummary.practice?.completedSessions ?? 0} | All practice sessions:{" "}
-                      {studentSummary.practice?.totalSessions ?? 0} | Questions seen: {studentProgress.totalExposure}
+                      {studentSummary.practice?.totalSessions ?? 0} | Questions seen: {studentPracticeQuestionsSeen}
                     </div>
                   </div>
 
@@ -1267,12 +1321,12 @@ export default function OwnerReportsClient() {
                         {studentStrongestPracticeChapter?.label != null
                           ? `Chapter ${studentStrongestPracticeChapter.label}`
                           : studentChapterPractice?.entries?.length
-                            ? "No clear strong chapter yet"
-                            : "Not enough chapter practice yet"}
+                            ? "Not enough chapter information yet"
+                            : "Not enough chapter information yet"}
                       </div>
                       <div style={subText}>
                         Chapter to review:{" "}
-                        {studentChapterPractice?.weakest?.label != null ? `Chapter ${studentChapterPractice.weakest.label}` : "No data yet"}
+                        {studentChapterPractice?.weakest?.label != null ? `Chapter ${studentChapterPractice.weakest.label}` : "Not enough chapter information yet"}
                       </div>
                     </div>
 
@@ -1283,11 +1337,11 @@ export default function OwnerReportsClient() {
                         {studentStrongestPracticeCategory?.label != null
                           ? studentStrongestPracticeCategory.label
                           : studentCategoryPractice?.entries?.length
-                            ? "No clear strong category yet"
-                            : "Not enough category practice yet"}
+                            ? "Not enough category information yet"
+                            : "Not enough category information yet"}
                       </div>
                       <div style={subText}>
-                        Category to review: {studentCategoryPractice?.weakest?.label || "No data yet"}
+                        Category to review: {studentCategoryPractice?.weakest?.label || "Not enough category information yet"}
                       </div>
                     </div>
                   </div>
@@ -1412,6 +1466,122 @@ export default function OwnerReportsClient() {
                           ))}
                         </div>
                       </div>
+
+                      {selectedExamResults ? (
+                        <div style={listCard}>
+                          <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                            {studentExamHistory.length > 1 ? "Selected exam results" : "Latest exam results"}
+                          </div>
+                          {studentExamHistory.length > 1 ? (
+                            <div style={{ display: "grid", gap: 8 }}>
+                              <div style={subText}>Open any completed exam to swap the results panel below.</div>
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))",
+                                  gap: 8,
+                                }}
+                              >
+                                {studentExamHistory.map((attempt, index) => {
+                                  const isSelected = String(attempt?.attemptId) === String(selectedExamResults?.attemptId);
+                                  const scoreTone = getScoreTone(Number(attempt?.score));
+                                  return (
+                                    <button
+                                      key={`owner-exam-history-${attempt?.attemptId || index}`}
+                                      type="button"
+                                      onClick={() => setSelectedExamAttemptId(attempt?.attemptId || null)}
+                                      style={{
+                                        textAlign: "left",
+                                        borderRadius: 12,
+                                        border: isSelected ? "1px solid #7aa7c7" : "1px solid #d6e1e8",
+                                        background: isSelected ? "#eef6fb" : "white",
+                                        padding: "10px 12px",
+                                        cursor: "pointer",
+                                        display: "grid",
+                                        gap: 4,
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 13 }}>
+                                        {`Exam • ${formatDateTime(attempt?.completedAt)}`}
+                                      </div>
+                                      <div style={subText}>
+                                        Score:{" "}
+                                        <span
+                                          style={{
+                                            color: scoreTone.color,
+                                            fontWeight: 800,
+                                          }}
+                                        >
+                                          {formatPercent(attempt?.score)}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
+                          <div style={subText}>
+                            Completed: {formatDateTime(selectedExamResults.completedAt)} | Score:{" "}
+                            <span
+                              style={{
+                                color: getScoreTone(Number(selectedExamResults.score)).color,
+                                fontWeight: 800,
+                              }}
+                            >
+                              {formatPercent(selectedExamResults.score)}
+                            </span>
+                            {" | "}Questions: {selectedExamResults.questionCount ?? 0}
+                          </div>
+                          <div style={subText}>
+                            <span style={{ fontWeight: 800, color: "var(--heading)" }}>Weakest category:</span>{" "}
+                            {selectedExamResults.weakestCategory?.category
+                              ? formatCategoryLabel(selectedExamResults.weakestCategory.category)
+                              : "No saved category information for this exam yet"}
+                          </div>
+                          <div style={subText}>
+                            <span style={{ fontWeight: 800, color: "var(--heading)" }}>Weakest chapter:</span>{" "}
+                            {selectedExamResults.weakestChapter?.chapterId
+                              ? `Chapter ${selectedExamResults.weakestChapter.chapterId} (${selectedExamResults.weakestChapter.missedCount}/${selectedExamResults.weakestChapter.totalQuestions} missed)`
+                              : "No chapter information yet"}
+                          </div>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(150px, 1fr))",
+                              gap: 10,
+                              marginTop: 4,
+                            }}
+                          >
+                            {(selectedExamResults.chapterBreakdown || []).map((chapter) => (
+                              <div
+                                key={`owner-latest-exam-chapter-${chapter.chapterId}`}
+                                style={{
+                                  ...listCard,
+                                  padding: 12,
+                                  background:
+                                    Number(chapter?.percent) < 60
+                                      ? "#fff8f8"
+                                      : Number(chapter?.percent) < 80
+                                        ? "#fffdf5"
+                                        : "#f7fff9",
+                                  borderColor:
+                                    Number(chapter?.percent) < 60
+                                      ? "#efc2c2"
+                                      : Number(chapter?.percent) < 80
+                                        ? "#eadba6"
+                                        : "#bddfc6",
+                                }}
+                              >
+                                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter {chapter.chapterId}</div>
+                                <div style={subText}>Correct: {chapter.correctCount}/{chapter.totalQuestions}</div>
+                                <div style={subText}>Missed: {chapter.missedCount}</div>
+                                <div style={subText}>Score: {formatPercent(chapter.percent)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </>
                   ) : (
                     <>

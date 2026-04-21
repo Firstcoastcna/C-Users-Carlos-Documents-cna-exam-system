@@ -120,6 +120,7 @@ create table if not exists exam_attempts (
   lang text not null,
   mode text not null,
   score integer,
+  completed_at timestamptz,
   delivered_question_ids jsonb not null default '[]'::jsonb,
   answers_by_qid jsonb not null default '{}'::jsonb,
   review_by_qid jsonb not null default '{}'::jsonb,
@@ -127,6 +128,9 @@ create table if not exists exam_attempts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists exam_attempts
+add column if not exists completed_at timestamptz;
 
 create index if not exists exam_attempts_user_idx on exam_attempts(user_id, created_at desc);
 

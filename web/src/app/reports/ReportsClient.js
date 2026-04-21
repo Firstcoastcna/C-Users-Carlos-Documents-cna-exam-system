@@ -298,7 +298,7 @@ export default function ReportsClient() {
     if (value === "On Track") return t("On Track", "En buen camino", "En bonne voie", "Sou bon chimen");
     if (value === "Borderline") return t("Borderline", "Al limite", "Limite", "Sou limit la");
     if (value === "High Risk") return t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk");
-    return value || t("No current signal", "Sin senal actual", "Aucun signal actuel", "Pa gen siyal aktyel");
+    return value || t("No current information", "Sin informacion actual", "Aucune information actuelle", "Pa gen enfomasyon aktyel");
   }
 
   function formatSourceTypeLabel(value) {
@@ -326,10 +326,10 @@ export default function ReportsClient() {
   function renderNextAction(item) {
     if (item.kind === "highRisk") {
       return t(
-        `Start with ${formatCategoryLabel(item.value)}. It is showing the clearest high-risk signal right now.`,
-        `Empiece con ${formatCategoryLabel(item.value)}. Es la senal de mayor riesgo en este momento.`,
-        `Commencez par ${formatCategoryLabel(item.value)}. C'est le signal a haut risque le plus clair pour le moment.`,
-        `Komanse ak ${formatCategoryLabel(item.value)}. Se li menm ki montre siyal gwo risk ki pi kle kounye a.`
+        `Start with ${formatCategoryLabel(item.value)}. It is showing the clearest high-risk information right now.`,
+        `Empiece con ${formatCategoryLabel(item.value)}. Es la informacion de mayor riesgo en este momento.`,
+        `Commencez par ${formatCategoryLabel(item.value)}. C'est l'information a haut risque la plus claire pour le moment.`,
+        `Komanse ak ${formatCategoryLabel(item.value)}. Se li menm ki montre enfomasyon gwo risk ki pi kle kounye a.`
       );
     }
     if (item.kind === "weak") {
@@ -366,10 +366,10 @@ export default function ReportsClient() {
     }
     if (item.kind === "status" && item.value === "onTrack") {
       return t(
-        "Keep momentum with full exams and targeted review only where weak signals still appear.",
-        "Mantenga el impulso con examenes completos y revision dirigida solo donde todavia aparezcan senales debiles.",
-        "Gardez votre elan avec des examens complets et une revision ciblee seulement la ou les signaux faibles apparaissent encore.",
-        "Kenbe bon ritm nan ak egzamen konple ak revizyon vize selman kote siyal feb yo toujou paret."
+        "Keep momentum with full exams and targeted review only where weak areas still appear.",
+        "Mantenga el impulso con examenes completos y revision dirigida solo donde todavia aparezcan areas debiles.",
+        "Gardez votre elan avec des examens complets et une revision ciblee seulement la ou des zones faibles apparaissent encore.",
+        "Kenbe bon ritm nan ak egzamen konple ak revizyon vize selman kote zon feb yo toujou paret."
       );
     }
     return t(
@@ -481,8 +481,12 @@ export default function ReportsClient() {
   const weaknesses = buildStudentWeaknesses(summary);
   const nextActions = buildStudentNextActions(summary);
   const progress = buildStudentProgress(summary);
-  const examQuestionsSeen = Number(summary?.exams?.latestCompletedAttempt?.deliveredQuestionIds?.length || 0);
+  const examQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.exam || 0);
   const practiceQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.practice || 0);
+  const practiceUniqueQuestionsSeen = Number(summary?.questionHistory?.uniqueBySourceType?.practice || 0);
+  const examExposureCount = Number(summary?.questionHistory?.bySourceType?.exam || 0);
+  const examUniqueQuestionsSeen = Number(summary?.questionHistory?.uniqueBySourceType?.exam || 0);
+  const practiceExposureCount = Number(summary?.questionHistory?.bySourceType?.practice || 0);
   const practiceDiagnostics = summary?.practiceDiagnostics || {};
   const chapterPractice = practiceDiagnostics.chapter || {};
   const categoryPractice = practiceDiagnostics.category || {};
@@ -532,7 +536,7 @@ export default function ReportsClient() {
       title: t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk"),
       tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
       items: weaknesses.highRiskCategories.map((item) => `${formatCategoryLabel(item.category)}${item.level ? ` (${item.level})` : ""}`),
-      empty: t("No high-risk signal now", "Sin senal de alto riesgo ahora", "Pas de signal a haut risque maintenant", "Pa gen siyal gwo risk kounye a"),
+      empty: t("No high-risk information now", "Sin informacion de alto riesgo ahora", "Pas d'information a haut risque pour le moment", "Pa gen enfomasyon gwo risk kounye a"),
     },
   ];
   const practiceCategoryEntries = Array.isArray(categoryPractice?.entries) ? categoryPractice.entries : [];
@@ -546,10 +550,10 @@ export default function ReportsClient() {
         .filter((item) => Number(item?.percent) >= 80)
         .map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.label} (${formatPracticePercentLabel(item.percent)})`),
       empty: t(
-        "No strong chapter signal yet",
-        "Aun no hay una senal fuerte por capitulo",
-        "Pas encore de signal fort par chapitre",
-        "Poko gen siyal chapit ki fò"
+        "Not enough strong chapter information yet",
+        "Aun no hay suficiente informacion fuerte por capitulo",
+        "Pas encore assez d'information forte par chapitre",
+        "Poko gen ase enfomasyon chapit ki fo"
       ),
     },
     {
@@ -560,10 +564,10 @@ export default function ReportsClient() {
         .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
         .map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.label} (${formatPracticePercentLabel(item.percent)})`),
       empty: t(
-        "No developing chapter signal yet",
-        "Aun no hay una senal en desarrollo por capitulo",
-        "Pas encore de signal de chapitre en developpement",
-        "Poko gen siyal chapit k ap devlope"
+        "Not enough chapter information to watch yet",
+        "Aun no hay suficiente informacion por capitulo para observar",
+        "Pas encore assez d'information de chapitre a surveiller",
+        "Poko gen ase enfomasyon chapit pou siveye"
       ),
     },
     {
@@ -574,10 +578,10 @@ export default function ReportsClient() {
         .filter((item) => Number(item?.percent) < 60)
         .map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.label} (${formatPracticePercentLabel(item.percent)})`),
       empty: t(
-        "No high-risk chapter signal yet",
-        "Aun no hay una senal de alto riesgo por capitulo",
-        "Pas encore de signal de chapitre a haut risque",
-        "Poko gen siyal chapit gwo risk"
+        "Not enough high-risk chapter information yet",
+        "Aun no hay suficiente informacion de alto riesgo por capitulo",
+        "Pas encore assez d'information de chapitre a haut risque",
+        "Poko gen ase enfomasyon chapit gwo risk"
       ),
     },
   ];
@@ -590,10 +594,10 @@ export default function ReportsClient() {
         .filter((item) => Number(item?.percent) >= 80)
         .map((item) => `${formatCategoryLabel(item.label)} (${formatPracticePercentLabel(item.percent)})`),
       empty: t(
-        "No strong category signal yet",
-        "Aun no hay una senal fuerte por categoria",
-        "Pas encore de signal fort par categorie",
-        "Poko gen siyal kategori ki fò"
+        "Not enough strong category information yet",
+        "Aun no hay suficiente informacion fuerte por categoria",
+        "Pas encore assez d'information forte par categorie",
+        "Poko gen ase enfomasyon kategori ki fo"
       ),
     },
     {
@@ -604,10 +608,10 @@ export default function ReportsClient() {
         .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
         .map((item) => `${formatCategoryLabel(item.label)} (${formatPracticePercentLabel(item.percent)})`),
       empty: t(
-        "No developing category signal yet",
-        "Aun no hay una senal en desarrollo por categoria",
-        "Pas encore de signal de categorie en developpement",
-        "Poko gen siyal kategori k ap devlope"
+        "Not enough category information to watch yet",
+        "Aun no hay suficiente informacion por categoria para observar",
+        "Pas encore assez d'information de categorie a surveiller",
+        "Poko gen ase enfomasyon kategori pou siveye"
       ),
     },
     {
@@ -618,10 +622,10 @@ export default function ReportsClient() {
         .filter((item) => Number(item?.percent) < 60)
         .map((item) => `${formatCategoryLabel(item.label)} (${formatPracticePercentLabel(item.percent)})`),
       empty: t(
-        "No high-risk category signal yet",
-        "Aun no hay una senal de alto riesgo por categoria",
-        "Pas encore de signal de categorie a haut risque",
-        "Poko gen siyal kategori gwo risk"
+        "Not enough high-risk category information yet",
+        "Aun no hay suficiente informacion de alto riesgo por categoria",
+        "Pas encore assez d'information de categorie a haut risque",
+        "Poko gen ase enfomasyon kategori gwo risk"
       ),
     },
   ];
@@ -647,10 +651,10 @@ export default function ReportsClient() {
     } else {
       practiceNextSteps.push(
         t(
-          "Keep using chapter practice so your report can build a clearer chapter signal.",
-          "Siga usando la practica por capitulo para que su reporte construya una senal de capitulo mas clara.",
-          "Continuez la pratique par chapitre pour que votre rapport construise un signal de chapitre plus clair.",
-          "Kontinye itilize pratik pa chapit pou rapo ou bati yon siyal chapit ki pi klè."
+          "Keep using chapter practice so your report can build clearer chapter information.",
+          "Siga usando la practica por capitulo para que su reporte construya informacion por capitulo mas clara.",
+          "Continuez la pratique par chapitre pour que votre rapport construise des informations de chapitre plus claires.",
+          "Kontinye itilize pratik pa chapit pou rapo ou bati enfomasyon chapit ki pi kle."
         )
       );
     }
@@ -968,7 +972,7 @@ export default function ReportsClient() {
                 <div style={{ fontSize: isNarrow ? 28 : 32, fontWeight: 800, color: examStatusTone.accent }}>
                   {hasCompletedExam
                     ? formatStatusLabel(overallStatus)
-                    : t("No exam signal yet", "Aun no hay senal de examen", "Pas encore de signal d'examen", "Poko gen siyal egzamen")}
+                    : t("No exam information yet", "Aun no hay informacion de examen", "Pas encore d'information d'examen", "Poko gen enfomasyon egzamen")}
                 </div>
                 <div style={{ ...subText, color: examStatusTone.muted }}>
                   {t("Average exam", "Promedio de examen", "Moyenne d'examen", "Mwayen egzamen")}:{" "}
@@ -1293,19 +1297,24 @@ export default function ReportsClient() {
                       {t("Best score", "Mejor puntaje", "Meilleur score", "Pi bon not")}: {formatPercent(summary.exams?.bestScore) || noDataLabel()}
                     </div>
                     <div style={subText}>
-                      {t("Current readiness signal", "Senal actual de preparacion", "Signal actuel de preparation", "Siyal preparasyon aktyel")}: {formatStatusLabel(summary.learningSignals?.overallStatus)}
+                      {t("Current readiness", "Preparacion actual", "Preparation actuelle", "Preparasyon aktyel")}: {formatStatusLabel(summary.learningSignals?.overallStatus)}
                     </div>
                   </div>
 
                   <div style={{ ...sectionCard, background: "white", padding: 12 }}>
                     <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Question exposure", "Exposicion a preguntas", "Exposition aux questions", "Ekspozisyon kestyon yo")}</div>
-                    <div style={subText}>{t("Total delivered", "Total mostradas", "Total affiche", "Total kestyon yo te montre")}: {summary.questionHistory?.totalExposureRows ?? 0}</div>
-                    <div style={subText}>{t("Unique questions seen", "Preguntas unicas vistas", "Questions uniques vues", "K kestyon diferan ou te we")}: {summary.questionHistory?.uniqueQuestionCount ?? 0}</div>
                     <div style={subText}>
-                      {t("By mode", "Por modo", "Par mode", "Pa mod")}:{" "}
-                      {Object.entries(summary.questionHistory?.bySourceType || {})
-                        .map(([key, value]) => `${formatSourceTypeLabel(key)}: ${value}`)
-                        .join(" | ") || noDataLabel()}
+                      {t("Total delivered", "Total mostradas", "Total affiche", "Total kestyon yo te montre")}:{" "}
+                      {activeView === "practice" ? practiceExposureCount : examExposureCount}
+                    </div>
+                    <div style={subText}>
+                      {t("Unique questions seen", "Preguntas unicas vistas", "Questions uniques vues", "K kestyon diferan ou te we")}:{" "}
+                      {activeView === "practice" ? practiceUniqueQuestionsSeen : examUniqueQuestionsSeen}
+                    </div>
+                    <div style={subText}>
+                      {activeView === "practice"
+                        ? `${t("Practice only", "Solo practica", "Pratique seulement", "Pratik selman")}: ${practiceQuestionsSeen}`
+                        : `${t("Exam only", "Solo examen", "Examen seulement", "Egzamen selman")}: ${examExposureCount}`}
                     </div>
                   </div>
 
@@ -1353,3 +1362,4 @@ export default function ReportsClient() {
     </main>
   );
 }
+

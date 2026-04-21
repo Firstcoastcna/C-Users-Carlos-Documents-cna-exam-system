@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
 import { resolveBackendRequestUser } from "@/app/lib/backend/auth/requestUser";
+import { loadQuestionBank } from "@/app/lib/questionBank";
 import {
   loadAppUser,
   loadExamAttemptRecords,
@@ -30,8 +31,129 @@ function summarizeExamAttempts(attempts) {
   };
 }
 
+function buildQuestionBankIndex() {
+  const bank = loadQuestionBank();
+  return Object.fromEntries(
+    (Array.isArray(bank) ? bank : []).map((question) => [question?.question_id, question]).filter(([qid]) => Boolean(qid))
+  );
+}
+
 function getExamAnalyticsPayload(attempt) {
   return attempt?.results_payload?.final || attempt?.results_payload || null;
+}
+
+function pickWeakestCategoryFromAnalytics(analytics) {
+  const ranked = Array.isArray(analytics?.category_priority) ? analytics.category_priority : [];
+  return (
+    ranked.find((item) => item?.is_high_risk && item?.level !== "Strong") ||
+    ranked.find((item) => item?.level === "Weak" || item?.level === "Developing") ||
+    ranked.find((item) => item?.level !== "Strong") ||
+    ranked[0] ||
+    null
+  );
+}
+
+function summarizeExamResult(attempt, bankById) {
+  if (!attempt || !Number.isFinite(attempt?.score)) return null;
+
+  const deliveredQuestionIds = Array.isArray(attempt?.delivered_question_ids)
+    ? attempt.delivered_question_ids
+    : [];
+  const answersByQid = attempt?.answers_by_qid || {};
+  const chapterStats = {};
+  let correctCount = 0;
+
+  deliveredQuestionIds.forEach((questionId) => {
+    const question = bankById?.[questionId];
+    if (!question) return;
+
+    const chapterId = Number(question?.chapter_tag);
+    if (Number.isFinite(chapterId)) {
+      if (!chapterStats[chapterId]) {
+        chapterStats[chapterId] = { totalQuestions: 0, correctCount: 0 };
+      }
+      chapterStats[chapterId].totalQuestions += 1;
+    }
+
+    const selectedAnswer = answersByQid?.[questionId];
+    const isCorrect =
+      selectedAnswer != null &&
+      question?.correct_answer != null &&
+      String(selectedAnswer) === String(question.correct_answer);
+
+    if (isCorrect) {
+      correctCount += 1;
+      if (Number.isFinite(chapterId) && chapterStats[chapterId]) {
+        chapterStats[chapterId].correctCount += 1;
+      }
+    }
+  });
+
+  const chapterBreakdown = Object.entries(chapterStats)
+    .map(([chapterId, stats]) => {
+      const totalQuestions = Number(stats?.totalQuestions || 0);
+      const chapterCorrect = Number(stats?.correctCount || 0);
+      const missedCount = Math.max(0, totalQuestions - chapterCorrect);
+      return {
+        chapterId: Number(chapterId),
+        totalQuestions,
+        correctCount: chapterCorrect,
+        missedCount,
+        percent: totalQuestions ? Math.round((chapterCorrect / totalQuestions) * 100) : null,
+      };
+    })
+    .sort((a, b) => a.chapterId - b.chapterId);
+
+  const weakestChapter =
+    [...chapterBreakdown].sort((a, b) => {
+      if ((b.missedCount || 0) !== (a.missedCount || 0)) return (b.missedCount || 0) - (a.missedCount || 0);
+      if ((a.percent || 0) !== (b.percent || 0)) return (a.percent || 0) - (b.percent || 0);
+      return (b.totalQuestions || 0) - (a.totalQuestions || 0);
+    })[0] || null;
+
+  const analytics = getExamAnalyticsPayload(attempt);
+  const weakestCategory = pickWeakestCategoryFromAnalytics(analytics);
+
+  return {
+    attemptId: attempt.id,
+    score: Number.isFinite(attempt?.score) ? Number(attempt.score) : null,
+    questionCount: deliveredQuestionIds.length,
+    correctCount,
+    missedCount: Math.max(0, deliveredQuestionIds.length - correctCount),
+    completedAt: attempt?.completed_at || attempt?.created_at || attempt?.updated_at || null,
+    weakestCategory: weakestCategory
+      ? {
+          category: weakestCategory.category_id || weakestCategory.category || null,
+          level: weakestCategory.level || null,
+        }
+      : null,
+    weakestChapter: weakestChapter
+      ? {
+          chapterId: weakestChapter.chapterId,
+          missedCount: weakestChapter.missedCount,
+          totalQuestions: weakestChapter.totalQuestions,
+          percent: weakestChapter.percent,
+        }
+      : null,
+    chapterBreakdown,
+  };
+}
+
+function summarizeLatestCompletedExamResult(attempts, bankById) {
+  const latestCompletedAttempt = attempts.find((attempt) => Number.isFinite(attempt?.score));
+  return summarizeExamResult(latestCompletedAttempt, bankById);
+}
+
+function summarizeExamHistory(attempts, bankById) {
+  return attempts
+    .filter((attempt) => Number.isFinite(attempt?.score))
+    .map((attempt) => summarizeExamResult(attempt, bankById))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const timeA = a?.completedAt ? new Date(a.completedAt).getTime() : 0;
+      const timeB = b?.completedAt ? new Date(b.completedAt).getTime() : 0;
+      return timeB - timeA;
+    });
 }
 
 function deriveOverallStatusFromScore(score) {
@@ -44,11 +166,18 @@ function deriveOverallStatusFromScore(score) {
 function summarizePracticeSessions(sessions) {
   const completed = sessions.filter((session) => session?.status === "completed");
   const active = sessions.filter((session) => session?.status === "active");
+  const completedQuestionCount = completed.reduce((sum, session) => {
+    const payload = session?.payload || {};
+    const submittedTotal = Number(payload?.submitted_total);
+    const questionCount = Number(session?.question_count || payload?.question_count || payload?.questionIds?.length || 0);
+    return sum + (Number.isFinite(submittedTotal) && submittedTotal > 0 ? submittedTotal : questionCount);
+  }, 0);
 
   return {
     totalSessions: sessions.length,
     completedSessions: completed.length,
     activeSessions: active.length,
+    completedQuestionCount,
     latestSession: sessions[0] || null,
   };
 }
@@ -72,6 +201,13 @@ function summarizeQuestionHistory(records) {
     return acc;
   }, {});
 
+  const uniqueBySourceType = records.reduce((acc, record) => {
+    const key = record?.source_type || "unknown";
+    if (!acc[key]) acc[key] = new Set();
+    if (record?.question_id) acc[key].add(record.question_id);
+    return acc;
+  }, {});
+
   const uniqueQuestionIds = Array.from(
     new Set(records.map((record) => record?.question_id).filter(Boolean))
   );
@@ -80,6 +216,9 @@ function summarizeQuestionHistory(records) {
     totalExposureRows: records.length,
     uniqueQuestionCount: uniqueQuestionIds.length,
     bySourceType,
+    uniqueBySourceType: Object.fromEntries(
+      Object.entries(uniqueBySourceType).map(([key, set]) => [key, set.size])
+    ),
     recent: records.slice(0, 10),
   };
 }
@@ -455,6 +594,8 @@ export async function GET(request) {
       loadQuestionHistoryRecords(userId, includeAllLanguages ? {} : { lang }),
     ]);
 
+    const questionBankIndex = buildQuestionBankIndex();
+
     return NextResponse.json({
       ok: true,
       service: "student-overview-report",
@@ -475,6 +616,8 @@ export async function GET(request) {
         practiceDiagnostics: summarizePracticeDiagnostics(practiceSessions),
         remediationFocus: summarizeRemediationFocus(remediationSessions),
         learningSignals: summarizeLearningSignals(examAttempts, practiceSessions),
+        latestExamResults: summarizeLatestCompletedExamResult(examAttempts, questionBankIndex),
+        examHistory: summarizeExamHistory(examAttempts, questionBankIndex),
       },
     });
   } catch (error) {

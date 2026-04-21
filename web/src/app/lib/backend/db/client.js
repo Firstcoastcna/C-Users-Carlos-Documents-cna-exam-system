@@ -1404,6 +1404,7 @@ export async function createExamAttemptRecord(record) {
     lang: record.lang,
     mode: record.mode || "exam",
     score: Number.isFinite(record.score) ? record.score : null,
+    completed_at: record.completedAt || null,
     delivered_question_ids: Array.isArray(record.deliveredQuestionIds) ? record.deliveredQuestionIds : [],
     answers_by_qid: record.answersByQid || {},
     review_by_qid: record.reviewByQid || {},
@@ -1413,7 +1414,7 @@ export async function createExamAttemptRecord(record) {
   const { data, error } = await supabase
     .from("exam_attempts")
     .insert(payload)
-    .select("id, user_id, test_id, lang, mode, score, delivered_question_ids, answers_by_qid, review_by_qid, results_payload, created_at, updated_at")
+    .select("id, user_id, test_id, lang, mode, score, completed_at, delivered_question_ids, answers_by_qid, review_by_qid, results_payload, created_at, updated_at")
     .single();
 
   if (error) {
@@ -1444,6 +1445,7 @@ export async function updateExamAttemptRecord(record) {
     lang: record.lang,
     mode: record.mode || "exam",
     score: Number.isFinite(record.score) ? record.score : null,
+    completed_at: record.completedAt || null,
     delivered_question_ids: Array.isArray(record.deliveredQuestionIds) ? record.deliveredQuestionIds : [],
     answers_by_qid: record.answersByQid || {},
     review_by_qid: record.reviewByQid || {},
@@ -1454,7 +1456,7 @@ export async function updateExamAttemptRecord(record) {
   const { data, error } = await supabase
     .from("exam_attempts")
     .upsert(payload, { onConflict: "id" })
-    .select("id, user_id, test_id, lang, mode, score, delivered_question_ids, answers_by_qid, review_by_qid, results_payload, created_at, updated_at")
+    .select("id, user_id, test_id, lang, mode, score, completed_at, delivered_question_ids, answers_by_qid, review_by_qid, results_payload, created_at, updated_at")
     .single();
 
   if (error) {
@@ -1480,7 +1482,7 @@ export async function loadExamAttemptRecord(userId, attemptId) {
 
   const { data, error } = await supabase
     .from("exam_attempts")
-    .select("id, user_id, test_id, lang, mode, score, delivered_question_ids, answers_by_qid, review_by_qid, results_payload, created_at, updated_at")
+    .select("id, user_id, test_id, lang, mode, score, completed_at, delivered_question_ids, answers_by_qid, review_by_qid, results_payload, created_at, updated_at")
     .eq("id", attemptId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -1500,8 +1502,9 @@ export async function loadExamAttemptRecords(userId, lang = null) {
 
   let query = supabase
     .from("exam_attempts")
-    .select("id, user_id, test_id, lang, mode, score, delivered_question_ids, answers_by_qid, review_by_qid, results_payload, created_at, updated_at")
+    .select("id, user_id, test_id, lang, mode, score, completed_at, delivered_question_ids, answers_by_qid, review_by_qid, results_payload, created_at, updated_at")
     .eq("user_id", userId)
+    .order("completed_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   if (lang) query = query.eq("lang", lang);
