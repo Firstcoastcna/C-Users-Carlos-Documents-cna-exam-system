@@ -811,13 +811,13 @@ export default function ReportsClient() {
                                 "Pas encore de chapitre fort clair",
                                 "Poko gen chapit fò ki klè"
                               )
-                            : t("Not enough chapter practice yet", "Aun no hay suficiente practica por capitulo", "Pas assez de pratique par chapitre pour l'instant", "Poko gen ase pratik pa chapit")}
+                            : t("Not enough chapter information yet", "Aun no hay suficiente informacion por capitulo", "Pas encore assez d'information par chapitre", "Poko gen ase enfomasyon pa chapit")}
                       </div>
                       <div style={{ ...subText, color: "#476252" }}>
                         {t("Chapter to review", "Capitulo para repasar", "Chapitre a revoir", "Chapit pou revize")}:{" "}
                         {chapterPractice?.weakest?.label != null
                           ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${chapterPractice.weakest.label}`
-                          : noDataLabel()}
+                          : t("Not enough chapter information yet", "Aun no hay suficiente informacion por capitulo", "Pas encore assez d'information par chapitre", "Poko gen ase enfomasyon pa chapit") }
                       </div>
                     </div>
 
@@ -844,13 +844,13 @@ export default function ReportsClient() {
                                 "Pas encore de categorie forte claire",
                                 "Poko gen kategori fò ki klè"
                               )
-                            : t("Not enough category practice yet", "Aun no hay suficiente practica por categoria", "Pas assez de pratique par categorie pour l'instant", "Poko gen ase pratik pa kategori")}
+                            : t("Not enough category information yet", "Aun no hay suficiente informacion por categoria", "Pas encore assez d'information par categorie", "Poko gen ase enfomasyon pa kategori")}
                       </div>
                       <div style={{ ...subText, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
                         {t("Category to review", "Categoria para repasar", "Categorie a revoir", "Kategori pou revize")}:{" "}
                         {categoryPractice?.weakest?.label != null
                           ? formatCategoryLabel(categoryPractice.weakest.label)
-                          : noDataLabel()}
+                          : t("Not enough category information yet", "Aun no hay suficiente informacion por categoria", "Pas encore assez d'information par categorie", "Poko gen ase enfomasyon pa kategori")}
                       </div>
                     </div>
                   </div>
