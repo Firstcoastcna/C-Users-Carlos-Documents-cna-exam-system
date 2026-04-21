@@ -482,6 +482,7 @@ export default function ReportsClient() {
   const nextActions = buildStudentNextActions(summary);
   const progress = buildStudentProgress(summary);
   const examQuestionsSeen = Number(summary?.exams?.latestCompletedAttempt?.deliveredQuestionIds?.length || 0);
+  const practiceQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.practice || 0);
   const practiceDiagnostics = summary?.practiceDiagnostics || {};
   const chapterPractice = practiceDiagnostics.chapter || {};
   const categoryPractice = practiceDiagnostics.category || {};
@@ -780,7 +781,7 @@ export default function ReportsClient() {
                       {" | "}
                       {t("All practice sessions", "Todas las sesiones de practica", "Toutes les sessions de pratique", "Tout sesyon pratik yo")}: {summary.practice?.totalSessions ?? 0}
                       {" | "}
-                      {t("Questions seen", "Preguntas vistas", "Questions vues", "K kestyon ou wè")}: {progress.totalExposure}
+                      {t("Practice questions seen", "Preguntas de practica vistas", "Questions de pratique vues", "K kestyon pratik ou wè")}: {practiceQuestionsSeen}
                     </div>
                   </div>
 
