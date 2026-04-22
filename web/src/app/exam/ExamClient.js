@@ -541,6 +541,13 @@ const [testId, setTestId] = useState(() => {
     return Math.round((result.correct / result.total) * 100);
   }
 
+  function deriveOverallStatusFromPercent(percentValue) {
+    if (!Number.isFinite(percentValue)) return null;
+    if (percentValue >= 80) return "On Track";
+    if (percentValue < 70) return "High Risk";
+    return "Borderline";
+  }
+
 function pauseAndPersist() {
   try {
     // Don't pause once exam is already over
@@ -1525,7 +1532,7 @@ deliveredQuestionIds.forEach((qid) => {
     {T.scoreLine(percent, didPass)}
   </div>
 
-  {resultsPayload?.overall_status && (
+  {deriveOverallStatusFromPercent(percent) && (
     <div
       style={{
         fontSize: "15px",
@@ -1536,9 +1543,9 @@ deliveredQuestionIds.forEach((qid) => {
     >
       {T.readinessAssessment}:{" "}
       <span style={{ fontWeight: "700", color: "#22313d" }}>
-        {resultsPayload.overall_status === "On Track"
+        {deriveOverallStatusFromPercent(percent) === "On Track"
           ? T.statusOnTrack
-          : resultsPayload.overall_status === "High Risk"
+          : deriveOverallStatusFromPercent(percent) === "High Risk"
             ? T.statusHighRisk
             : T.statusBorderline}
       </span>
@@ -1550,7 +1557,7 @@ deliveredQuestionIds.forEach((qid) => {
   </div>
 </div>
 
-{resultsPayload?.overall_status && (
+{deriveOverallStatusFromPercent(percent) && (
   <div
     style={{
       margin: "0 auto 14px",
@@ -1566,9 +1573,9 @@ deliveredQuestionIds.forEach((qid) => {
     </div>
 
     <div style={{ fontSize: "14px", lineHeight: "1.65", color: "#334455" }}>
-      {resultsPayload.overall_status === "On Track"
+      {deriveOverallStatusFromPercent(percent) === "On Track"
         ? T.nextStepOnTrack
-        : resultsPayload.overall_status === "High Risk"
+        : deriveOverallStatusFromPercent(percent) === "High Risk"
           ? T.nextStepHighRisk
           : T.nextStepBorderline}
     </div>
@@ -2489,16 +2496,16 @@ let resultsPayload = null;
       marginTop: "14px",
       padding: "12px",
       border:
-        resultsPayload.overall_status === "On Track"
+        deriveOverallStatusFromPercent(percent) === "On Track"
           ? "1px solid #b8ddc1"
-          : resultsPayload.overall_status === "High Risk"
+          : deriveOverallStatusFromPercent(percent) === "High Risk"
             ? "1px solid #efc2c2"
             : "1px solid #e8d7a6",
       borderRadius: "12px",
       background:
-        resultsPayload.overall_status === "On Track"
+        deriveOverallStatusFromPercent(percent) === "On Track"
           ? "linear-gradient(180deg, #f5fff7 0%, #edf8f1 100%)"
-          : resultsPayload.overall_status === "High Risk"
+          : deriveOverallStatusFromPercent(percent) === "High Risk"
             ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
             : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
     }}
@@ -2517,17 +2524,18 @@ let resultsPayload = null;
     analyticsScoreResult.total === 0
       ? 0
       : Math.round((analyticsScoreResult.correct / analyticsScoreResult.total) * 100);
+  const analyticsOverallStatus = deriveOverallStatusFromPercent(analyticsPercent);
   const statusLabel =
-    resultsPayload.overall_status === "On Track"
+    analyticsOverallStatus === "On Track"
       ? T.statusOnTrack
-      : resultsPayload.overall_status === "High Risk"
+      : analyticsOverallStatus === "High Risk"
       ? T.statusHighRisk
       : T.statusBorderline;
 
   const statusNarrative =
-    resultsPayload.overall_status === "On Track"
+    analyticsOverallStatus === "On Track"
       ? T.readinessNarrative.onTrack
-      : resultsPayload.overall_status === "High Risk"
+      : analyticsOverallStatus === "High Risk"
       ? T.readinessNarrative.highRisk
       : T.readinessNarrative.borderline;
 
@@ -2539,9 +2547,9 @@ let resultsPayload = null;
           fontWeight: "700",
           marginBottom: "8px",
           color:
-            resultsPayload.overall_status === "On Track"
+            analyticsOverallStatus === "On Track"
               ? "#1f6f3d"
-              : resultsPayload.overall_status === "High Risk"
+              : analyticsOverallStatus === "High Risk"
                 ? "var(--brand-red)"
                 : "#7a5a00",
         }}
@@ -2555,9 +2563,9 @@ let resultsPayload = null;
           fontWeight: "700",
           marginBottom: "8px",
           color:
-            resultsPayload.overall_status === "On Track"
+            analyticsOverallStatus === "On Track"
               ? "#1f6f3d"
-              : resultsPayload.overall_status === "High Risk"
+              : analyticsOverallStatus === "High Risk"
                 ? "var(--brand-red)"
                 : "#7a5a00",
         }}

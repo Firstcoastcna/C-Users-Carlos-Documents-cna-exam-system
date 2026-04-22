@@ -462,11 +462,11 @@ export function computeResultsPayload({
   const anyHighRiskBelow65 = highRiskAccuracies.some((accuracy) => accuracy < 0.65);
 
   let overall_status = "Borderline";
-  if (overallPct >= 80 && !anyHighRiskBelow70) {
+  if (overallPct >= 80) {
     overall_status = "On Track";
-  } else if (overallPct < 70 || anyHighRiskBelow65) {
+  } else if (overallPct < 70) {
     overall_status = "High Risk";
-  } else if ((overallPct >= 70 && overallPct < 80) || anyHighRisk65to69) {
+  } else {
     overall_status = "Borderline";
   }
 
