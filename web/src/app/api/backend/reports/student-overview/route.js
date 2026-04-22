@@ -13,8 +13,20 @@ import {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+function isCompletedExamAttempt(attempt) {
+  if (!Number.isFinite(attempt?.score)) return false;
+  if (attempt?.completed_at) return true;
+
+  const mode = String(attempt?.mode || "").trim().toLowerCase();
+  if (mode === "finished" || mode === "time_expired" || mode === "analytics" || mode === "rationales") {
+    return true;
+  }
+
+  return Boolean(attempt?.results_payload?.final);
+}
+
 function summarizeExamAttempts(attempts) {
-  const completed = attempts.filter((attempt) => Number.isFinite(attempt?.score));
+  const completed = attempts.filter((attempt) => isCompletedExamAttempt(attempt));
   const scores = completed.map((attempt) => Number(attempt.score)).filter(Number.isFinite);
   const averageScore = scores.length
     ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
@@ -140,13 +152,13 @@ function summarizeExamResult(attempt, bankById) {
 }
 
 function summarizeLatestCompletedExamResult(attempts, bankById) {
-  const latestCompletedAttempt = attempts.find((attempt) => Number.isFinite(attempt?.score));
+  const latestCompletedAttempt = attempts.find((attempt) => isCompletedExamAttempt(attempt));
   return summarizeExamResult(latestCompletedAttempt, bankById);
 }
 
 function summarizeExamHistory(attempts, bankById) {
   return attempts
-    .filter((attempt) => Number.isFinite(attempt?.score))
+    .filter((attempt) => isCompletedExamAttempt(attempt))
     .map((attempt) => summarizeExamResult(attempt, bankById))
     .filter(Boolean)
     .sort((a, b) => {
@@ -454,6 +466,12 @@ function summarizePracticeLearningSignals(practiceSessions) {
     if ((a.percent || 0) !== (b.percent || 0)) return (a.percent || 0) - (b.percent || 0);
     return (b.total || 0) - (a.total || 0);
   });
+  const highRiskCategoryKeys = new Set(
+    weakestCategories
+      .filter((item) => item.percent != null && item.percent < 60)
+      .map((item) => item.category)
+      .filter(Boolean)
+  );
 
   const rankedChapters = Object.entries(chapterStats)
     .map(([chapterId, stats]) => {
@@ -478,7 +496,11 @@ function summarizePracticeLearningSignals(practiceSessions) {
       .slice(0, 3)
       .map((item) => item.category),
     categoriesNeedingWork: weakestCategories
-      .filter((item) => item.level === "Weak" || item.level === "Developing")
+      .filter(
+        (item) =>
+          (item.level === "Weak" || item.level === "Developing") &&
+          !highRiskCategoryKeys.has(item.category)
+      )
       .slice(0, 4)
       .map((item) => ({
         category: item.category,
@@ -514,7 +536,7 @@ function summarizeLearningSignals(examAttempts, practiceSessions) {
     }
 
     const latestScoredAttempt =
-      examAttempts.find((attempt) => Number.isFinite(attempt?.score)) || null;
+      examAttempts.find((attempt) => isCompletedExamAttempt(attempt)) || null;
     return {
       overallStatus: deriveOverallStatusFromScore(Number(latestScoredAttempt?.score)),
       strongestCategories: [],
@@ -527,22 +549,38 @@ function summarizeLearningSignals(examAttempts, practiceSessions) {
 
   const categoryPriority = Array.isArray(analytics.category_priority) ? analytics.category_priority : [];
   const chapterGuidance = Array.isArray(analytics.chapter_guidance) ? analytics.chapter_guidance : [];
+  const latestScoredAttempt =
+    examAttempts.find((attempt) => isCompletedExamAttempt(attempt)) || null;
+  const overallStatus =
+    deriveOverallStatusFromScore(Number(latestScoredAttempt?.score)) ||
+    analytics.overall_status ||
+    null;
+  const highRiskCategoryKeys = new Set(
+    categoryPriority
+      .filter((item) => item?.is_high_risk && item?.level === "Weak")
+      .map((item) => item?.category_id)
+      .filter(Boolean)
+  );
 
   return {
-    overallStatus: analytics.overall_status || null,
+    overallStatus,
     strongestCategories: categoryPriority
       .filter((item) => item?.level === "Strong")
       .slice(0, 3)
       .map((item) => item.category_id),
     categoriesNeedingWork: categoryPriority
-      .filter((item) => item?.level === "Weak" || item?.level === "Developing")
+      .filter(
+        (item) =>
+          (item?.level === "Weak" || item?.level === "Developing") &&
+          !highRiskCategoryKeys.has(item?.category_id)
+      )
       .slice(0, 4)
       .map((item) => ({
         category: item.category_id,
         level: item.level,
       })),
     highRiskCategories: categoryPriority
-      .filter((item) => item?.is_high_risk && item?.level !== "Strong")
+      .filter((item) => item?.is_high_risk && item?.level === "Weak")
       .slice(0, 4)
       .map((item) => ({
         category: item.category_id,

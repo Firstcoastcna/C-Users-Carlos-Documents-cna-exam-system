@@ -78,11 +78,25 @@ const buttonSecondary = {
   justifyContent: "center",
 };
 
+const buttonSecondaryActive = {
+  ...buttonSecondary,
+  border: "1px solid #d48c86",
+  background: "#fff1f0",
+  color: "#a22b25",
+};
+
 const buttonTiny = {
   ...buttonSecondary,
   padding: "6px 9px",
   fontSize: 12,
   borderRadius: 8,
+};
+
+const buttonTinyActive = {
+  ...buttonTiny,
+  border: "1px solid #d48c86",
+  background: "#fff1f0",
+  color: "#a22b25",
 };
 
 const buttonTinyWarning = {
@@ -218,6 +232,18 @@ function HintText({ isOpen }) {
   );
 }
 
+function formatDateTime(value) {
+  if (!value) return "No time yet";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "No time yet";
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function OwnerSchoolsClient() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -234,6 +260,7 @@ export default function OwnerSchoolsClient() {
   const [openSchoolId, setOpenSchoolId] = useState("");
   const [openClassPanels, setOpenClassPanels] = useState({});
   const [openRosterPanels, setOpenRosterPanels] = useState({});
+  const [openLiveExamPanels, setOpenLiveExamPanels] = useState({});
   const [openCodePanels, setOpenCodePanels] = useState({});
   const [openTeacherPanels, setOpenTeacherPanels] = useState({});
   const [openRedemptionPanels, setOpenRedemptionPanels] = useState({});
@@ -799,7 +826,7 @@ export default function OwnerSchoolsClient() {
                         School report
                       </Link>
                       <button
-                        style={buttonSecondary}
+                        style={openTeacherPanels[school.id] ? buttonSecondaryActive : buttonSecondary}
                         onClick={() =>
                           setOpenTeacherPanels((prev) => ({
                             ...prev,
@@ -926,7 +953,10 @@ export default function OwnerSchoolsClient() {
                     ) : null}
 
                     {(classGroupsBySchool[school.id] || []).length ? (
-                      (classGroupsBySchool[school.id] || []).map((item) => (
+                      (classGroupsBySchool[school.id] || []).map((item) => {
+                        const liveExamRows = (item.roster || []).filter((row) => row.studentSummary?.liveExam);
+
+                        return (
                         <details
                           key={item.id}
                           id={`owner-class-${item.id}`}
@@ -967,15 +997,40 @@ export default function OwnerSchoolsClient() {
 
                             <div style={actionsRow}>
                               <button
-                                style={buttonSecondary}
+                                style={openRosterPanels[item.id] ? buttonSecondaryActive : buttonSecondary}
                                 onClick={() =>
-                                  setOpenRosterPanels((prev) => ({
-                                    ...prev,
-                                    [item.id]: !prev[item.id],
-                                  }))
+                                  {
+                                    setOpenLiveExamPanels((prev) => ({
+                                      ...prev,
+                                      [item.id]: false,
+                                    }));
+                                    setOpenRosterPanels((prev) => ({
+                                      ...prev,
+                                      [item.id]: !prev[item.id],
+                                    }));
+                                  }
                                 }
                               >
                                 {openRosterPanels[item.id] ? "Close class roster" : "Class roster"}
+                              </button>
+                              <button
+                                style={openLiveExamPanels[item.id] ? buttonSecondaryActive : buttonSecondary}
+                                onClick={() =>
+                                  {
+                                    setOpenRosterPanels((prev) => ({
+                                      ...prev,
+                                      [item.id]: false,
+                                    }));
+                                    setOpenLiveExamPanels((prev) => ({
+                                      ...prev,
+                                      [item.id]: !prev[item.id],
+                                    }));
+                                  }
+                                }
+                              >
+                                {openLiveExamPanels[item.id]
+                                  ? "Close live exams"
+                                  : `Live exams${liveExamRows.length ? ` (${liveExamRows.length})` : ""}`}
                               </button>
                               <Link
                                 href={`/owner/reports?scope=class&class_group_id=${encodeURIComponent(
@@ -988,7 +1043,7 @@ export default function OwnerSchoolsClient() {
                                 Class report
                               </Link>
                               <button
-                                style={buttonSecondary}
+                                style={openCodePanels[item.id] ? buttonSecondaryActive : buttonSecondary}
                                 onClick={() =>
                                   setOpenCodePanels((prev) => ({
                                     ...prev,
@@ -1012,6 +1067,60 @@ export default function OwnerSchoolsClient() {
                                 Edit class
                               </button>
                             </div>
+
+                            {openLiveExamPanels[item.id] ? (
+                              liveExamRows.length ? (
+                                <div style={{ display: "grid", gap: 8 }}>
+                                  {liveExamRows.map((row) => {
+                                    const liveExam = row.studentSummary?.liveExam;
+                                    return (
+                                      <div key={`live-exam-${row.id}`} style={{ ...listCard, background: "#fffdf8", borderColor: "#eadba6" }}>
+                                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                          {row.user?.full_name || row.user?.email || row.user_id}
+                                        </div>
+                                        <div style={listMeta}>{row.user?.email || "No email on file"} | Live exam in progress</div>
+                                        <div style={listMeta}>
+                                          Current score: {Number.isFinite(liveExam?.currentScore) ? `${liveExam.currentScore}%` : "No score yet"} | Answered:{" "}
+                                          {liveExam?.answeredCount ?? 0}/{liveExam?.questionCount ?? 0} | Started: {formatDateTime(liveExam?.startedAt)}
+                                        </div>
+                                        <div style={listMeta}>
+                                          Weakest category: {liveExam?.weakestCategory?.categoryId || "No clear category yet"} | Weakest chapter:{" "}
+                                          {liveExam?.weakestChapter?.chapterId ? `Chapter ${liveExam.weakestChapter.chapterId}` : "No clear chapter yet"}
+                                        </div>
+                                        {(liveExam?.chapterBreakdown || []).length ? (
+                                          <div
+                                            style={{
+                                              display: "grid",
+                                              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                                              gap: 8,
+                                            }}
+                                          >
+                                            {liveExam.chapterBreakdown.map((chapter) => (
+                                              <div
+                                                key={`live-exam-chapter-${row.id}-${chapter.chapterId}`}
+                                                style={{
+                                                  ...listCard,
+                                                  background: "white",
+                                                  borderColor: "#d6e1e8",
+                                                  padding: 10,
+                                                }}
+                                              >
+                                                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter {chapter.chapterId}</div>
+                                                <div style={listMeta}>Score: {Number.isFinite(chapter.percent) ? `${chapter.percent}%` : "No data yet"}</div>
+                                                <div style={listMeta}>Answered: {chapter.answeredCount ?? 0}/{chapter.totalQuestions ?? 0}</div>
+                                                <div style={listMeta}>Correct: {chapter.correctCount ?? 0}</div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div style={listMeta}>No live exams in progress right now.</div>
+                              )
+                            ) : null}
 
                             {openRosterPanels[item.id] ? (
                               item.roster?.length ? (
@@ -1067,7 +1176,7 @@ export default function OwnerSchoolsClient() {
                                             View student report
                                           </Link>
                                           <button
-                                            style={buttonTiny}
+                                            style={moveStudentForms[row.id]?.open ? buttonTinyActive : buttonTiny}
                                             disabled={busy}
                                             onClick={() =>
                                               setMoveStudentForms((prev) => ({
@@ -1217,7 +1326,7 @@ export default function OwnerSchoolsClient() {
                                         </div>
                                         <div style={actionsRow}>
                                           <button
-                                            style={buttonSecondary}
+                                            style={openRedemptionPanels[code.id] ? buttonSecondaryActive : buttonSecondary}
                                             onClick={() =>
                                               setOpenRedemptionPanels((prev) => ({
                                                 ...prev,
@@ -1255,7 +1364,8 @@ export default function OwnerSchoolsClient() {
                             ) : null}
                           </div>
                         </details>
-                      ))
+                        );
+                      })
                     ) : (
                       <div style={subText}>No classes yet for this school.</div>
                     )}

@@ -174,10 +174,10 @@ function buildStudentNextActions(summary) {
   const topHighRisk = summary?.learningSignals?.highRiskCategories?.[0] || null;
   const topChapter = summary?.learningSignals?.chapterPriorities?.[0] || null;
 
-  if (topHighRisk?.category) {
-    actions.push({ kind: "highRisk", value: topHighRisk.category });
-  } else if (topWeak?.category) {
+  if (topWeak?.category) {
     actions.push({ kind: "weak", value: topWeak.category });
+  } else if (topHighRisk?.category) {
+    actions.push({ kind: "highRisk", value: topHighRisk.category });
   }
 
   if (topChapter?.chapterId) {
@@ -510,7 +510,7 @@ export default function ReportsClient() {
       };
   const topStrength = strengths.strongestCategories[0] || null;
   const topHighRisk = weaknesses.highRiskCategories[0] || null;
-  const topWeakCategory = topHighRisk?.category || weaknesses.categoriesNeedingWork[0]?.category || null;
+  const topWeakCategory = weaknesses.categoriesNeedingWork[0]?.category || topHighRisk?.category || null;
   const topWeakChapter = weaknesses.chapterPriorities[0]?.chapterId || null;
   const strongestChapter = [...(weaknesses.chapterPriorities || [])]
     .reverse()

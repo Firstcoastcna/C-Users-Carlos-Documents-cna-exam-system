@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { loadQuestionBank } from "@/app/lib/questionBank";
 import {
   listAccessCodeRecords,
   listAccessCodeRedemptionRecords,
@@ -16,8 +17,40 @@ import {
   loadClassGroupRoster,
 } from "@/app/lib/backend/db/client";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function buildQuestionBankIndex() {
+  const bank = loadQuestionBank();
+  return Object.fromEntries(
+    (Array.isArray(bank) ? bank : []).map((question) => [question?.question_id, question]).filter(([qid]) => Boolean(qid))
+  );
+}
+
+function isCompletedExamAttempt(attempt) {
+  if (!Number.isFinite(attempt?.score)) return false;
+  if (attempt?.completed_at) return true;
+
+  const mode = String(attempt?.mode || "").trim().toLowerCase();
+  if (mode === "finished" || mode === "time_expired" || mode === "analytics" || mode === "rationales") {
+    return true;
+  }
+
+  return Boolean(attempt?.results_payload?.final);
+}
+
+function isLiveExamAttempt(attempt) {
+  if (!attempt) return false;
+  if (isCompletedExamAttempt(attempt)) return false;
+
+  const mode = String(attempt?.mode || "").trim().toLowerCase();
+  if (mode && mode !== "exam" && mode !== "confirm_exit") return false;
+
+  return Array.isArray(attempt?.delivered_question_ids) && attempt.delivered_question_ids.length > 0;
+}
+
 function summarizeExamAttempts(attempts) {
-  const completed = attempts.filter((attempt) => Number.isFinite(attempt?.score));
+  const completed = attempts.filter((attempt) => isCompletedExamAttempt(attempt));
   const scores = completed.map((attempt) => Number(attempt.score)).filter(Number.isFinite);
   const averageScore = scores.length
     ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
@@ -44,12 +77,13 @@ function deriveOverallStatusFromScore(score) {
 }
 
 function getLatestScoredAttempt(attempts) {
-  return attempts.find((attempt) => Number.isFinite(attempt?.score)) || null;
+  return attempts.find((attempt) => isCompletedExamAttempt(attempt)) || null;
 }
 
 function getLatestAttemptWithAnalytics(attempts) {
   return (
     attempts.find((attempt) => {
+      if (!isCompletedExamAttempt(attempt)) return false;
       const analytics = getExamAnalyticsPayload(attempt);
       return analytics && (Array.isArray(analytics.category_priority) || Array.isArray(analytics.chapter_guidance));
     }) || null
@@ -91,7 +125,112 @@ function summarizeQuestionHistory(records) {
   };
 }
 
-async function enrichRosterMember(member) {
+function summarizeLiveExamAttempt(attempt, bankById) {
+  if (!isLiveExamAttempt(attempt)) return null;
+
+  const deliveredQuestionIds = Array.isArray(attempt?.delivered_question_ids) ? attempt.delivered_question_ids : [];
+  const answersByQid = attempt?.answers_by_qid || {};
+  const chapterStats = {};
+  const categoryStats = {};
+  let answeredCount = 0;
+  let correctCount = 0;
+
+  deliveredQuestionIds.forEach((questionId) => {
+    const question = bankById?.[questionId];
+    if (!question) return;
+
+    const chapterId = Number(question?.chapter_tag);
+    const categoryId = question?.category_tag ? String(question.category_tag) : null;
+    const answer = answersByQid?.[questionId] || null;
+    const selectedAnswerId =
+      answer && typeof answer === "object"
+        ? answer?.selected_answer_id
+        : answer;
+    const hasAnswer =
+      selectedAnswerId != null && selectedAnswerId !== "" ||
+      Boolean(answer && typeof answer === "object" && answer?.submitted);
+    const isCorrect =
+      hasAnswer &&
+      question?.correct_answer != null &&
+      String(selectedAnswerId) === String(question.correct_answer);
+
+    if (Number.isFinite(chapterId)) {
+      if (!chapterStats[chapterId]) chapterStats[chapterId] = { totalQuestions: 0, answeredCount: 0, correctCount: 0 };
+      chapterStats[chapterId].totalQuestions += 1;
+      if (hasAnswer) chapterStats[chapterId].answeredCount += 1;
+      if (isCorrect) chapterStats[chapterId].correctCount += 1;
+    }
+
+    if (categoryId) {
+      if (!categoryStats[categoryId]) categoryStats[categoryId] = { answeredCount: 0, correctCount: 0 };
+      if (hasAnswer) categoryStats[categoryId].answeredCount += 1;
+      if (isCorrect) categoryStats[categoryId].correctCount += 1;
+    }
+
+    if (hasAnswer) answeredCount += 1;
+    if (isCorrect) correctCount += 1;
+  });
+
+  const chapterBreakdown = Object.entries(chapterStats)
+    .map(([chapterId, stats]) => ({
+      chapterId: Number(chapterId),
+      totalQuestions: Number(stats?.totalQuestions || 0),
+      answeredCount: Number(stats?.answeredCount || 0),
+      correctCount: Number(stats?.correctCount || 0),
+      percent: stats?.totalQuestions ? Math.round((Number(stats.correctCount || 0) / Number(stats.totalQuestions || 1)) * 100) : null,
+    }))
+    .sort((a, b) => a.chapterId - b.chapterId);
+
+  const weakestChapter =
+    [...chapterBreakdown]
+      .filter((item) => item.answeredCount > 0)
+      .sort((a, b) => {
+        if ((a.percent || 0) !== (b.percent || 0)) return (a.percent || 0) - (b.percent || 0);
+        return (b.answeredCount || 0) - (a.answeredCount || 0);
+      })[0] || null;
+
+  const weakestCategory =
+    Object.entries(categoryStats)
+      .map(([categoryId, stats]) => ({
+        categoryId,
+        answeredCount: Number(stats?.answeredCount || 0),
+        correctCount: Number(stats?.correctCount || 0),
+        percent: stats?.answeredCount ? Math.round((Number(stats.correctCount || 0) / Number(stats.answeredCount || 1)) * 100) : null,
+      }))
+      .filter((item) => item.answeredCount > 0)
+      .sort((a, b) => {
+        if ((a.percent || 0) !== (b.percent || 0)) return (a.percent || 0) - (b.percent || 0);
+        return (b.answeredCount || 0) - (a.answeredCount || 0);
+      })[0] || null;
+
+  return {
+    attemptId: attempt.id,
+    startedAt: attempt.created_at || null,
+    updatedAt: attempt.updated_at || null,
+    questionCount: deliveredQuestionIds.length,
+    answeredCount,
+    correctCount,
+    currentScore: deliveredQuestionIds.length ? Math.round((correctCount / deliveredQuestionIds.length) * 100) : null,
+    weakestCategory: weakestCategory
+      ? {
+          categoryId: weakestCategory.categoryId,
+          percent: weakestCategory.percent,
+          answeredCount: weakestCategory.answeredCount,
+        }
+      : null,
+    weakestChapter: weakestChapter
+      ? {
+          chapterId: weakestChapter.chapterId,
+          percent: weakestChapter.percent,
+          answeredCount: weakestChapter.answeredCount,
+          totalQuestions: weakestChapter.totalQuestions,
+        }
+      : null,
+    chapterBreakdown,
+  };
+}
+
+async function enrichRosterMember(member, bankById) {
   const [examAttempts, practiceSessions, remediationSessions, questionHistory] = await Promise.all([
     loadExamAttemptRecords(member.user_id),
     loadPracticeSessionRecords(member.user_id),
@@ -102,9 +241,11 @@ async function enrichRosterMember(member) {
   const latestAnalyticsExam = getLatestAttemptWithAnalytics(examAttempts);
   const latestExamAnalytics = getExamAnalyticsPayload(latestAnalyticsExam);
   const latestScoredExam = getLatestScoredAttempt(examAttempts);
+  const latestLiveExam = examAttempts.find((attempt) => isLiveExamAttempt(attempt)) || null;
   const derivedOverallStatus =
+    deriveOverallStatusFromScore(Number(latestScoredExam?.score)) ||
     latestExamAnalytics?.overall_status ||
-    deriveOverallStatusFromScore(Number(latestScoredExam?.score));
+    null;
 
   return {
     ...member,
@@ -127,6 +268,7 @@ async function enrichRosterMember(member) {
               chapterGuidance: [],
             }
           : null,
+      liveExam: summarizeLiveExamAttempt(latestLiveExam, bankById),
       practice: summarizePracticeSessions(practiceSessions),
       remediation: summarizeRemediationSessions(remediationSessions),
       questionHistory: summarizeQuestionHistory(questionHistory),
@@ -164,6 +306,7 @@ function summarizeAccessCodes(codes, redemptions, usersById) {
 export async function GET(request) {
   try {
     const owner = await requireOwnerRequestUser(request);
+    const questionBankIndex = buildQuestionBankIndex();
     const [schools, classGroups, accessCodes, redemptions, accessGrantedPreferences, schoolStaff, classGroupStaff] = await Promise.all([
       listSchoolRecords(),
       listClassGroupRecords(),
@@ -177,7 +320,7 @@ export async function GET(request) {
     const rosterEntries = await Promise.all(
       classGroups.map(async (group) => ({
         classGroupId: group.id,
-        roster: await Promise.all((await loadClassGroupRoster(group.id)).map((member) => enrichRosterMember(member))),
+        roster: await Promise.all((await loadClassGroupRoster(group.id)).map((member) => enrichRosterMember(member, questionBankIndex))),
       }))
     );
     const rosterByClassId = Object.fromEntries(

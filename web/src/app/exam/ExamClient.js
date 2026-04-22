@@ -509,13 +509,18 @@ const [testId, setTestId] = useState(() => {
 
   function safeWriteState(next) {
     if (useServer) {
+      const isCompletedMode =
+        next?.mode === "finished" ||
+        next?.mode === "time_expired" ||
+        next?.mode === "rationales" ||
+        next?.mode === "analytics";
       void saveExamAttemptRecord(
         {
           ...next,
           test_id: testId,
           lang,
-          score: computeCurrentPercent(),
-          resultsPayload,
+          score: isCompletedMode ? computeCurrentPercent() : null,
+          resultsPayload: isCompletedMode ? resultsPayload : null,
         },
         { forceServer: useServer, serverUser }
       );

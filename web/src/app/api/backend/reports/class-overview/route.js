@@ -9,8 +9,20 @@ import {
   loadSchoolContextForUser,
 } from "@/app/lib/backend/db/client";
 
+function isCompletedExamAttempt(attempt) {
+  if (!Number.isFinite(attempt?.score)) return false;
+  if (attempt?.completed_at) return true;
+
+  const mode = String(attempt?.mode || "").trim().toLowerCase();
+  if (mode === "finished" || mode === "time_expired" || mode === "analytics" || mode === "rationales") {
+    return true;
+  }
+
+  return Boolean(attempt?.results_payload?.final);
+}
+
 function summarizeExamAttempts(attempts) {
-  const completed = attempts.filter((attempt) => Number.isFinite(attempt?.score));
+  const completed = attempts.filter((attempt) => isCompletedExamAttempt(attempt));
   const scores = completed.map((attempt) => Number(attempt.score)).filter(Number.isFinite);
   const averageScore = scores.length
     ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
@@ -37,12 +49,13 @@ function deriveOverallStatusFromScore(score) {
 }
 
 function getLatestScoredAttempt(attempts) {
-  return attempts.find((attempt) => Number.isFinite(attempt?.score)) || null;
+  return attempts.find((attempt) => isCompletedExamAttempt(attempt)) || null;
 }
 
 function getLatestAttemptWithAnalytics(attempts) {
   return (
     attempts.find((attempt) => {
+      if (!isCompletedExamAttempt(attempt)) return false;
       const analytics = getExamAnalyticsPayload(attempt);
       return analytics && (Array.isArray(analytics.category_priority) || Array.isArray(analytics.chapter_guidance));
     }) || null
@@ -89,8 +102,9 @@ function buildStudentSummary({ member, examAttempts, practiceSessions, remediati
   const latestExamAnalytics = getExamAnalyticsPayload(latestAnalyticsExam);
   const latestScoredExam = getLatestScoredAttempt(examAttempts);
   const derivedOverallStatus =
+    deriveOverallStatusFromScore(Number(latestScoredExam?.score)) ||
     latestExamAnalytics?.overall_status ||
-    deriveOverallStatusFromScore(Number(latestScoredExam?.score));
+    null;
 
   return {
     user: member.user,

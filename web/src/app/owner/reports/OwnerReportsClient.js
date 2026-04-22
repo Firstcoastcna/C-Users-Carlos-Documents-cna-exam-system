@@ -459,10 +459,10 @@ function buildStudentNextActions(summary) {
   const topHighRisk = summary?.learningSignals?.highRiskCategories?.[0] || null;
   const topChapter = summary?.learningSignals?.chapterPriorities?.[0] || null;
 
-  if (topHighRisk?.category) {
-    actions.push(`Start with ${topHighRisk.category}. It is showing the clearest high-risk signal right now.`);
-  } else if (topWeak?.category) {
+  if (topWeak?.category) {
     actions.push(`Review ${topWeak.category} first before moving on to stronger areas.`);
+  } else if (topHighRisk?.category) {
+    actions.push(`Start with ${topHighRisk.category}. It is showing the clearest high-risk information right now.`);
   }
 
   if (topChapter?.chapterId) {
@@ -1471,8 +1471,8 @@ export default function OwnerReportsClient() {
                         <div style={{ ...listCard, borderColor: "#efc2c2", background: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)" }}>
                           <div style={{ fontWeight: 800, color: "#6f4747" }}>Needs work now</div>
                           <div style={{ fontSize: 20, fontWeight: 800, color: "var(--brand-red)" }}>
-                            {studentWeaknesses.highRiskCategories[0]?.category ||
-                              studentWeaknesses.categoriesNeedingWork[0]?.category ||
+                            {studentWeaknesses.categoriesNeedingWork[0]?.category ||
+                              studentWeaknesses.highRiskCategories[0]?.category ||
                               "No clear weak area yet"}
                           </div>
                           <div style={subText}>
