@@ -2611,12 +2611,12 @@ let resultsPayload = null;
 
 
   const colBox = {
-    flex: 1,
     border: "1px solid #dbe7ef",
     borderRadius: "10px",
     padding: "10px",
     background: "#ffffff",
     minHeight: "140px",
+    minWidth: 0,
   };
 
   const colTitle = (text, extra = {}) => (
@@ -2677,7 +2677,14 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
   };
 
   return (
-    <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+        gap: "10px",
+        marginTop: "10px",
+      }}
+    >
       <div style={{ ...colBox, background: "#f5fff7", border: "1px solid #d8eadf" }}>
         {colTitle(T.colStrengths, { color: "#2f6b43" })}
         {renderList(strengths, T.noneStrengths)}
