@@ -2496,16 +2496,16 @@ let resultsPayload = null;
       marginTop: "14px",
       padding: "12px",
       border:
-        deriveOverallStatusFromPercent(percent) === "On Track"
+        deriveOverallStatusFromPercent(computeCurrentPercent() ?? 0) === "On Track"
           ? "1px solid #b8ddc1"
-          : deriveOverallStatusFromPercent(percent) === "High Risk"
+          : deriveOverallStatusFromPercent(computeCurrentPercent() ?? 0) === "High Risk"
             ? "1px solid #efc2c2"
             : "1px solid #e8d7a6",
       borderRadius: "12px",
       background:
-        deriveOverallStatusFromPercent(percent) === "On Track"
+        deriveOverallStatusFromPercent(computeCurrentPercent() ?? 0) === "On Track"
           ? "linear-gradient(180deg, #f5fff7 0%, #edf8f1 100%)"
-          : deriveOverallStatusFromPercent(percent) === "High Risk"
+          : deriveOverallStatusFromPercent(computeCurrentPercent() ?? 0) === "High Risk"
             ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
             : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
     }}
