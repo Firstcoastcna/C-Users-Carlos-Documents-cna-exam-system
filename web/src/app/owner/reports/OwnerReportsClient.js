@@ -202,6 +202,31 @@ function getScoreTone(score) {
   return { color: "var(--brand-red)", bg: "#fff0f0", border: "#efc2c2" };
 }
 
+function getStatusTone(status) {
+  if (status === "On Track") {
+    return {
+      border: "#bddfc6",
+      bg: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+      accent: "#1f6f3d",
+      muted: "#476252",
+    };
+  }
+  if (status === "High Risk") {
+    return {
+      border: "#efc2c2",
+      bg: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
+      accent: "var(--brand-red)",
+      muted: "#6f4747",
+    };
+  }
+  return {
+    border: "#eadba6",
+    bg: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+    accent: "#7a5a00",
+    muted: "#6f6340",
+  };
+}
+
 function rankCounts(mapLike, limit = 3) {
   return Object.entries(mapLike || {})
     .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
@@ -715,6 +740,7 @@ export default function OwnerReportsClient() {
   const studentCategoryPractice = studentPracticeDiagnostics.category || {};
   const studentPracticeModeCounts = studentSummary?.practiceFocus?.modeCounts || {};
   const studentHasCompletedExam = Number(studentSummary?.exams?.completedAttempts || 0) > 0;
+  const studentOverallStatus = studentSummary?.learningSignals?.overallStatus || null;
   const studentExamQuestionsSeen = Number(studentSummary?.questionHistory?.bySourceType?.exam || 0);
   const studentPracticeQuestionsSeen = Number(studentSummary?.questionHistory?.bySourceType?.practice || 0);
   const studentExamHistory = Array.isArray(studentSummary?.examHistory) ? studentSummary.examHistory : [];
@@ -723,6 +749,14 @@ export default function OwnerReportsClient() {
     studentExamHistory.find((attempt) => String(attempt?.attemptId) === String(selectedExamAttemptId)) ||
     studentLatestExamResults ||
     null;
+  const studentExamStatusTone = studentHasCompletedExam
+    ? getStatusTone(studentOverallStatus)
+    : {
+        border: "#d7e4ec",
+        bg: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+        accent: "#38556a",
+        muted: "#607282",
+      };
   const studentPracticeChapterEntries = Array.isArray(studentChapterPractice?.entries) ? studentChapterPractice.entries : [];
   const studentPracticeCategoryEntries = Array.isArray(studentCategoryPractice?.entries) ? studentCategoryPractice.entries : [];
   const studentStrongestPracticeChapter = studentChapterPractice?.strongest || null;
@@ -730,6 +764,16 @@ export default function OwnerReportsClient() {
     Number.isFinite(Number(studentCategoryPractice?.strongest?.percent)) && Number(studentCategoryPractice.strongest.percent) >= 80
       ? studentCategoryPractice.strongest
       : null;
+  const studentChapterPracticeCount = Number(studentPracticeModeCounts?.chapter || 0);
+  const studentCategoryPracticeCount = Number(studentPracticeModeCounts?.category || 0);
+  const studentHasEstablishedChapterPracticeHistory = studentChapterPracticeCount > 5;
+  const studentHasEstablishedCategoryPracticeHistory = studentCategoryPracticeCount > 5;
+  const noStudentChapterReviewText = studentHasEstablishedChapterPracticeHistory
+    ? "No chapter needs review right now"
+    : "Not enough chapter information yet";
+  const noStudentCategoryReviewText = studentHasEstablishedCategoryPracticeHistory
+    ? "No category needs review right now"
+    : "Not enough category information yet";
   const studentPracticeNextSteps = [];
 
   if (Number(studentPracticeModeCounts?.chapter || 0) > 0) {
@@ -738,14 +782,14 @@ export default function OwnerReportsClient() {
         `Keep working chapter practice around Chapter ${studentChapterPractice.weakest.label} until results become more consistent.`
       );
     } else {
-      studentPracticeNextSteps.push("Keep using chapter practice so this report can build a clearer chapter signal.");
+      studentPracticeNextSteps.push("Keep using chapter practice so this report can build clearer chapter information.");
     }
   }
   if (Number(studentPracticeModeCounts?.category || 0) > 0) {
     if (studentCategoryPractice?.weakest?.label) {
       studentPracticeNextSteps.push(`Use category practice to reinforce ${studentCategoryPractice.weakest.label} before moving on.`);
     } else {
-      studentPracticeNextSteps.push("Keep using category practice so this report can show a clearer category pattern.");
+      studentPracticeNextSteps.push("Keep using category practice so this report can show clearer category information.");
     }
   }
   if (Number(studentPracticeModeCounts?.mixed || 0) > 0 && !Number(studentPracticeModeCounts?.chapter || 0) && !Number(studentPracticeModeCounts?.category || 0)) {
@@ -777,7 +821,7 @@ export default function OwnerReportsClient() {
       title: "High Risk",
       tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
       items: studentWeaknesses.highRiskCategories.map((item) => `${item.category}${item.level ? ` (${item.level})` : ""}`),
-      empty: "No high-risk signal now",
+      empty: "No high-risk information now",
     },
   ];
 
@@ -798,7 +842,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeChapterEntries
         .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
         .map((item) => `Chapter ${item.label} (${item.percent}%)`),
-      empty: "Not enough chapter information yet",
+      empty: studentPracticeChapterEntries.length ? "No chapters to watch right now" : "Not enough chapter information yet",
     },
     {
       key: "risk",
@@ -807,7 +851,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeChapterEntries
         .filter((item) => Number(item?.percent) < 60)
         .map((item) => `Chapter ${item.label} (${item.percent}%)`),
-      empty: "Not enough high-risk chapter information yet",
+      empty: studentPracticeChapterEntries.length ? "No high-risk chapters right now" : "Not enough high-risk chapter information yet",
     },
   ];
 
@@ -828,7 +872,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeCategoryEntries
         .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
         .map((item) => `${item.label} (${item.percent}%)`),
-      empty: "Not enough category information yet",
+      empty: studentPracticeCategoryEntries.length ? "No categories to watch right now" : "Not enough category information yet",
     },
     {
       key: "risk",
@@ -837,7 +881,7 @@ export default function OwnerReportsClient() {
       items: studentPracticeCategoryEntries
         .filter((item) => Number(item?.percent) < 60)
         .map((item) => `${item.label} (${item.percent}%)`),
-      empty: "Not enough high-risk category information yet",
+      empty: studentPracticeCategoryEntries.length ? "No high-risk categories right now" : "Not enough high-risk category information yet",
     },
   ];
 
@@ -1326,7 +1370,7 @@ export default function OwnerReportsClient() {
                       </div>
                       <div style={subText}>
                         Chapter to review:{" "}
-                        {studentChapterPractice?.weakest?.label != null ? `Chapter ${studentChapterPractice.weakest.label}` : "Not enough chapter information yet"}
+                        {studentChapterPractice?.weakest?.label != null ? `Chapter ${studentChapterPractice.weakest.label}` : noStudentChapterReviewText}
                       </div>
                     </div>
 
@@ -1341,7 +1385,7 @@ export default function OwnerReportsClient() {
                             : "Not enough category information yet"}
                       </div>
                       <div style={subText}>
-                        Category to review: {studentCategoryPractice?.weakest?.label || "Not enough category information yet"}
+                        Category to review: {studentCategoryPractice?.weakest?.label || noStudentCategoryReviewText}
                       </div>
                     </div>
                   </div>
@@ -1394,22 +1438,22 @@ export default function OwnerReportsClient() {
                   <div
                     style={{
                       ...listCard,
-                      borderColor: studentHasCompletedExam ? "#efc2c2" : "#d7e4ec",
-                      background: studentHasCompletedExam
-                        ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
-                        : "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+                      borderColor: studentExamStatusTone.border,
+                      background: studentExamStatusTone.bg,
                     }}
                   >
-                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>My readiness</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: studentHasCompletedExam ? "var(--brand-red)" : "#38556a" }}>
-                      {studentHasCompletedExam ? studentSummary.learningSignals?.overallStatus || "No current signal" : "No exam signal yet"}
+                    <div style={{ fontWeight: 800, color: studentExamStatusTone.muted }}>My readiness</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: studentExamStatusTone.accent }}>
+                      {studentHasCompletedExam ? studentOverallStatus || "No current information" : "No exam information yet"}
                     </div>
-                    <div style={subText}>
+                    <div style={{ ...subText, color: studentExamStatusTone.muted }}>
                       Average exam: {formatPercent(studentSummary.exams?.averageScore)} | Completed exams:{" "}
                       {studentSummary.exams?.completedAttempts ?? 0} | Exam questions seen: {studentExamQuestionsSeen}
                     </div>
                     {!studentHasCompletedExam ? (
-                      <div style={subText}>Exam readiness will become more detailed after the first completed exam.</div>
+                      <div style={{ ...subText, color: studentExamStatusTone.muted }}>
+                        Exam readiness will become more detailed after the first completed exam.
+                      </div>
                     ) : null}
                   </div>
 
@@ -1659,7 +1703,7 @@ export default function OwnerReportsClient() {
                       {formatPercent(studentSummary.exams?.bestScore)}
                     </div>
                     <div style={subText}>
-                      Current readiness signal: {studentSummary.learningSignals?.overallStatus || "No current signal"}
+                      Current readiness: {studentSummary.learningSignals?.overallStatus || "No current information"}
                     </div>
                   </div>
 

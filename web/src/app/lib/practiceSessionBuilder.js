@@ -40,9 +40,11 @@ function buildPracticeDifficultyPlan(count) {
   return shuffle(plan);
 }
 
-function pickPracticeQuestions(unseen, seen, count, rng = Math.random) {
-  const targetCount = Math.max(1, Math.min(Number(count || 10), unseen.length + seen.length));
-  const orderedPool = [...shuffle(unseen, rng), ...shuffle(seen, rng)];
+function pickPracticeQuestionsFromPool(pool, count, rng = Math.random) {
+  const targetCount = Math.max(0, Math.min(Number(count || 0), pool.length));
+  if (targetCount <= 0) return [];
+
+  const orderedPool = shuffle(pool, rng);
   const plan = buildPracticeDifficultyPlan(targetCount);
   const picked = [];
   const usedIds = new Set();
@@ -71,6 +73,20 @@ function pickPracticeQuestions(unseen, seen, count, rng = Math.random) {
   }
 
   return picked;
+}
+
+function pickPracticeQuestions(unseen, seen, count, rng = Math.random) {
+  const targetCount = Math.max(1, Math.min(Number(count || 10), unseen.length + seen.length));
+  const freshFirst = pickPracticeQuestionsFromPool(unseen, targetCount, rng);
+
+  if (freshFirst.length >= targetCount) {
+    return freshFirst;
+  }
+
+  const remainingCount = targetCount - freshFirst.length;
+  const recycledFill = pickPracticeQuestionsFromPool(seen, remainingCount, rng);
+
+  return [...freshFirst, ...recycledFill];
 }
 
 function normalizeQuestionBank(questionBankSnapshot) {

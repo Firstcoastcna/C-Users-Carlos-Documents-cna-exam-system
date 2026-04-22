@@ -1031,7 +1031,7 @@ export default function OwnerSchoolsClient() {
                                       : [];
                                     const topChapter = chapterGuidance[0] || null;
                                     const overallStatus =
-                                      row.studentSummary?.latestExamAnalytics?.overallStatus || "No exam signal yet";
+                                      row.studentSummary?.latestExamAnalytics?.overallStatus || "No exam information yet";
 
                                     return (
                                       <div key={row.id} style={{ ...listCard, background: "#f9fcfe" }}>

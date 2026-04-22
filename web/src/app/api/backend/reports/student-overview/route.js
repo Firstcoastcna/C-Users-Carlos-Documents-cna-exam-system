@@ -314,7 +314,9 @@ function rankPracticeStats(statsMap, kind) {
       return (b.total || 0) - (a.total || 0);
     })[0] || null;
 
-  const weakest = [...entries]
+  const weakestCandidates = entries.filter((item) => Number.isFinite(item?.percent) && Number(item.percent) < 80);
+
+  const weakest = [...weakestCandidates]
     .sort((a, b) => {
       if ((a.percent || 0) !== (b.percent || 0)) return (a.percent || 0) - (b.percent || 0);
       return (b.total || 0) - (a.total || 0);

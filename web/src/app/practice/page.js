@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { loadAllPracticeSessionRecords, loadPracticeSessionRecord } from "../lib/practiceSessionPersistence";
+import { loadAllPracticeSessionRecords, loadPracticeSessionRecord, savePracticeSessionRecord } from "../lib/practiceSessionPersistence";
 import { redirectToSignIn, resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
 import { useDisableBrowserNavigation } from "../lib/backend/auth/useDisableBrowserNavigation";
 import { useProtectedPlatformPage } from "../lib/backend/auth/useProtectedPlatformPage";
@@ -169,18 +169,38 @@ function PracticeInner() {
 
   async function refreshActiveSession() {
     try {
-      const filtered = await loadAllPracticeSessionRecords(lang, { forceServer, serverUser });
+      let filtered = await loadAllPracticeSessionRecords(lang, { forceServer, serverUser });
+      let ordered = [...filtered].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0));
+      const activeSessions = ordered.filter((session) => session?.status === "active");
+
+      if (activeSessions.length > 1) {
+        const staleActiveSessions = activeSessions.slice(1);
+        await Promise.all(
+          staleActiveSessions.map((session) =>
+            savePracticeSessionRecord(
+              {
+                ...session,
+                status: "exited",
+                exited_at: Date.now(),
+              },
+              { forceServer, serverUser }
+            )
+          )
+        );
+        filtered = await loadAllPracticeSessionRecords(lang, { forceServer, serverUser });
+        ordered = [...filtered].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0));
+      }
+
       queueMicrotask(() => {
-        setPracticeHistory([...filtered].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0)));
+        setPracticeHistory(ordered);
       });
-      const latestOverall =
-        [...filtered].sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0))[0] || null;
+      const latestActive = ordered.find((session) => session?.status === "active") || null;
       const full =
-        latestOverall?.status === "active" && latestOverall?.session_id
-          ? await loadPracticeSessionRecord(latestOverall.session_id, { forceServer, serverUser })
+        latestActive?.session_id
+          ? await loadPracticeSessionRecord(latestActive.session_id, { forceServer, serverUser })
           : null;
       queueMicrotask(() => {
-        if (latestOverall?.status !== "active" || !latestOverall?.session_id) {
+        if (!latestActive?.session_id) {
           setActiveSession(null);
           return;
         }
@@ -188,7 +208,7 @@ function PracticeInner() {
           setActiveSession(null);
           return;
         }
-        setActiveSession(full || latestOverall);
+        setActiveSession(full || latestActive);
       });
     } catch {
       queueMicrotask(() => {

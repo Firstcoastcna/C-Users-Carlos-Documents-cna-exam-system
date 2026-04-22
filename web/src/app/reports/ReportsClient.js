@@ -563,12 +563,19 @@ export default function ReportsClient() {
       items: practiceChapterEntries
         .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
         .map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.label} (${formatPracticePercentLabel(item.percent)})`),
-      empty: t(
-        "Not enough chapter information to watch yet",
-        "Aun no hay suficiente informacion por capitulo para observar",
-        "Pas encore assez d'information de chapitre a surveiller",
-        "Poko gen ase enfomasyon chapit pou siveye"
-      ),
+      empty: practiceChapterEntries.length
+        ? t(
+            "No chapters to watch right now",
+            "No hay capitulos para observar en este momento",
+            "Aucun chapitre a surveiller pour le moment",
+            "Pa gen chapit pou siveye kounye a"
+          )
+        : t(
+            "Not enough chapter information to watch yet",
+            "Aun no hay suficiente informacion por capitulo para observar",
+            "Pas encore assez d'information de chapitre a surveiller",
+            "Poko gen ase enfomasyon chapit pou siveye"
+          ),
     },
     {
       key: "risk",
@@ -577,12 +584,19 @@ export default function ReportsClient() {
       items: practiceChapterEntries
         .filter((item) => Number(item?.percent) < 60)
         .map((item) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${item.label} (${formatPracticePercentLabel(item.percent)})`),
-      empty: t(
-        "Not enough high-risk chapter information yet",
-        "Aun no hay suficiente informacion de alto riesgo por capitulo",
-        "Pas encore assez d'information de chapitre a haut risque",
-        "Poko gen ase enfomasyon chapit gwo risk"
-      ),
+      empty: practiceChapterEntries.length
+        ? t(
+            "No high-risk chapters right now",
+            "No hay capitulos de alto riesgo en este momento",
+            "Aucun chapitre a haut risque pour le moment",
+            "Pa gen chapit gwo risk kounye a"
+          )
+        : t(
+            "Not enough high-risk chapter information yet",
+            "Aun no hay suficiente informacion de alto riesgo por capitulo",
+            "Pas encore assez d'information de chapitre a haut risque",
+            "Poko gen ase enfomasyon chapit gwo risk"
+          ),
     },
   ];
   const practiceCategorySnapshotSections = [
@@ -607,12 +621,19 @@ export default function ReportsClient() {
       items: practiceCategoryEntries
         .filter((item) => Number(item?.percent) >= 60 && Number(item?.percent) < 80)
         .map((item) => `${formatCategoryLabel(item.label)} (${formatPracticePercentLabel(item.percent)})`),
-      empty: t(
-        "Not enough category information to watch yet",
-        "Aun no hay suficiente informacion por categoria para observar",
-        "Pas encore assez d'information de categorie a surveiller",
-        "Poko gen ase enfomasyon kategori pou siveye"
-      ),
+      empty: practiceCategoryEntries.length
+        ? t(
+            "No categories to watch right now",
+            "No hay categorias para observar en este momento",
+            "Aucune categorie a surveiller pour le moment",
+            "Pa gen kategori pou siveye kounye a"
+          )
+        : t(
+            "Not enough category information to watch yet",
+            "Aun no hay suficiente informacion por categoria para observar",
+            "Pas encore assez d'information de categorie a surveiller",
+            "Poko gen ase enfomasyon kategori pou siveye"
+          ),
     },
     {
       key: "risk",
@@ -621,12 +642,19 @@ export default function ReportsClient() {
       items: practiceCategoryEntries
         .filter((item) => Number(item?.percent) < 60)
         .map((item) => `${formatCategoryLabel(item.label)} (${formatPracticePercentLabel(item.percent)})`),
-      empty: t(
-        "Not enough high-risk category information yet",
-        "Aun no hay suficiente informacion de alto riesgo por categoria",
-        "Pas encore assez d'information de categorie a haut risque",
-        "Poko gen ase enfomasyon kategori gwo risk"
-      ),
+      empty: practiceCategoryEntries.length
+        ? t(
+            "No high-risk categories right now",
+            "No hay categorias de alto riesgo en este momento",
+            "Aucune categorie a haut risque pour le moment",
+            "Pa gen kategori gwo risk kounye a"
+          )
+        : t(
+            "Not enough high-risk category information yet",
+            "Aun no hay suficiente informacion de alto riesgo por categoria",
+            "Pas encore assez d'information de categorie a haut risque",
+            "Poko gen ase enfomasyon kategori gwo risk"
+          ),
     },
   ];
 
@@ -636,6 +664,8 @@ export default function ReportsClient() {
   const mixedPracticeCount = Number(practiceModeCounts?.mixed || 0);
   const chapterPracticeCount = Number(practiceModeCounts?.chapter || 0);
   const categoryPracticeCount = Number(practiceModeCounts?.category || 0);
+  const hasEstablishedChapterPracticeHistory = chapterPracticeCount > 5;
+  const hasEstablishedCategoryPracticeHistory = categoryPracticeCount > 5;
   const practiceNextSteps = [];
 
   if (chapterPracticeCount > 0) {
@@ -703,6 +733,33 @@ export default function ReportsClient() {
       )
     );
   }
+
+  const noChapterReviewText = hasEstablishedChapterPracticeHistory
+    ? t(
+        "No chapter needs review right now",
+        "Ningun capitulo necesita repaso en este momento",
+        "Aucun chapitre n'a besoin d'etre revu pour le moment",
+        "Pa gen chapit ki bezwen revizyon kounye a"
+      )
+    : t(
+        "Not enough chapter information yet",
+        "Aun no hay suficiente informacion por capitulo",
+        "Pas encore assez d'information par chapitre",
+        "Poko gen ase enfomasyon pa chapit"
+      );
+  const noCategoryReviewText = hasEstablishedCategoryPracticeHistory
+    ? t(
+        "No category needs review right now",
+        "Ninguna categoria necesita repaso en este momento",
+        "Aucune categorie n'a besoin d'etre revue pour le moment",
+        "Pa gen kategori ki bezwen revizyon kounye a"
+      )
+    : t(
+        "Not enough category information yet",
+        "Aun no hay suficiente informacion por categoria",
+        "Pas encore assez d'information par categorie",
+        "Poko gen ase enfomasyon pa kategori"
+      );
 
   return (
     <main style={shell}>
@@ -817,7 +874,7 @@ export default function ReportsClient() {
                         {t("Chapter to review", "Capitulo para repasar", "Chapitre a revoir", "Chapit pou revize")}:{" "}
                         {chapterPractice?.weakest?.label != null
                           ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${chapterPractice.weakest.label}`
-                          : t("Not enough chapter information yet", "Aun no hay suficiente informacion por capitulo", "Pas encore assez d'information par chapitre", "Poko gen ase enfomasyon pa chapit") }
+                          : noChapterReviewText}
                       </div>
                     </div>
 
@@ -850,7 +907,7 @@ export default function ReportsClient() {
                         {t("Category to review", "Categoria para repasar", "Categorie a revoir", "Kategori pou revize")}:{" "}
                         {categoryPractice?.weakest?.label != null
                           ? formatCategoryLabel(categoryPractice.weakest.label)
-                          : t("Not enough category information yet", "Aun no hay suficiente informacion por categoria", "Pas encore assez d'information par categorie", "Poko gen ase enfomasyon pa kategori")}
+                          : noCategoryReviewText}
                       </div>
                     </div>
                   </div>
