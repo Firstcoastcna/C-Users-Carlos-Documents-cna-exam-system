@@ -491,9 +491,11 @@ export default function PracticeSessionClient({ bankById }) {
   const isBilingualSupport = lang === "fr" || lang === "ht";
   const variantEn = question?.variants?.en || null;
   const variantSupport = isBilingualSupport ? question?.variants?.[lang] || null : null;
-  const variantPrimary = isBilingualSupport ? variantEn : question?.variants?.[lang] || variantEn;
-  const rationalePrimary = isBilingualSupport ? variantEn?.rationale || null : question?.variants?.[lang]?.rationale || variantEn?.rationale || null;
-  const rationaleSupport = isBilingualSupport ? variantSupport?.rationale || null : null;
+  const variantPrimary = isBilingualSupport ? variantSupport || variantEn : question?.variants?.[lang] || variantEn;
+  const rationalePrimary = isBilingualSupport
+    ? variantSupport?.rationale || variantEn?.rationale || null
+    : question?.variants?.[lang]?.rationale || variantEn?.rationale || null;
+  const rationaleSupport = null;
   const focusLabel =
     session.mode === "chapter"
       ? localizeChapter(lang, session.selectedChapter)

@@ -653,14 +653,8 @@ function getDisplayBlocks(q) {
 
   if (lang === "en") blocks.push({ label: null, v: q.variants.en });
   if (lang === "es") blocks.push({ label: null, v: q.variants.es });
-  if (lang === "fr") {
-    blocks.push({ label: "EN", v: q.variants.en });
-    blocks.push({ label: "FR", v: q.variants.fr });
-  }
-  if (lang === "ht") {
-    blocks.push({ label: "EN", v: q.variants.en });
-    blocks.push({ label: "HT", v: q.variants.ht });
-  }
+  if (lang === "fr") blocks.push({ label: null, v: q.variants.fr });
+  if (lang === "ht") blocks.push({ label: null, v: q.variants.ht });
 
   // Safe fallback
   if (blocks.length === 0) blocks.push({ label: null, v: q.variants.en });
@@ -840,28 +834,15 @@ useEffect(() => {
   return session.questionsById?.[questionId] || null;
 }, [session, questionId]);
 
-const isBilingualSupport = lang === "fr" || lang === "ht";
-
   const variantEn = useMemo(() => {
   if (!q) return null;
   return (q.variants && q.variants.en) || null;
 }, [q]);
 
-const variantSupport = useMemo(() => {
-  if (!q) return null;
-  if (!isBilingualSupport) return null;
-  return (q.variants && q.variants[lang]) || null;
-}, [q, lang, isBilingualSupport]);
-
 const variantPrimary = useMemo(() => {
   if (!q) return null;
-
-  // FR/HT: keep English as the clickable primary (support is shown underneath)
-  if (isBilingualSupport) return (q.variants && q.variants.en) || null;
-
-  // EN/ES: use the active language if present, else fallback to EN
   return (q.variants && q.variants[lang]) || (q.variants && q.variants.en) || null;
-}, [q, lang, isBilingualSupport]);
+}, [q, lang]);
 
 
   function persistSessionPatch(patch) {
@@ -1723,14 +1704,8 @@ if (view === "complete" && session) {
   
 
 const rationaleEn = q?.variants?.en?.rationale || null;
-
-// FR/HT: keep English as primary + show support underneath
-const rationaleSupport = isBilingualSupport ? (q?.variants?.[lang]?.rationale || null) : null;
-
-// EN/ES: use the active language as primary (fallback to EN)
-const rationalePrimary = isBilingualSupport
-  ? rationaleEn
-  : (q?.variants?.[lang]?.rationale || rationaleEn || null);
+const rationaleSupport = null;
+const rationalePrimary = q?.variants?.[lang]?.rationale || rationaleEn || null;
 
 const whyPrimary = rationalePrimary?.why_correct || null;
 const sigPrimary = rationalePrimary?.prometric_signal || null;
