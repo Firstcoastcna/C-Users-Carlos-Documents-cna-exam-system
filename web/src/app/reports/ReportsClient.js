@@ -1352,6 +1352,8 @@ export default function ReportsClient() {
                       {t("Average score", "Puntaje promedio", "Score moyen", "Not mwayen")}: {formatPercent(summary.exams?.averageScore) || noDataLabel()}
                       {" | "}
                       {t("Best score", "Mejor puntaje", "Meilleur score", "Pi bon not")}: {formatPercent(summary.exams?.bestScore) || noDataLabel()}
+                      {" | "}
+                      {t("Worst score", "Puntaje mas bajo", "Score le plus bas", "Pi move not")}: {formatPercent(summary.exams?.worstScore) || noDataLabel()}
                     </div>
                     <div style={subText}>
                       {t("Current readiness", "Preparacion actual", "Preparation actuelle", "Preparasyon aktyel")}: {formatStatusLabel(summary.learningSignals?.overallStatus)}

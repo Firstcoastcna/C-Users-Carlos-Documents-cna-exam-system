@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveBackendRequestUser } from "@/app/lib/backend/auth/requestUser";
+import { loadQuestionBank } from "@/app/lib/questionBank";
 import {
   loadClassGroupRoster,
   loadExamAttemptRecords,
@@ -28,12 +29,14 @@ function summarizeExamAttempts(attempts) {
     ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
     : null;
   const bestScore = scores.length ? Math.max(...scores) : null;
+  const worstScore = scores.length ? Math.min(...scores) : null;
 
   return {
     totalAttempts: attempts.length,
     completedAttempts: completed.length,
     averageScore,
     bestScore,
+    worstScore,
   };
 }
 
@@ -83,21 +86,188 @@ function summarizeRemediationSessions(sessions) {
 }
 
 function summarizeQuestionHistory(records) {
-  const uniqueQuestionCount = new Set(records.map((record) => record?.question_id).filter(Boolean)).size;
+  const uniqueQuestionIds = Array.from(new Set(records.map((record) => record?.question_id).filter(Boolean)));
   const bySourceType = records.reduce((acc, record) => {
     const key = record?.source_type || "unknown";
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
 
+  const uniqueBySourceType = {};
+  records.forEach((record) => {
+    const key = record?.source_type || "unknown";
+    if (!uniqueBySourceType[key]) uniqueBySourceType[key] = new Set();
+    if (record?.question_id) uniqueBySourceType[key].add(record.question_id);
+  });
+
   return {
     totalExposureRows: records.length,
-    uniqueQuestionCount,
+    uniqueQuestionCount: uniqueQuestionIds.length,
     bySourceType,
+    uniqueQuestionIds,
+    uniqueBySourceType: Object.fromEntries(
+      Object.entries(uniqueBySourceType).map(([key, ids]) => [key, Array.from(ids)])
+    ),
   };
 }
 
-function buildStudentSummary({ member, examAttempts, practiceSessions, remediationSessions, questionHistory }) {
+function summarizePracticeFocus(sessions) {
+  const chapterCounts = {};
+  const categoryCounts = {};
+  const modeCounts = {};
+
+  sessions.forEach((session) => {
+    const payload = session?.payload || {};
+    const chapter = payload?.selectedChapter;
+    const category = payload?.selectedCategory;
+    const rawMode = String(session?.mode || payload?.mode || "").trim().toLowerCase();
+
+    let normalizedMode = rawMode;
+    if (chapter) normalizedMode = "chapter";
+    else if (category) normalizedMode = "category";
+    else if (!normalizedMode) normalizedMode = "mixed";
+
+    modeCounts[normalizedMode] = (modeCounts[normalizedMode] || 0) + 1;
+
+    if (chapter) {
+      const key = `Chapter ${chapter}`;
+      chapterCounts[key] = (chapterCounts[key] || 0) + 1;
+    }
+
+    if (category) {
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    }
+  });
+
+  return {
+    chapterCounts,
+    categoryCounts,
+    modeCounts,
+  };
+}
+
+function summarizeRemediationFocus(sessions) {
+  const categoryCounts = {};
+  const outcomeCounts = {};
+
+  sessions.forEach((session) => {
+    const payload = session?.payload || {};
+    const categories = Array.isArray(payload.selectedCategories) ? payload.selectedCategories : [];
+    categories.forEach((category) => {
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    });
+
+    const outcome = payload.microOutcome;
+    if (outcome) {
+      outcomeCounts[outcome] = (outcomeCounts[outcome] || 0) + 1;
+    }
+  });
+
+  return {
+    categoryCounts,
+    outcomeCounts,
+  };
+}
+
+function summarizeCompletedExamChapterPerformance(examAttempts, bankById) {
+  const chapterStats = {};
+
+  examAttempts
+    .filter((attempt) => isCompletedExamAttempt(attempt))
+    .forEach((attempt) => {
+      const deliveredQuestionIds = Array.isArray(attempt?.delivered_question_ids)
+        ? attempt.delivered_question_ids
+        : [];
+      const answersByQid = attempt?.answers_by_qid || {};
+
+      deliveredQuestionIds.forEach((questionId) => {
+        const question = bankById?.[questionId];
+        const chapterId = Number(question?.chapter_tag);
+        if (!Number.isFinite(chapterId)) return;
+
+        const rawAnswer = answersByQid?.[questionId];
+        const selectedAnswerId =
+          rawAnswer && typeof rawAnswer === "object" ? rawAnswer.selected_answer_id : rawAnswer;
+        const isAnswered = selectedAnswerId !== undefined && selectedAnswerId !== null && selectedAnswerId !== "";
+        const isCorrect =
+          isAnswered &&
+          question?.correct_answer != null &&
+          String(selectedAnswerId) === String(question.correct_answer);
+
+        if (!chapterStats[chapterId]) {
+          chapterStats[chapterId] = { correct: 0, total: 0 };
+        }
+        chapterStats[chapterId].total += 1;
+        if (isCorrect) chapterStats[chapterId].correct += 1;
+      });
+    });
+
+  return Object.fromEntries(
+    Object.entries(chapterStats).map(([chapterId, stats]) => {
+      const total = Number(stats?.total || 0);
+      const correct = Number(stats?.correct || 0);
+      return [
+        `Chapter ${chapterId}`,
+        {
+          correct,
+          total,
+          percent: total ? Math.round((correct / total) * 100) : null,
+        },
+      ];
+    })
+  );
+}
+
+function summarizeCompletedExamCategoryPerformance(examAttempts, bankById) {
+  const categoryStats = {};
+
+  examAttempts
+    .filter((attempt) => isCompletedExamAttempt(attempt))
+    .forEach((attempt) => {
+      const deliveredQuestionIds = Array.isArray(attempt?.delivered_question_ids)
+        ? attempt.delivered_question_ids
+        : [];
+      const answersByQid = attempt?.answers_by_qid || {};
+
+      deliveredQuestionIds.forEach((questionId) => {
+        const question = bankById?.[questionId];
+        const categoryId = String(question?.category_tag || question?.primary_category || "").trim();
+        if (!categoryId) return;
+
+        const rawAnswer = answersByQid?.[questionId];
+        const selectedAnswerId =
+          rawAnswer && typeof rawAnswer === "object" ? rawAnswer.selected_answer_id : rawAnswer;
+        const isAnswered = selectedAnswerId !== undefined && selectedAnswerId !== null && selectedAnswerId !== "";
+        const isCorrect =
+          isAnswered &&
+          question?.correct_answer != null &&
+          String(selectedAnswerId) === String(question.correct_answer);
+
+        if (!categoryStats[categoryId]) {
+          categoryStats[categoryId] = { correct: 0, total: 0 };
+        }
+        categoryStats[categoryId].total += 1;
+        if (isCorrect) categoryStats[categoryId].correct += 1;
+      });
+    });
+
+  return Object.fromEntries(
+    Object.entries(categoryStats).map(([categoryId, stats]) => {
+      const total = Number(stats?.total || 0);
+      const correct = Number(stats?.correct || 0);
+      return [
+        categoryId,
+        {
+          correct,
+          total,
+          percent: total ? Math.round((correct / total) * 100) : null,
+        },
+      ];
+    })
+  );
+}
+
+function buildStudentSummary({ member, examAttempts, practiceSessions, remediationSessions, questionHistory, bankById }) {
   const latestAnalyticsExam = getLatestAttemptWithAnalytics(examAttempts);
   const latestExamAnalytics = getExamAnalyticsPayload(latestAnalyticsExam);
   const latestScoredExam = getLatestScoredAttempt(examAttempts);
@@ -132,8 +302,12 @@ function buildStudentSummary({ member, examAttempts, practiceSessions, remediati
           }
         : null,
     practice: summarizePracticeSessions(practiceSessions),
+    practiceFocus: summarizePracticeFocus(practiceSessions),
     remediation: summarizeRemediationSessions(remediationSessions),
+    remediationFocus: summarizeRemediationFocus(remediationSessions),
     questionHistory: summarizeQuestionHistory(questionHistory),
+    chapterPerformance: summarizeCompletedExamChapterPerformance(examAttempts, bankById),
+    categoryPerformance: summarizeCompletedExamCategoryPerformance(examAttempts, bankById),
   };
 }
 
@@ -154,34 +328,97 @@ function buildClassAggregate(studentSummaries) {
   const categoryWeaknessCounts = {};
   const highRiskCategoryCounts = {};
   const chapterPriorityCounts = {};
+  const chapterPerformance = {};
+  const categoryPerformance = {};
+  const practiceChapterCounts = {};
+  const practiceCategoryCounts = {};
+  const practiceModeCounts = {};
+  const remediationCategoryCounts = {};
+  const remediationOutcomeCounts = {};
+  const questionExposureBySourceType = {};
+  const uniqueQuestionIds = new Set();
+  const uniqueQuestionIdsBySourceType = {};
 
   studentSummaries.forEach((student) => {
     const analytics = student.latestExamAnalytics;
-    if (!analytics) return;
+    if (analytics) {
+      const overallStatus = analytics.overallStatus || "Unknown";
+      overallStatusCounts[overallStatus] = (overallStatusCounts[overallStatus] || 0) + 1;
 
-    const overallStatus = analytics.overallStatus || "Unknown";
-    overallStatusCounts[overallStatus] = (overallStatusCounts[overallStatus] || 0) + 1;
+      (analytics.categoryPriority || []).forEach((item) => {
+        const categoryId = item?.category_id;
+        if (!categoryId) return;
 
-    (analytics.categoryPriority || []).forEach((item) => {
-      const categoryId = item?.category_id;
-      if (!categoryId) return;
+        if (item.level === "Weak" || item.level === "Developing") {
+          categoryWeaknessCounts[categoryId] = (categoryWeaknessCounts[categoryId] || 0) + 1;
+        }
 
-      if (item.level === "Weak" || item.level === "Developing") {
-        categoryWeaknessCounts[categoryId] = (categoryWeaknessCounts[categoryId] || 0) + 1;
+        if (item.is_high_risk && item.level !== "Strong") {
+          highRiskCategoryCounts[categoryId] = (highRiskCategoryCounts[categoryId] || 0) + 1;
+        }
+      });
+
+      (analytics.chapterGuidance || []).forEach((item) => {
+        const chapterId = item?.chapter_id;
+        if (!chapterId) return;
+        const key = `Chapter ${chapterId}`;
+        chapterPriorityCounts[key] = (chapterPriorityCounts[key] || 0) + 1;
+      });
+    }
+
+    Object.entries(student.chapterPerformance || {}).forEach(([chapterName, stats]) => {
+      if (!chapterPerformance[chapterName]) {
+        chapterPerformance[chapterName] = { correct: 0, total: 0 };
       }
-
-      if (item.is_high_risk && item.level !== "Strong") {
-        highRiskCategoryCounts[categoryId] = (highRiskCategoryCounts[categoryId] || 0) + 1;
-      }
+      chapterPerformance[chapterName].correct += Number(stats?.correct || 0);
+      chapterPerformance[chapterName].total += Number(stats?.total || 0);
     });
 
-    (analytics.chapterGuidance || []).forEach((item) => {
-      const chapterId = item?.chapter_id;
-      if (!chapterId) return;
-      const key = `Chapter ${chapterId}`;
-      chapterPriorityCounts[key] = (chapterPriorityCounts[key] || 0) + 1;
+    Object.entries(student.categoryPerformance || {}).forEach(([categoryName, stats]) => {
+      if (!categoryPerformance[categoryName]) {
+        categoryPerformance[categoryName] = { correct: 0, total: 0 };
+      }
+      categoryPerformance[categoryName].correct += Number(stats?.correct || 0);
+      categoryPerformance[categoryName].total += Number(stats?.total || 0);
+    });
+
+    Object.entries(student.practiceFocus?.chapterCounts || {}).forEach(([chapterName, count]) => {
+      practiceChapterCounts[chapterName] = (practiceChapterCounts[chapterName] || 0) + Number(count || 0);
+    });
+    Object.entries(student.practiceFocus?.categoryCounts || {}).forEach(([categoryName, count]) => {
+      practiceCategoryCounts[categoryName] = (practiceCategoryCounts[categoryName] || 0) + Number(count || 0);
+    });
+    Object.entries(student.practiceFocus?.modeCounts || {}).forEach(([mode, count]) => {
+      practiceModeCounts[mode] = (practiceModeCounts[mode] || 0) + Number(count || 0);
+    });
+
+    Object.entries(student.remediationFocus?.categoryCounts || {}).forEach(([categoryName, count]) => {
+      remediationCategoryCounts[categoryName] = (remediationCategoryCounts[categoryName] || 0) + Number(count || 0);
+    });
+    Object.entries(student.remediationFocus?.outcomeCounts || {}).forEach(([outcome, count]) => {
+      remediationOutcomeCounts[outcome] = (remediationOutcomeCounts[outcome] || 0) + Number(count || 0);
+    });
+
+    Object.entries(student.questionHistory?.bySourceType || {}).forEach(([sourceType, count]) => {
+      questionExposureBySourceType[sourceType] = (questionExposureBySourceType[sourceType] || 0) + Number(count || 0);
+    });
+    (student.questionHistory?.uniqueQuestionIds || []).forEach((questionId) => {
+      if (questionId) uniqueQuestionIds.add(questionId);
+    });
+    Object.entries(student.questionHistory?.uniqueBySourceType || {}).forEach(([sourceType, ids]) => {
+      if (!uniqueQuestionIdsBySourceType[sourceType]) uniqueQuestionIdsBySourceType[sourceType] = new Set();
+      (Array.isArray(ids) ? ids : []).forEach((questionId) => {
+        if (questionId) uniqueQuestionIdsBySourceType[sourceType].add(questionId);
+      });
     });
   });
+
+  const bestScores = studentSummaries
+    .map((student) => Number(student.exams?.bestScore))
+    .filter(Number.isFinite);
+  const worstScores = studentSummaries
+    .map((student) => Number(student.exams?.worstScore))
+    .filter(Number.isFinite);
 
   return {
     totalStudents,
@@ -189,13 +426,61 @@ function buildClassAggregate(studentSummaries) {
     classAverageScore: scores.length
       ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
       : null,
-    totalExamAttempts: studentSummaries.reduce((sum, student) => sum + student.exams.totalAttempts, 0),
+    bestScore: bestScores.length ? Math.max(...bestScores) : null,
+    worstScore: worstScores.length ? Math.min(...worstScores) : null,
+    rawExamAttempts: studentSummaries.reduce((sum, student) => sum + student.exams.totalAttempts, 0),
+    totalExamAttempts: studentSummaries.reduce((sum, student) => sum + student.exams.completedAttempts, 0),
     totalPracticeSessions: studentSummaries.reduce((sum, student) => sum + student.practice.totalSessions, 0),
     totalRemediationSessions: studentSummaries.reduce((sum, student) => sum + student.remediation.totalSessions, 0),
     overallStatusCounts,
     categoryWeaknessCounts,
     highRiskCategoryCounts,
     chapterPriorityCounts,
+    practiceFocus: {
+      chapterCounts: practiceChapterCounts,
+      categoryCounts: practiceCategoryCounts,
+      modeCounts: practiceModeCounts,
+    },
+    remediationFocus: {
+      categoryCounts: remediationCategoryCounts,
+      outcomeCounts: remediationOutcomeCounts,
+    },
+    questionHistory: {
+      totalExposureRows: Object.values(questionExposureBySourceType).reduce((sum, count) => sum + Number(count || 0), 0),
+      uniqueQuestionCount: uniqueQuestionIds.size,
+      bySourceType: questionExposureBySourceType,
+      uniqueBySourceType: Object.fromEntries(
+        Object.entries(uniqueQuestionIdsBySourceType).map(([sourceType, ids]) => [sourceType, ids.size])
+      ),
+    },
+    categoryPerformance: Object.fromEntries(
+      Object.entries(categoryPerformance).map(([categoryName, stats]) => {
+        const total = Number(stats?.total || 0);
+        const correct = Number(stats?.correct || 0);
+        return [
+          categoryName,
+          {
+            correct,
+            total,
+            percent: total ? Math.round((correct / total) * 100) : null,
+          },
+        ];
+      })
+    ),
+    chapterPerformance: Object.fromEntries(
+      Object.entries(chapterPerformance).map(([chapterName, stats]) => {
+        const total = Number(stats?.total || 0);
+        const correct = Number(stats?.correct || 0);
+        return [
+          chapterName,
+          {
+            correct,
+            total,
+            percent: total ? Math.round((correct / total) * 100) : null,
+          },
+        ];
+      })
+    ),
   };
 }
 
@@ -224,6 +509,12 @@ export async function GET(request) {
     }
 
     const roster = await loadClassGroupRoster(targetClassGroupId);
+    const questionBank = loadQuestionBank();
+    const bankById = Object.fromEntries(
+      (Array.isArray(questionBank) ? questionBank : [])
+        .map((question) => [question?.question_id, question])
+        .filter(([questionId]) => Boolean(questionId))
+    );
 
     const studentSummaries = await Promise.all(
       roster.map(async (member) => {
@@ -241,6 +532,7 @@ export async function GET(request) {
           practiceSessions,
           remediationSessions,
           questionHistory,
+          bankById,
         });
       })
     );

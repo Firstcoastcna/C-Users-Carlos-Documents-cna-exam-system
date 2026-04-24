@@ -32,12 +32,14 @@ function summarizeExamAttempts(attempts) {
     ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
     : null;
   const bestScore = scores.length ? Math.max(...scores) : null;
+  const worstScore = scores.length ? Math.min(...scores) : null;
 
   return {
     totalAttempts: attempts.length,
     completedAttempts: completed.length,
     averageScore,
     bestScore,
+    worstScore,
     latestAttempt: attempts[0] || null,
     latestCompletedAttempt: completed[0] || null,
   };

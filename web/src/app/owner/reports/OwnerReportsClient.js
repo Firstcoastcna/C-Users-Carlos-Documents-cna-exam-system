@@ -100,6 +100,61 @@ const statValue = {
   color: "var(--heading)",
 };
 
+const chip = {
+  padding: "5px 9px",
+  borderRadius: 999,
+  background: "#f3f8fb",
+  border: "1px solid #d6e1e8",
+  fontSize: 12,
+  fontWeight: 700,
+  color: "#486173",
+};
+
+const CATEGORY_TO_CHAPTERS = {
+  "Scope of Practice & Reporting": {
+    primary: [1],
+    secondary: [4, 5],
+  },
+  "Change in Condition": {
+    primary: [4],
+    secondary: [3, 5],
+  },
+  "Observation & Safety": {
+    primary: [4],
+    secondary: [3, 2],
+  },
+  "Environment & Safety": {
+    primary: [2],
+    secondary: [3],
+  },
+  "Infection Control": {
+    primary: [2],
+    secondary: [3, 4],
+  },
+  "Personal Care & Comfort": {
+    primary: [3],
+    secondary: [4],
+  },
+  "Mobility & Positioning": {
+    primary: [3],
+    secondary: [4],
+  },
+  "Communication & Emotional Support": {
+    primary: [5],
+    secondary: [1, 3],
+  },
+  "Dignity & Resident Rights": {
+    primary: [1],
+    secondary: [3, 5],
+  },
+};
+
+const HIGH_RISK_CATEGORIES = new Set([
+  "Scope of Practice & Reporting",
+  "Change in Condition",
+  "Infection Control",
+]);
+
 const listCard = {
   border: "1px solid #d6e1e8",
   borderRadius: 14,
@@ -251,42 +306,248 @@ function deriveClassStatus(summary) {
   return "Early signals only";
 }
 
-function buildClassNextActions(summary, students) {
-  const actions = [];
-  const topWeakCategories = rankCounts(summary?.categoryWeaknessCounts, 2);
-  const topWeakChapters = rankCounts(summary?.chapterPriorityCounts, 2);
-  const atRiskStudents = buildInterventionStudents(students);
-
-  if (topWeakCategories[0]) {
-    actions.push(`Reinforce ${topWeakCategories[0][0]} with the whole class first.`);
+function getClassStatusTone(status) {
+  if (status === "Stable") {
+    return {
+      border: "#bddfc6",
+      bg: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+      accent: "#1f6f3d",
+      muted: "#476252",
+    };
   }
-  if (topWeakChapters[0]) {
-    actions.push(`Review ${topWeakChapters[0][0]} before the next full exam.`);
+  if (status === "Intervention Needed") {
+    return {
+      border: "#efc2c2",
+      bg: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
+      accent: "var(--brand-red)",
+      muted: "#6f4747",
+    };
   }
-  if (atRiskStudents.length) {
-    actions.push(`Check in with ${atRiskStudents.length} student${atRiskStudents.length === 1 ? "" : "s"} who are borderline or high risk.`);
+  if (status === "Mixed") {
+    return {
+      border: "#eadba6",
+      bg: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+      accent: "#7a5a00",
+      muted: "#6f6340",
+    };
   }
-
-  if (!actions.length) {
-    actions.push("Keep building activity so the class report can surface clearer trends.");
-  }
-
-  return actions.slice(0, 4);
+  return {
+    border: "#d7e4ec",
+    bg: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+    accent: "#38556a",
+    muted: "#607282",
+  };
 }
 
-function buildClassStrengths(summary) {
-  const strongestCategories = Object.entries(summary?.categoryWeaknessCounts || {})
-    .filter(([, value]) => Number(value || 0) === 0)
-    .slice(0, 2)
-    .map(([key]) => key);
+function describeClassStatus(status, summary) {
+  const counts = summary?.overallStatusCounts || {};
+  const onTrack = Number(counts["On Track"] || 0);
+  const borderline = Number(counts["Borderline"] || 0);
+  const highRisk = Number(counts["High Risk"] || 0);
 
-  const topStatus = rankCounts(summary?.overallStatusCounts, 1)[0] || null;
-  const strongestChapter = rankCounts(summary?.chapterPriorityCounts, 1).reverse()[0] || null;
+  if (status === "Stable") {
+    return "Most visible class exam signals are on track right now, so this group looks steady overall.";
+  }
+
+  if (status === "Intervention Needed") {
+    return "High-risk exam signals are currently outweighing the stronger ones, so this class needs closer support now.";
+  }
+
+  if (status === "Mixed") {
+    if (onTrack > borderline + highRisk) {
+      return "This class's exam results are mixed, but they are leaning stronger right now. Some students still need support, while the overall direction looks encouraging.";
+    }
+    if (highRisk >= onTrack) {
+      return "This class's exam results are mixed, but they are leaning weaker right now. There are stronger students, but enough shaky signals are showing that the class needs attention.";
+    }
+    return "This class's exam results are mixed right now. Some students are doing well, while others still need support, so the class is not leaning clearly in one direction yet.";
+  }
+
+  return "There is still limited completed exam data here, so this is an early read rather than a stable class pattern.";
+}
+
+function buildClassNextActions(summary, students) {
+  const classActions = [];
+  const studentActions = [];
+  const topWeakCategories = rankCounts(summary?.categoryWeaknessCounts, 2);
+  const atRiskStudents = buildInterventionStudents(students);
+  const urgentHighRisk = buildUrgentHighRiskSummary(summary);
+  const counts = summary?.overallStatusCounts || {};
+  const borderlineCount = Number(counts["Borderline"] || 0);
+  const highRiskCount = Number(counts["High Risk"] || 0);
+
+  if (topWeakCategories[0]) {
+    const categoryName = topWeakCategories[0][0];
+    const mapping = CATEGORY_TO_CHAPTERS[categoryName] || null;
+    const mainChapter = mapping?.primary?.[0] ? `Chapter ${mapping.primary[0]}` : null;
+    const supportChapters = Array.isArray(mapping?.secondary)
+      ? mapping.secondary.slice(0, 2).map((chapterId) => `Chapter ${chapterId}`)
+      : [];
+
+    classActions.push(
+      `Use the Practice section to run category practice for ${categoryName} with the whole class. Repeat those practice sets until students look more confident in their scores and understanding.`
+    );
+
+    if (mainChapter) {
+      classActions.push(
+        `Pair that practice with review of ${mainChapter}${
+          supportChapters.length ? `, then reinforce with ${supportChapters.join(" and ")}` : ""
+        }. Place extra emphasis on ${categoryName} topics inside those chapters.`
+      );
+    }
+  }
+
+  if (urgentHighRisk.thresholdMet && urgentHighRisk.items[0]) {
+    classActions.push(
+      `Give immediate attention to ${urgentHighRisk.items
+        .map((item) => item.label.split(" (")[0])
+        .join(" and ")} because these urgent high-risk categories are affecting a large share of the active class.`
+    );
+  }
+
+  if (atRiskStudents.length) {
+    studentActions.push(`Check in with ${atRiskStudents.length} student${atRiskStudents.length === 1 ? "" : "s"} needing support.`);
+    studentActions.push(`High Risk ${highRiskCount} | Borderline ${borderlineCount}`);
+  }
+
+  if (!classActions.length) {
+    classActions.push("Keep building activity so the class report can surface clearer class-wide trends.");
+  }
+
+  return {
+    classActions: classActions.slice(0, 3),
+    studentActions: studentActions.slice(0, 2),
+  };
+}
+
+function buildClassStrengths(summary, students) {
+  const strongestCategories = Object.entries(summary?.categoryPerformance || {})
+    .filter(([, stats]) => Number(stats?.total || 0) > 0 && Number.isFinite(stats?.percent))
+    .sort((a, b) => {
+      const percentA = Number(a[1]?.percent || 0);
+      const percentB = Number(b[1]?.percent || 0);
+      if (percentB !== percentA) return percentB - percentA;
+      const totalA = Number(a[1]?.total || 0);
+      const totalB = Number(b[1]?.total || 0);
+      if (totalB !== totalA) return totalB - totalA;
+      return a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
+    })
+    .slice(0, 3)
+    .map(([categoryName, stats]) => `${categoryName} (${formatPercent(stats?.percent)})`);
+  const onTrackCount = Number(summary?.overallStatusCounts?.["On Track"] || 0);
+  const averageScore = Number.isFinite(summary?.classAverageScore) ? summary.classAverageScore : null;
+  const strongestChapters = Object.entries(summary?.chapterPerformance || {})
+    .filter(([, stats]) => Number(stats?.total || 0) > 0 && Number.isFinite(stats?.percent))
+    .sort((a, b) => {
+      const percentA = Number(a[1]?.percent || 0);
+      const percentB = Number(b[1]?.percent || 0);
+      if (percentB !== percentA) return percentB - percentA;
+      const totalA = Number(a[1]?.total || 0);
+      const totalB = Number(b[1]?.total || 0);
+      if (totalB !== totalA) return totalB - totalA;
+      return a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
+    })
+    .slice(0, 3)
+    .map(([chapterName, stats]) => `${chapterName} (${formatPercent(stats?.percent)})`);
 
   return {
     strongestCategories,
-    dominantStatus: topStatus ? `${topStatus[0]} (${topStatus[1]})` : null,
-    strongestChapter: strongestChapter ? strongestChapter[0] : null,
+    onTrackCount: onTrackCount > 0 ? onTrackCount : null,
+    averageExamText: Number.isFinite(averageScore) ? formatPercent(averageScore) : null,
+    strongestChapters,
+    topCategory: strongestCategories[0] || null,
+    topChapter: strongestChapters[0] || null,
+    secondaryCategories: strongestCategories.slice(1, 3),
+    secondaryChapters: strongestChapters.slice(1, 3),
+  };
+}
+
+function buildClassNeedsAttention(summary, students) {
+  const reviewCategories = rankCounts(summary?.categoryWeaknessCounts, 3).map(
+    ([key, value]) => `${key} (${value})`
+  );
+  const urgentCategories = rankCounts(summary?.highRiskCategoryCounts, 3).map(
+    ([key, value]) => `${key} (${value})`
+  );
+  const priorityChapters = rankCounts(summary?.chapterPriorityCounts, 3).map(
+    ([key, value]) => `${key} (${value})`
+  );
+
+  const supportStudents = (students || []).filter((student) => {
+    const completedAttempts = Number(student?.exams?.completedAttempts || 0);
+    if (completedAttempts <= 0) return false;
+
+    const averageScore = Number(student?.exams?.averageScore);
+    if (Number.isFinite(averageScore)) {
+      return averageScore < 80;
+    }
+
+    const status = String(student?.latestExamAnalytics?.overallStatus || "");
+    return status === "High Risk" || status === "Borderline";
+  });
+
+  const supportScores = supportStudents
+    .map((student) => Number(student?.exams?.averageScore))
+    .filter(Number.isFinite);
+  const supportAverage = supportScores.length
+    ? Math.round(supportScores.reduce((sum, value) => sum + value, 0) / supportScores.length)
+    : null;
+  const highRiskCount = supportStudents.filter((student) => String(student?.latestExamAnalytics?.overallStatus || "") === "High Risk").length;
+  const borderlineCount = supportStudents.filter((student) => String(student?.latestExamAnalytics?.overallStatus || "") === "Borderline").length;
+  const mainReviewCategoryName = reviewCategories[0]?.split(" (")[0] || null;
+  const chapterMapping = mainReviewCategoryName ? CATEGORY_TO_CHAPTERS[mainReviewCategoryName] || null : null;
+  const bestMatchingChapter =
+    chapterMapping?.primary?.length ? `Chapter ${chapterMapping.primary[0]}` : null;
+  const supportChapters = Array.isArray(chapterMapping?.secondary)
+    ? chapterMapping.secondary.slice(0, 2).map((chapterId) => `Chapter ${chapterId}`)
+    : [];
+  const otherReviewDetails = reviewCategories.slice(1, 2).map((entry) => {
+    const categoryName = entry.split(" (")[0] || entry;
+    const mapping = CATEGORY_TO_CHAPTERS[categoryName] || null;
+    return {
+      label: entry,
+      bestMatchingChapter: mapping?.primary?.length ? `Chapter ${mapping.primary[0]}` : null,
+      supportChapters: Array.isArray(mapping?.secondary)
+        ? mapping.secondary.slice(0, 2).map((chapterId) => `Chapter ${chapterId}`)
+        : [],
+    };
+  });
+  return {
+    supportStudentCount: supportStudents.length > 0 ? supportStudents.length : null,
+    supportAverageExamText: Number.isFinite(supportAverage) ? formatPercent(supportAverage) : null,
+    highRiskCount,
+    borderlineCount,
+    mainReviewCategory: reviewCategories[0] || null,
+    bestMatchingChapter,
+    supportChapters,
+    reviewCategories,
+    otherReviewDetails,
+    urgentCategories,
+    priorityChapters,
+  };
+}
+
+function buildUrgentHighRiskSummary(summary) {
+  const urgentCounts = rankCounts(summary?.highRiskCategoryCounts, 3);
+  const activeStudents = Number(summary?.activeStudents || 0);
+  const topCount = Number(urgentCounts[0]?.[1] || 0);
+  const thresholdRatio = 0.5;
+  const thresholdMet = activeStudents > 0 && topCount / activeStudents >= thresholdRatio;
+  const qualifyingCounts = urgentCounts.filter(([, value]) => activeStudents > 0 && Number(value || 0) / activeStudents >= thresholdRatio);
+
+  return {
+    activeStudents,
+    thresholdMet,
+    items: qualifyingCounts.map(([key, value]) => {
+      const mapping = CATEGORY_TO_CHAPTERS[key] || null;
+      return {
+        label: `${key} (${value})`,
+        mainChapter: mapping?.primary?.length ? `Chapter ${mapping.primary[0]}` : null,
+        supportChapters: Array.isArray(mapping?.secondary)
+          ? mapping.secondary.slice(0, 2).map((chapterId) => `Chapter ${chapterId}`)
+          : [],
+      };
+    }),
   };
 }
 
@@ -700,13 +961,29 @@ export default function OwnerReportsClient() {
   const studentName =
     report?.user?.appUser?.full_name || report?.user?.appUser?.email || report?.user?.id || "";
   const classStatus = deriveClassStatus(classSummary);
-  const topWeakCategories = rankCounts(classSummary?.categoryWeaknessCounts, 3);
+  const topWeakCategoriesRaw = rankCounts(classSummary?.categoryWeaknessCounts, 6);
   const topHighRiskCategories = rankCounts(classSummary?.highRiskCategoryCounts, 3);
-  const topWeakChapters = rankCounts(classSummary?.chapterPriorityCounts, 2);
-  const classStrengths = buildClassStrengths(classSummary);
+  const topHighRiskCategoryNames = new Set(topHighRiskCategories.map(([key]) => key));
+  const topWeakCategories = topWeakCategoriesRaw
+    .filter(([key]) => !topHighRiskCategoryNames.has(key))
+    .slice(0, 3);
+  const topWeakChapters = rankCounts(classSummary?.chapterPriorityCounts, 3);
+  const classStrengths = buildClassStrengths(classSummary, students);
+  const quickStrongCategories = [
+    classStrengths.topCategory,
+    ...(classStrengths.secondaryCategories || []),
+  ].filter(Boolean).slice(0, 3);
+  const quickStrongChapters = [
+    classStrengths.topChapter,
+    ...(classStrengths.secondaryChapters || []),
+  ].filter(Boolean).slice(0, 3);
+  const classNeedsAttention = buildClassNeedsAttention(classSummary, students);
+  const urgentHighRiskSummary = buildUrgentHighRiskSummary(classSummary);
   const interventionStudents = buildInterventionStudents(students);
   const weaknessMap = buildWeaknessMap(classSummary);
   const nextActions = buildClassNextActions(classSummary, students);
+  const classStatusTone = getClassStatusTone(classStatus);
+  const classStatusExplanation = describeClassStatus(classStatus, classSummary);
   const schoolStatus = deriveSchoolStatus(schoolSummary);
   const schoolNextActions = buildSchoolNextActions(schoolSummary, schoolClasses);
   const schoolStrengths = buildSchoolStrengths(schoolSummary, schoolClasses);
@@ -899,7 +1176,7 @@ export default function OwnerReportsClient() {
                   ? "See current readiness, strengths, weak areas, and what to do next."
                   : scope === "school"
                     ? "See school readiness, classes needing support, and shared cross-class patterns."
-                    : "See class readiness, student support needs, and shared performance patterns."}
+                    : "See class readiness, student support needs, and shared patterns based on each student's latest completed exam."}
             </div>
           </div>
           <Link href={backHref} style={buttonSecondary}>
@@ -921,210 +1198,546 @@ export default function OwnerReportsClient() {
 
           {!loading && !error && hasTarget && scope === "class" && classSummary ? (
             <>
-              <div style={listCard}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Status summary</div>
-                <div style={subText}>
-                  {classStatus} | {classSummary.activeStudents ?? 0} of {classSummary.totalStudents ?? 0} students are showing recent activity.
+              <div
+                style={{
+                  ...listCard,
+                  borderColor: classStatusTone.border,
+                  background: classStatusTone.bg,
+                }}
+              >
+                <div style={{ fontWeight: 800, color: classStatusTone.muted }}>Class readiness</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: classStatusTone.accent }}>{classStatus}</div>
+                <div style={{ ...subText, color: classStatusTone.muted }}>
+                  {classSummary.activeStudents ?? 0} of {classSummary.totalStudents ?? 0} students are showing activity in this class right now.
                 </div>
-                <div style={subText}>
-                  Class average: {formatPercent(classSummary.classAverageScore)} | Full exam attempts: {classSummary.totalExamAttempts ?? 0} | Practice sessions:{" "}
-                  {classSummary.totalPracticeSessions ?? 0}
+                <div style={{ ...subText, color: classStatusTone.muted }}>{classStatusExplanation}</div>
+                <div style={{ ...statGrid, marginTop: 4 }}>
+                  <div style={statCard}>
+                    <span style={statLabel}>Average exam</span>
+                    <span style={statValue}>{formatPercent(classSummary.classAverageScore)}</span>
+                  </div>
+                  <div style={statCard}>
+                    <span style={statLabel}>Completed exams</span>
+                    <span style={statValue}>{classSummary.totalExamAttempts ?? 0}</span>
+                  </div>
+                  <div style={statCard}>
+                    <span style={statLabel}>Practice</span>
+                    <span style={statValue}>{classSummary.totalPracticeSessions ?? 0}</span>
+                  </div>
+                  <div style={statCard}>
+                    <span style={statLabel}>Remediation</span>
+                    <span style={statValue}>{classSummary.totalRemediationSessions ?? 0}</span>
+                  </div>
                 </div>
               </div>
+
               <div style={analysisGrid}>
-                <div style={listCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Priority weaknesses</div>
-                  <div style={subText}>
-                    Top weak categories:{" "}
-                    {topWeakCategories.length
-                      ? topWeakCategories.map(([key, value]) => `${key} (${value})`).join(" | ")
-                      : "No consistent weak categories yet"}
+                <div style={{ ...listCard, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
+                  <div style={{ fontWeight: 800, color: "#476252" }}>Class strengths</div>
+                  <div style={{ display: "grid", gap: 2 }}>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: "#1f6f3d" }}>
+                      Students on track: {classStrengths.onTrackCount ?? "Still forming"}
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: "#1f6f3d" }}>
+                      Average exam: {classStrengths.averageExamText || "Still forming"}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: "#1f6f3d" }}>
+                    Top category: {classStrengths.topCategory || "Not clear yet"}
+                  </div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: "#1f6f3d" }}>
+                    Top chapter: {classStrengths.topChapter || "Not clear yet"}
                   </div>
                   <div style={subText}>
-                    High-risk categories:{" "}
-                    {topHighRiskCategories.length
-                      ? topHighRiskCategories.map(([key, value]) => `${key} (${value})`).join(" | ")
-                      : "No current high-risk concentration"}
+                    Secondary categories:{" "}
+                    {classStrengths.secondaryCategories.length
+                      ? classStrengths.secondaryCategories.join(" | ")
+                      : "No clear secondary category yet"}
                   </div>
                   <div style={subText}>
-                    Priority chapters:{" "}
-                    {topWeakChapters.length
-                      ? topWeakChapters.map(([key, value]) => `${key} (${value})`).join(" | ")
-                      : "No chapter priority yet"}
+                    Secondary chapters:{" "}
+                    {classStrengths.secondaryChapters?.length
+                      ? classStrengths.secondaryChapters.join(" | ")
+                      : "No clear secondary chapter yet"}
                   </div>
                 </div>
 
-                <div style={listCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Student intervention list</div>
-                  <div style={subText}>Use this to see who needs help now and what issue is most visible for each student.</div>
-                  {interventionStudents.length ? (
-                    <div style={{ display: "grid", gap: 10 }}>
-                      {interventionStudents.map((student) => (
-                        <details
-                          key={student.id}
-                          style={{ ...listCard, background: "white", padding: 7 }}
-                          open={Boolean(interventionOpenById[student.id])}
-                        >
-                          <summary
-                            style={{ cursor: "pointer", listStyle: "none" }}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setInterventionOpenById((prev) => ({
-                                ...prev,
-                                [student.id]: !prev[student.id],
-                              }));
-                            }}
-                          >
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                              <div style={{ fontWeight: 800, color: "var(--heading)" }}>{student.name}</div>
-                              <OpenHint isOpen={Boolean(interventionOpenById[student.id])} />
-                            </div>
-                            <div style={{ ...subText, marginTop: 4, marginBottom: 0 }}>{student.status}</div>
-                          </summary>
-                          <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
-                            <div style={subText}>
-                              Avg exam: {formatPercent(student.averageScore)} | Weakest category:{" "}
-                              {student.weakestCategory || "No clear category yet"}
-                            </div>
-                            <div style={subText}>
-                              Completed exams: {student.completedAttempts ?? 0} | Weakest chapter: {student.weakestChapter || "No clear chapter yet"}
-                            </div>
-                            <div style={subText}>{student.reason}</div>
-                            <div>
-                              <Link
-                                href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
-                                  student.id
-                                )}&lang=${encodeURIComponent(lang)}&from=${encodeURIComponent(
-                                  "class-report"
-                                )}&school_id=${encodeURIComponent(schoolId)}&class_group_id=${encodeURIComponent(
-                                  classGroupId
-                                )}&class_name=${encodeURIComponent(className)}`}
-                                style={buttonSecondary}
-                              >
-                                View student report
-                              </Link>
-                            </div>
+                <div
+                  style={{
+                    ...listCard,
+                    borderColor: "#eadba6",
+                    background: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      color: "#6f6340",
+                    }}
+                  >
+                    Needs attention now
+                  </div>
+                  <div style={{ display: "grid", gap: 2 }}>
+                    <div
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 800,
+                        color: "#7a5a00",
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span>Students needing support: {classNeedsAttention.supportStudentCount ?? "Still forming"}</span>
+                      {classNeedsAttention.supportStudentCount != null ? (
+                        <>
+                          <span style={chip}>HR {classNeedsAttention.highRiskCount}</span>
+                          <span style={chip}>BL {classNeedsAttention.borderlineCount}</span>
+                        </>
+                      ) : null}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 800,
+                        color: "#7a5a00",
+                      }}
+                    >
+                      Average exam: {classNeedsAttention.supportAverageExamText || "Still forming"}
+                    </div>
+                  </div>
+                  <div style={subText}>
+                    <span style={{ fontSize: 17, fontWeight: 800, color: "#7a5a00" }}>
+                      Main review category: {classNeedsAttention.mainReviewCategory || "No clear review category yet"}
+                    </span>
+                  </div>
+                  <div style={subText}>
+                    <span style={{ fontSize: 17, fontWeight: 800, color: "#7a5a00" }}>
+                      Main review chapter: {classNeedsAttention.bestMatchingChapter || "Not clear yet"}
+                    </span>
+                    {classNeedsAttention.supportChapters.length ? (
+                      <span style={{ fontSize: 17, fontWeight: 800, color: "#7a5a00" }}>
+                        {` | Support chapters: ${classNeedsAttention.supportChapters.join(", ")}`}
+                      </span>
+                    ) : null}
+                  </div>
+                  {classNeedsAttention.otherReviewDetails.length ? (
+                    <div style={{ display: "grid", gap: 6 }}>
+                      {classNeedsAttention.otherReviewDetails.map((item) => (
+                        <div key={item.label} style={{ display: "grid", gap: 2 }}>
+                          <div style={subText}>Secondary review category: {item.label}</div>
+                          <div style={subText}>
+                            Main review chapter: {item.bestMatchingChapter || "Not clear yet"}
+                            {item.supportChapters.length ? ` | Support chapters: ${item.supportChapters.join(", ")}` : ""}
                           </div>
-                        </details>
+                        </div>
                       ))}
                     </div>
                   ) : (
-                    <div style={subText}>No students are currently flagged as borderline or high risk.</div>
+                    <div style={subText}>No clear secondary review category yet</div>
                   )}
                 </div>
-
               </div>
 
-              <div style={analysisGrid}>
-                <div style={listCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Performance breakdown</div>
+              <div
+                style={{
+                  ...listCard,
+                  borderColor: urgentHighRiskSummary.thresholdMet ? "#efc2c2" : "#d6e1e8",
+                  background: urgentHighRiskSummary.thresholdMet
+                    ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
+                    : "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+                }}
+              >
+                <div style={{ fontWeight: 800, color: urgentHighRiskSummary.thresholdMet ? "#6f4747" : "#607282" }}>
+                  Urgent high-risk categories
+                </div>
+                {urgentHighRiskSummary.thresholdMet ? (
+                  <>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: "var(--brand-red)" }}>
+                      Important to review the following categories because they affect at least half of the active class
+                      and can have a strong impact on overall exam results.
+                    </div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: "var(--brand-red)" }}>
+                      {urgentHighRiskSummary.items.length
+                        ? urgentHighRiskSummary.items.map((item) => item.label).join(" | ")
+                        : "No high-risk category concentration right now"}
+                    </div>
+                    {urgentHighRiskSummary.items.length ? (
+                      <div style={{ display: "grid", gap: 4 }}>
+                        {urgentHighRiskSummary.items.map((item) => (
+                          <div
+                            key={item.label}
+                            style={{ fontSize: 17, fontWeight: 800, color: "var(--brand-red)" }}
+                          >
+                            Main review chapter: {item.mainChapter || "Not clear yet"}
+                            {item.supportChapters.length ? ` | Support chapters: ${item.supportChapters.join(", ")}` : ""}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
                   <div style={subText}>
-                    Exams: {classSummary.totalExamAttempts ?? 0} | Practice sessions: {classSummary.totalPracticeSessions ?? 0} | Remediation sessions:{" "}
-                    {classSummary.totalRemediationSessions ?? 0}
+                    This class does not currently have a significant concentration of urgent high-risk category flags.
                   </div>
-                  <div style={subText}>
-                    Readiness mix: {Object.entries(classSummary.overallStatusCounts || {})
-                      .map(([key, value]) => `${key}: ${value}`)
-                      .join(" | ") || "No readiness mix yet"}
+                )}
+              </div>
+
+              <div
+                style={{
+                  ...listCard,
+                  borderColor: "#cfdde6",
+                  background: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+                }}
+              >
+                <div style={{ fontWeight: 800, color: "#38556a", fontSize: 16 }}>Next action</div>
+                <div style={{ ...subText, color: "#607282" }}>
+                  Start here if you want the clearest short plan for what to reinforce next.
+                </div>
+                <div style={analysisGrid}>
+                  <div
+                    style={{
+                      ...listCard,
+                      borderColor: "#cfdde6",
+                      background: "white",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: "#38556a", fontSize: 16 }}>Class action</div>
+                    <div style={{ ...subText, color: "#607282" }}>
+                      Start here if you want the clearest short plan for what to reinforce with the whole class next.
+                    </div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {nextActions.classActions.map((item, index) => (
+                        <div
+                          key={`class-${item}`}
+                          className="owner-report-next-action"
+                          style={{
+                            border: "1px solid #d6e1e8",
+                            borderLeft: "4px solid #6e90a8",
+                            borderRadius: 12,
+                            background: "white",
+                            padding: "10px 12px",
+                            display: "grid",
+                            gap: 4,
+                          }}
+                        >
+                          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "#607282" }}>
+                            Step {index + 1}
+                          </div>
+                          <div style={{ ...subText, color: "#324552", fontWeight: 600 }}>{item}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      ...listCard,
+                      borderColor: "#d9d1b8",
+                      background: "white",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, color: "#6f6340", fontSize: 16 }}>Student follow-up</div>
+                    <div style={{ ...subText, color: "#6f6340" }}>
+                      Use this side to follow up with the individual students who still need extra support.
+                    </div>
+                    {nextActions.studentActions.length ? (
+                      <div
+                        style={{
+                          border: "1px solid #d6e1e8",
+                          borderLeft: "4px solid #b48a3d",
+                          borderRadius: 12,
+                          background: "white",
+                          padding: "10px 12px",
+                          display: "grid",
+                          gap: 4,
+                        }}
+                      >
+                        {nextActions.studentActions.map((item) => (
+                          <div key={`student-summary-${item}`} style={{ ...subText, color: "#324552", fontWeight: 600 }}>
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {interventionStudents.length ? (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {interventionStudents.map((student) => (
+                          <details
+                            key={student.id}
+                            style={{ ...listCard, background: "white", padding: 7 }}
+                            open={Boolean(interventionOpenById[student.id])}
+                          >
+                            <summary
+                              style={{ cursor: "pointer", listStyle: "none" }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setInterventionOpenById((prev) => ({
+                                  ...prev,
+                                  [student.id]: !prev[student.id],
+                                }));
+                              }}
+                            >
+                              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                                <div style={{ fontWeight: 800, color: "var(--heading)" }}>{student.name}</div>
+                                <OpenHint isOpen={Boolean(interventionOpenById[student.id])} />
+                              </div>
+                              <div style={{ ...subText, marginTop: 4, marginBottom: 0 }}>{student.status}</div>
+                            </summary>
+                            <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+                              <div style={subText}>
+                                Avg exam: {formatPercent(student.averageScore)} | Weakest category:{" "}
+                                {student.weakestCategory || "No clear category yet"}
+                              </div>
+                              <div style={subText}>
+                                Completed exams: {student.completedAttempts ?? 0} | Weakest chapter: {student.weakestChapter || "No clear chapter yet"}
+                              </div>
+                              <div style={subText}>{student.reason}</div>
+                              <div>
+                                <Link
+                                  href={`/owner/reports?scope=student&user_id=${encodeURIComponent(
+                                    student.id
+                                  )}&lang=${encodeURIComponent(lang)}&from=${encodeURIComponent(
+                                    "class-report"
+                                  )}&school_id=${encodeURIComponent(schoolId)}&class_group_id=${encodeURIComponent(
+                                    classGroupId
+                                  )}&class_name=${encodeURIComponent(className)}`}
+                                  style={buttonSecondary}
+                                >
+                                  View student report
+                                </Link>
+                              </div>
+                            </div>
+                          </details>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={subText}>No students are currently flagged as borderline or high risk.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <details style={listCard}>
+                <summary style={detailsSummary}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>Class patterns</div>
+                      <div style={subText}>Open to see the categories and chapters that repeat most across the class (student count).</div>
+                    </div>
+                    <div style={{ ...subText, fontSize: 12 }}>Click here to open</div>
+                  </div>
+                </summary>
+
+                <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                  <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>Quick strengths read (top 3 in each section)</div>
+                  <div style={analysisGrid}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#1f6f3d", fontSize: 13 }}>Strong categories</div>
+                      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                        {quickStrongCategories.length ? (
+                          quickStrongCategories.map((item) => (
+                            <div key={item} style={subText}>
+                              {item}
+                            </div>
+                          ))
+                        ) : (
+                          <div style={subText}>No repeated strong categories yet.</div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#1f6f3d", fontSize: 13 }}>Top scoring chapters</div>
+                      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                        {quickStrongChapters.length ? (
+                          quickStrongChapters.map((item) => (
+                            <div key={item} style={subText}>
+                              {item}
+                            </div>
+                          ))
+                        ) : (
+                          <div style={subText}>No clear strong chapters yet.</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: "1px solid #d6e1e8", marginTop: 2, paddingTop: 10 }} />
+
+                  <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>Quick category read (top 3 in each section)</div>
+                  <div style={analysisGrid}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#7a5a00", fontSize: 13 }}>Watch</div>
+                      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                        {topWeakCategories.length ? (
+                          topWeakCategories.map(([key, value]) => (
+                            <div key={key} style={subText}>
+                              {key} ({value})
+                            </div>
+                          ))
+                        ) : (
+                          <div style={subText}>No repeated weak categories yet.</div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "var(--brand-red)", fontSize: 13 }}>High Risk</div>
+                      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                        {topHighRiskCategories.length ? (
+                          topHighRiskCategories.map(([key, value]) => (
+                            <div key={key} style={subText}>
+                              {key} ({value})
+                            </div>
+                          ))
+                        ) : (
+                          <div style={subText}>No current high-risk concentration.</div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Most assigned study chapters by category</div>
+                      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                        {topWeakChapters.length ? (
+                          topWeakChapters.map(([key, value]) => (
+                            <div key={key} style={subText}>
+                              {key} ({value})
+                            </div>
+                          ))
+                        ) : (
+                          <div style={subText}>No repeated study chapters yet.</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div style={listCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Progress over time</div>
-                  <div style={subText}>
-                    Trend detail is still light in the current payload, so this first version is showing whether class activity is building enough to support stronger readiness signals.
+                <details style={{ borderTop: "1px solid #d6e1e8", marginTop: 12, paddingTop: 12 }}>
+                  <summary style={detailsSummary}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                      <div style={{ display: "grid", gap: 4 }}>
+                        <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>Overall class areas that need support</div>
+                        <div style={subText}>Open to see the detailed class-wide support counts.</div>
+                      </div>
+                      <div style={{ ...subText, fontSize: 12 }}>Click here to open</div>
+                    </div>
+                  </summary>
+                  <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                    <div style={analysisGrid}>
+                      <div>
+                        <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Category concentration</div>
+                        <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                          {weaknessMap.categories.length ? (
+                            weaknessMap.categories.map((item) => (
+                              <div key={item.name} style={subText}>
+                                {item.name}:{" "}
+                                {item.highRiskCount && HIGH_RISK_CATEGORIES.has(item.name)
+                                  ? `high risk (${item.highRiskCount})`
+                                  : `watch (${item.weakCount})${item.highRiskCount ? ` | high risk (${item.highRiskCount})` : ""}`}
+                              </div>
+                            ))
+                          ) : (
+                            <div style={subText}>No repeated class-wide category weakness yet.</div>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Chapter concentration</div>
+                        <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                          {weaknessMap.chapters.length ? (
+                            weaknessMap.chapters.map((item) => (
+                              <div key={item.name} style={subText}>
+                                {item.name}: flagged ({item.weakCount})
+                              </div>
+                            ))
+                          ) : (
+                            <div style={subText}>No repeated chapter priority yet.</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div style={subText}>
-                    Active students: {classSummary.activeStudents ?? 0} | Recent full exam attempts: {classSummary.totalExamAttempts ?? 0} | Practice volume:{" "}
-                    {classSummary.totalPracticeSessions ?? 0}
-                  </div>
-                  <div style={subText}>
-                    Remediation volume: {classSummary.totalRemediationSessions ?? 0} | Readiness mix:{" "}
-                    {Object.entries(classSummary.overallStatusCounts || {})
-                      .map(([key, value]) => `${key}: ${value}`)
-                      .join(" | ") || "No readiness mix yet"}
-                  </div>
-                </div>
-              </div>
+                </details>
+              </details>
 
-              <details style={listCard} open={strengthsOpen}>
-                <summary
-                  style={detailsSummary}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setStrengthsOpen((prev) => !prev);
+              <details style={listCard}>
+                <summary style={detailsSummary}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>Activity details</div>
+                      <div style={subText}>
+                        Open to see exam activity, question exposure, practice focus, and remediation focus for this class.
+                      </div>
+                    </div>
+                    <div style={{ ...subText, fontSize: 12 }}>Click here to open</div>
+                  </div>
+                </summary>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                    gap: 10,
+                    marginTop: 10,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Class strengths</div>
-                    <OpenHint isOpen={strengthsOpen} />
+                  <div style={{ ...listCard, background: "white", padding: 12 }}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Exam activity</div>
+                    <div style={subText}>
+                      Total attempts: {classSummary.rawExamAttempts ?? 0} | Completed: {classSummary.totalExamAttempts ?? 0}
+                    </div>
+                    <div style={subText}>
+                      Average score: {formatPercent(classSummary.classAverageScore)} | Best score: {formatPercent(classSummary.bestScore)} | Worst score: {formatPercent(classSummary.worstScore)}
+                    </div>
+                    <div style={subText}>Current readiness: {classStatus}</div>
                   </div>
-                  <div style={subText}>Open to see what this class is doing well so the report stays balanced.</div>
-                </summary>
-                <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
-                  <div style={subText}>
-                    Strongest categories:{" "}
-                    {classStrengths.strongestCategories.length
-                      ? classStrengths.strongestCategories.join(" | ")
-                      : "We need more class data before naming a strong category."}
+
+                  <div style={{ ...listCard, background: "white", padding: 12 }}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Question exposure</div>
+                    <div style={subText}>
+                      Total delivered: {classSummary.questionHistory?.totalExposureRows ?? 0}
+                    </div>
+                    <div style={subText}>
+                      Unique questions seen: {classSummary.questionHistory?.uniqueQuestionCount ?? 0}
+                    </div>
+                    <div style={subText}>
+                      By mode: {Object.entries(classSummary.questionHistory?.bySourceType || {})
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(" | ") || "No question exposure yet"}
+                    </div>
                   </div>
-                  <div style={subText}>
-                    Dominant readiness status: {classStrengths.dominantStatus || "No clear readiness pattern yet"}
+
+                  <div style={{ ...listCard, background: "white", padding: 12 }}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Practice focus</div>
+                    <div style={subText}>
+                      Chapters: {Object.entries(classSummary.practiceFocus?.chapterCounts || {})
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(" | ") || "No chapter focus yet"}
+                    </div>
+                    <div style={subText}>
+                      Categories: {Object.entries(classSummary.practiceFocus?.categoryCounts || {})
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(" | ") || "No category focus yet"}
+                    </div>
+                    <div style={subText}>
+                      Mixed practice: {classSummary.practiceFocus?.modeCounts?.mixed ?? 0}
+                    </div>
                   </div>
-                  <div style={subText}>
-                    Strongest chapter signal: {classStrengths.strongestChapter || "Not clear yet"}
+
+                  <div style={{ ...listCard, background: "white", padding: 12 }}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Remediation focus</div>
+                    <div style={subText}>
+                      Categories: {Object.entries(classSummary.remediationFocus?.categoryCounts || {})
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(" | ") || "No remediation focus yet"}
+                    </div>
+                    <div style={subText}>
+                      Outcomes: {Object.entries(classSummary.remediationFocus?.outcomeCounts || {})
+                        .map(([key, value]) => `${value}: ${key}`)
+                        .join(" | ") || "No remediation outcomes yet"}
+                    </div>
                   </div>
                 </div>
               </details>
-
-              <div style={listCard}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Class weakness map</div>
-                <div style={subText}>
-                  This first pass surfaces where weakness is concentrating across the class. Later this can become a fuller visual heatmap.
-                </div>
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Categories</div>
-                    <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-                      {weaknessMap.categories.length ? (
-                        weaknessMap.categories.map((item) => (
-                          <div key={item.name} style={subText}>
-                            {item.name}: weak {item.weakCount}
-                            {item.highRiskCount ? ` | high risk ${item.highRiskCount}` : ""}
-                          </div>
-                        ))
-                      ) : (
-                        <div style={subText}>No repeated class-wide category weakness yet.</div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Chapters</div>
-                    <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-                      {weaknessMap.chapters.length ? (
-                        weaknessMap.chapters.map((item) => (
-                          <div key={item.name} style={subText}>
-                            {item.name}: flagged {item.weakCount}
-                          </div>
-                        ))
-                      ) : (
-                        <div style={subText}>No repeated chapter priority yet.</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={listCard}>
-                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Next action</div>
-                <div style={{ display: "grid", gap: 6 }}>
-                  {nextActions.map((item) => (
-                    <div key={item} className="owner-report-next-action" style={subText}>
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
             </>
           ) : null}
 
@@ -1700,7 +2313,7 @@ export default function OwnerReportsClient() {
                     </div>
                     <div style={subText}>
                       Average score: {formatPercent(studentSummary.exams?.averageScore)} | Best score:{" "}
-                      {formatPercent(studentSummary.exams?.bestScore)}
+                      {formatPercent(studentSummary.exams?.bestScore)} | Worst score: {formatPercent(studentSummary.exams?.worstScore)}
                     </div>
                     <div style={subText}>
                       Current readiness: {studentSummary.learningSignals?.overallStatus || "No current information"}
