@@ -74,7 +74,7 @@ function CategoriesInner() {
 
     if (lang === "en" || lang === "es" || lang === "fr" || lang === "ht") {
       try {
-        localStorage.setItem("cna_pilot_lang", lang);
+        localStorage.setItem("cna_app_lang", lang);
       } catch {}
     }
   }, [router, lang]);

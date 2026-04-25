@@ -475,11 +475,6 @@ if (picked.length < targetTotal) {
 
 const [testId, setTestId] = useState(() => {
   if (Number.isFinite(queryTestId) && queryTestId >= 1 && queryTestId <= 4) return queryTestId;
-  try {
-    const raw = localStorage.getItem("cna_pilot_test_id");
-    const n = Number(raw);
-    if (Number.isFinite(n) && n >= 1 && n <= 6) return n;
-  } catch {}
   return 1;
 });
 

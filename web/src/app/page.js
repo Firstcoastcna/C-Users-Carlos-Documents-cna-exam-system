@@ -60,7 +60,7 @@ export default function HomePage() {
         if (prefs.preferredLanguage) {
           setLang(prefs.preferredLanguage);
           try {
-            localStorage.setItem("cna_pilot_lang", prefs.preferredLanguage);
+            localStorage.setItem("cna_app_lang", prefs.preferredLanguage);
           } catch {}
         }
 
@@ -381,7 +381,7 @@ if (pausedRemainingSec === null) {
             style={{ ...btnPrimary, width: isNarrow ? "100%" : "220px", fontWeight: 700 }}
             onClick={async () => {
               try {
-                localStorage.setItem("cna_pilot_lang", lang);
+                localStorage.setItem("cna_app_lang", lang);
               } catch {}
 
               try {

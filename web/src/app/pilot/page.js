@@ -290,7 +290,7 @@ function PilotInner() {
 
         try {
           localStorage.setItem("cna_access_granted", "1");
-          localStorage.setItem("cna_pilot_lang", lang);
+          localStorage.setItem("cna_app_lang", lang);
         } catch {}
         setAuthReady(true);
       } catch {
@@ -607,12 +607,12 @@ function PilotInner() {
     const urlLang = sp.get("lang");
     if (urlLang === "en" || urlLang === "es" || urlLang === "fr" || urlLang === "ht") {
       try {
-        localStorage.setItem("cna_pilot_lang", urlLang);
+        localStorage.setItem("cna_app_lang", urlLang);
       } catch {}
       setLang(urlLang);
     } else {
       try {
-        const savedLang = localStorage.getItem("cna_pilot_lang");
+        const savedLang = localStorage.getItem("cna_app_lang") || localStorage.getItem("cna_pilot_lang");
         if (savedLang === "en" || savedLang === "es" || savedLang === "fr" || savedLang === "ht") {
           setLang(savedLang);
         }
@@ -687,7 +687,7 @@ function PilotInner() {
           n,
           (() => {
             try {
-              const savedLang = localStorage.getItem("cna_pilot_lang");
+              const savedLang = localStorage.getItem("cna_app_lang") || localStorage.getItem("cna_pilot_lang");
               if (savedLang === "en" || savedLang === "es" || savedLang === "fr" || savedLang === "ht") {
                 return savedLang;
               }
@@ -869,9 +869,8 @@ function PilotInner() {
     } catch {}
 
     try {
-      localStorage.setItem("cna_pilot_test_id", String(testId));
     } catch {}
-    router.push(`/exam?lang=${lang}`);
+    router.push(`/exam?lang=${lang}&test_id=${testId}`);
   }
 
   async function handleSignOut() {

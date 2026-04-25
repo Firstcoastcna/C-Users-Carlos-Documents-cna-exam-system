@@ -238,7 +238,7 @@ function PracticeInner() {
 
         try {
           localStorage.setItem("cna_access_granted", "1");
-          localStorage.setItem("cna_pilot_lang", lang);
+          localStorage.setItem("cna_app_lang", lang);
         } catch {}
         setAuthReady(true);
       } catch {

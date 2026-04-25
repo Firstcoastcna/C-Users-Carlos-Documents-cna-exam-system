@@ -18,15 +18,27 @@ function isCompletedExamAttempt(attempt) {
   if (attempt?.completed_at) return true;
 
   const mode = String(attempt?.mode || "").trim().toLowerCase();
-  if (mode === "finished" || mode === "time_expired" || mode === "analytics" || mode === "rationales") {
+  if (mode === "finished" || mode === "time_expired") {
     return true;
   }
 
   return Boolean(attempt?.results_payload?.final);
 }
 
+function getCompletedAttemptSortTime(attempt) {
+  const timestamp = attempt?.completed_at || attempt?.updated_at || attempt?.created_at || null;
+  const time = timestamp ? new Date(timestamp).getTime() : 0;
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getCompletedAttemptsSorted(attempts) {
+  return (Array.isArray(attempts) ? attempts : [])
+    .filter((attempt) => isCompletedExamAttempt(attempt))
+    .sort((a, b) => getCompletedAttemptSortTime(b) - getCompletedAttemptSortTime(a));
+}
+
 function summarizeExamAttempts(attempts) {
-  const completed = attempts.filter((attempt) => isCompletedExamAttempt(attempt));
+  const completed = getCompletedAttemptsSorted(attempts);
   const scores = completed.map((attempt) => Number(attempt.score)).filter(Number.isFinite);
   const averageScore = scores.length
     ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
@@ -154,13 +166,12 @@ function summarizeExamResult(attempt, bankById) {
 }
 
 function summarizeLatestCompletedExamResult(attempts, bankById) {
-  const latestCompletedAttempt = attempts.find((attempt) => isCompletedExamAttempt(attempt));
+  const latestCompletedAttempt = getCompletedAttemptsSorted(attempts)[0] || null;
   return summarizeExamResult(latestCompletedAttempt, bankById);
 }
 
 function summarizeExamHistory(attempts, bankById) {
-  return attempts
-    .filter((attempt) => isCompletedExamAttempt(attempt))
+  return getCompletedAttemptsSorted(attempts)
     .map((attempt) => summarizeExamResult(attempt, bankById))
     .filter(Boolean)
     .sort((a, b) => {
@@ -524,39 +535,29 @@ function summarizePracticeLearningSignals(practiceSessions) {
 }
 
 function summarizeLearningSignals(examAttempts, practiceSessions) {
-  const latestAttemptWithAnalytics =
-    examAttempts.find((attempt) => {
-      const analytics = getExamAnalyticsPayload(attempt);
-      return analytics && Array.isArray(analytics.category_priority);
-    }) || null;
-
-  const analytics = getExamAnalyticsPayload(latestAttemptWithAnalytics);
+  const examSummary = summarizeExamAttempts(examAttempts);
+  const overallExamStatus = deriveOverallStatusFromScore(Number(examSummary?.averageScore));
+  const latestCompletedAttempt = getCompletedAttemptsSorted(examAttempts)[0] || null;
+  const analytics = getExamAnalyticsPayload(latestCompletedAttempt);
   if (!analytics) {
     const practiceSignals = summarizePracticeLearningSignals(practiceSessions);
-    if (practiceSignals.source === "practice") {
+    if (practiceSignals.source === "practice" && Number(examSummary?.completedAttempts || 0) === 0) {
       return practiceSignals;
     }
 
-    const latestScoredAttempt =
-      examAttempts.find((attempt) => isCompletedExamAttempt(attempt)) || null;
     return {
-      overallStatus: deriveOverallStatusFromScore(Number(latestScoredAttempt?.score)),
+      overallStatus: overallExamStatus,
       strongestCategories: [],
       categoriesNeedingWork: [],
       highRiskCategories: [],
       chapterPriorities: [],
-      source: latestScoredAttempt ? "exam-score" : null,
+      source: examSummary?.completedAttempts > 0 ? "exam-score" : null,
     };
   }
 
   const categoryPriority = Array.isArray(analytics.category_priority) ? analytics.category_priority : [];
   const chapterGuidance = Array.isArray(analytics.chapter_guidance) ? analytics.chapter_guidance : [];
-  const latestScoredAttempt =
-    examAttempts.find((attempt) => isCompletedExamAttempt(attempt)) || null;
-  const overallStatus =
-    deriveOverallStatusFromScore(Number(latestScoredAttempt?.score)) ||
-    analytics.overall_status ||
-    null;
+  const overallStatus = overallExamStatus || analytics.overall_status || null;
   const highRiskCategoryKeys = new Set(
     categoryPriority
       .filter((item) => item?.is_high_risk && item?.level === "Weak")

@@ -15,15 +15,27 @@ function isCompletedExamAttempt(attempt) {
   if (attempt?.completed_at) return true;
 
   const mode = String(attempt?.mode || "").trim().toLowerCase();
-  if (mode === "finished" || mode === "time_expired" || mode === "analytics" || mode === "rationales") {
+  if (mode === "finished" || mode === "time_expired") {
     return true;
   }
 
   return Boolean(attempt?.results_payload?.final);
 }
 
+function getCompletedAttemptSortTime(attempt) {
+  const timestamp = attempt?.completed_at || attempt?.updated_at || attempt?.created_at || null;
+  const time = timestamp ? new Date(timestamp).getTime() : 0;
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getCompletedAttemptsSorted(attempts) {
+  return (Array.isArray(attempts) ? attempts : [])
+    .filter((attempt) => isCompletedExamAttempt(attempt))
+    .sort((a, b) => getCompletedAttemptSortTime(b) - getCompletedAttemptSortTime(a));
+}
+
 function summarizeExamAttempts(attempts) {
-  const completed = attempts.filter((attempt) => isCompletedExamAttempt(attempt));
+  const completed = getCompletedAttemptsSorted(attempts);
   const scores = completed.map((attempt) => Number(attempt.score)).filter(Number.isFinite);
   const averageScore = scores.length
     ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
@@ -52,17 +64,17 @@ function deriveOverallStatusFromScore(score) {
 }
 
 function getLatestScoredAttempt(attempts) {
-  return attempts.find((attempt) => isCompletedExamAttempt(attempt)) || null;
+  return getCompletedAttemptsSorted(attempts)[0] || null;
 }
 
 function getLatestAttemptWithAnalytics(attempts) {
-  return (
-    attempts.find((attempt) => {
-      if (!isCompletedExamAttempt(attempt)) return false;
-      const analytics = getExamAnalyticsPayload(attempt);
-      return analytics && (Array.isArray(analytics.category_priority) || Array.isArray(analytics.chapter_guidance));
-    }) || null
-  );
+  const latestCompletedAttempt = getCompletedAttemptsSorted(attempts)[0] || null;
+  if (!latestCompletedAttempt) return null;
+  const analytics = getExamAnalyticsPayload(latestCompletedAttempt);
+  if (!analytics) return null;
+  return Array.isArray(analytics.category_priority) || Array.isArray(analytics.chapter_guidance)
+    ? latestCompletedAttempt
+    : null;
 }
 
 function summarizePracticeSessions(sessions) {
@@ -268,11 +280,11 @@ function summarizeCompletedExamCategoryPerformance(examAttempts, bankById) {
 }
 
 function buildStudentSummary({ member, examAttempts, practiceSessions, remediationSessions, questionHistory, bankById }) {
+  const examSummary = summarizeExamAttempts(examAttempts);
   const latestAnalyticsExam = getLatestAttemptWithAnalytics(examAttempts);
   const latestExamAnalytics = getExamAnalyticsPayload(latestAnalyticsExam);
-  const latestScoredExam = getLatestScoredAttempt(examAttempts);
   const derivedOverallStatus =
-    deriveOverallStatusFromScore(Number(latestScoredExam?.score)) ||
+    deriveOverallStatusFromScore(Number(examSummary?.averageScore)) ||
     latestExamAnalytics?.overall_status ||
     null;
 
@@ -283,7 +295,7 @@ function buildStudentSummary({ member, examAttempts, practiceSessions, remediati
       role: member.role,
       status: member.status,
     },
-    exams: summarizeExamAttempts(examAttempts),
+    exams: examSummary,
     latestExamAnalytics: latestExamAnalytics
       ? {
           overallStatus: derivedOverallStatus,

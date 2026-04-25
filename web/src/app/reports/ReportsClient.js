@@ -106,6 +106,45 @@ const compactCard = {
   background: "white",
 };
 
+const CATEGORY_TO_CHAPTERS = {
+  "Scope of Practice & Reporting": {
+    primary: [1],
+    secondary: [4, 5],
+  },
+  "Change in Condition": {
+    primary: [4],
+    secondary: [3, 5],
+  },
+  "Observation & Safety": {
+    primary: [4],
+    secondary: [3, 2],
+  },
+  "Environment & Safety": {
+    primary: [2],
+    secondary: [3],
+  },
+  "Infection Control": {
+    primary: [2],
+    secondary: [3, 4],
+  },
+  "Personal Care & Comfort": {
+    primary: [3],
+    secondary: [4],
+  },
+  "Mobility & Positioning": {
+    primary: [3],
+    secondary: [4],
+  },
+  "Communication & Emotional Support": {
+    primary: [5],
+    secondary: [1, 3],
+  },
+  "Dignity & Resident Rights": {
+    primary: [1],
+    secondary: [3, 5],
+  },
+};
+
 const metricValue = {
   fontSize: 26,
   fontWeight: 800,
@@ -203,6 +242,7 @@ function buildStudentProgress(summary) {
   return {
     examAverage: summary?.exams?.averageScore,
     bestScore: summary?.exams?.bestScore,
+    worstScore: summary?.exams?.worstScore,
     completedAttempts: summary?.exams?.completedAttempts ?? 0,
     totalPractice: summary?.practice?.totalSessions ?? 0,
     totalRemediation: summary?.remediation?.totalSessions ?? 0,
@@ -220,6 +260,39 @@ function getStatusTone(status) {
     };
   }
   if (status === "High Risk") {
+    return {
+      border: "#efc2c2",
+      bg: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
+      accent: "var(--brand-red)",
+      muted: "#6f4747",
+    };
+  }
+  return {
+    border: "#eadba6",
+    bg: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+    accent: "#7a5a00",
+    muted: "#6f6340",
+  };
+}
+
+function getScoreTone(score) {
+  if (!Number.isFinite(Number(score))) {
+    return {
+      border: "#d7e4ec",
+      bg: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+      accent: "#38556a",
+      muted: "#607282",
+    };
+  }
+  if (Number(score) >= 80) {
+    return {
+      border: "#bddfc6",
+      bg: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+      accent: "#1f6f3d",
+      muted: "#476252",
+    };
+  }
+  if (Number(score) < 70) {
     return {
       border: "#efc2c2",
       bg: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
@@ -299,6 +372,19 @@ export default function ReportsClient() {
     if (value === "Borderline") return t("Borderline", "Al limite", "Limite", "Sou limit la");
     if (value === "High Risk") return t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk");
     return value || t("No current information", "Sin informacion actual", "Aucune information actuelle", "Pa gen enfomasyon aktyel");
+  }
+
+  function formatDateTime(value) {
+    if (!value) return noDataLabel();
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return noDataLabel();
+    return date.toLocaleString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   }
 
   function formatSourceTypeLabel(value) {
@@ -428,7 +514,7 @@ export default function ReportsClient() {
     }
 
     try {
-      const saved = localStorage.getItem("cna_pilot_lang");
+      const saved = localStorage.getItem("cna_app_lang") || localStorage.getItem("cna_pilot_lang");
       if (saved === "en" || saved === "es" || saved === "fr" || saved === "ht") {
         setLang(saved);
       }
@@ -481,6 +567,8 @@ export default function ReportsClient() {
   const weaknesses = buildStudentWeaknesses(summary);
   const nextActions = buildStudentNextActions(summary);
   const progress = buildStudentProgress(summary);
+  const examHistory = Array.isArray(summary?.examHistory) ? summary.examHistory : [];
+  const latestExamResults = summary?.latestExamResults || null;
   const examQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.exam || 0);
   const practiceQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.practice || 0);
   const practiceUniqueQuestionsSeen = Number(summary?.questionHistory?.uniqueBySourceType?.practice || 0);
@@ -512,9 +600,22 @@ export default function ReportsClient() {
   const topHighRisk = weaknesses.highRiskCategories[0] || null;
   const topWeakCategory = weaknesses.categoriesNeedingWork[0]?.category || topHighRisk?.category || null;
   const topWeakChapter = weaknesses.chapterPriorities[0]?.chapterId || null;
+  const topWeakMapping = topWeakCategory ? CATEGORY_TO_CHAPTERS[topWeakCategory] || null : null;
+  const topWeakMainChapter = topWeakMapping?.primary?.[0] || topWeakChapter || null;
+  const topWeakSupportChapters = Array.isArray(topWeakMapping?.secondary) ? topWeakMapping.secondary.slice(0, 2) : [];
+  const topStrengthMapping = topStrength ? CATEGORY_TO_CHAPTERS[topStrength] || null : null;
+  const topStrengthMainChapter = topStrengthMapping?.primary?.[0] || null;
+  const topStrengthSupportChapters = Array.isArray(topStrengthMapping?.secondary) ? topStrengthMapping.secondary.slice(0, 2) : [];
   const strongestChapter = [...(weaknesses.chapterPriorities || [])]
     .reverse()
     .find((item) => Number.isFinite(item?.chapterId))?.chapterId || null;
+  const latestExamBestChapter =
+    [...(latestExamResults?.chapterBreakdown || [])].sort((a, b) => {
+      if ((b?.percent || 0) !== (a?.percent || 0)) return (b?.percent || 0) - (a?.percent || 0);
+      return (b?.correctCount || 0) - (a?.correctCount || 0);
+    })[0] || null;
+  const latestExamWorstChapter = latestExamResults?.weakestChapter || null;
+  const latestExamScoreTone = getScoreTone(latestExamResults?.score);
   const isPracticeLed = summary?.learningSignals?.source === "practice";
   const categorySnapshotSections = [
     {
@@ -1053,86 +1154,168 @@ export default function ReportsClient() {
 
               {hasCompletedExam ? (
               <>
-              <div style={analysisGrid}>
-                <div
-                  style={{
-                    ...compactCard,
-                    borderColor: "#bddfc6",
-                    background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
-                  }}
-                >
-                  <div style={{ ...rowLabel, color: "#476252" }}>
-                    {t("Strongest area", "Area mas fuerte", "Zone la plus forte", "Zon ki pi fo")}
+              <div style={sectionCard}>
+                <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                  {t("Snapshot from your latest exam", "Resumen de su examen mas reciente", "Resume de votre dernier examen", "Rezime dènye egzamen ou")}
+                </div>
+                <div style={subText}>
+                  {t(
+                    "This section is based on your latest completed exam.",
+                    "Esta seccion se basa en su examen completado mas reciente.",
+                    "Cette section est basee sur votre dernier examen termine.",
+                    "Seksyon sa a baze sou dènye egzamen ou fini."
+                  )}
+                </div>
+                <div style={analysisGrid}>
+                  <div
+                    style={{
+                      ...compactCard,
+                      borderColor: latestExamScoreTone.border,
+                      background: latestExamScoreTone.bg,
+                    }}
+                  >
+                    <div style={{ ...rowLabel, color: latestExamScoreTone.muted }}>
+                      {t("Latest exam score", "Puntaje del examen mas reciente", "Score du dernier examen", "Nòt dènye egzamen")}
+                    </div>
+                    <div style={{ ...metricValue, color: latestExamScoreTone.accent, fontSize: 20 }}>
+                      {formatPercent(latestExamResults?.score) || noDataLabel()}
+                    </div>
                   </div>
-                  <div style={{ ...metricValue, color: "#1f6f3d", fontSize: 20 }}>
-                    {topStrength ? formatCategoryLabel(topStrength) : t("Still forming", "Aun formandose", "Encore en formation", "Li poko byen klè")}
+
+                  <div
+                    style={{
+                      ...compactCard,
+                      borderColor: "#bddfc6",
+                      background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+                    }}
+                  >
+                    <div style={{ ...rowLabel, color: "#476252" }}>
+                      {t("Best chapter", "Mejor capitulo", "Meilleur chapitre", "Pi bon chapit")}
+                    </div>
+                    <div style={{ ...metricValue, color: "#1f6f3d", fontSize: 20 }}>
+                      {latestExamBestChapter?.chapterId
+                        ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${latestExamBestChapter.chapterId}`
+                        : noDataLabel()}
+                    </div>
+                    <div style={{ ...subText, color: "#476252" }}>
+                      {formatPercent(latestExamBestChapter?.percent) || noDataLabel()}
+                    </div>
                   </div>
-                  <div style={{ ...subText, color: "#476252" }}>
-                    {t("Best exam", "Mejor examen", "Meilleur examen", "Pi bon egzamen")}: {formatPercent(strengths.bestScore) || noDataLabel()}
+
+                  <div
+                    style={{
+                      ...compactCard,
+                      borderColor: "#eadba6",
+                      background: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+                    }}
+                  >
+                    <div style={{ ...rowLabel, color: "#6f6340" }}>
+                      {t("Worst chapter", "Capitulo mas debil", "Chapitre le plus faible", "Chapit ki pi fèb")}
+                    </div>
+                    <div style={{ ...metricValue, color: "#7a5a00", fontSize: 20 }}>
+                      {latestExamWorstChapter?.chapterId
+                        ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${latestExamWorstChapter.chapterId}`
+                        : noDataLabel()}
+                    </div>
+                    <div style={{ ...subText, color: "#6f6340" }}>
+                      {formatPercent(latestExamWorstChapter?.percent) || noDataLabel()}
+                    </div>
                   </div>
                 </div>
 
-                <div
-                  style={{
-                    ...compactCard,
-                    borderColor: topHighRisk ? "#efc2c2" : "#eadba6",
-                    background: topHighRisk
-                      ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
-                      : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
-                  }}
-                >
-                  <div style={{ ...rowLabel, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
-                    {t("Needs work now", "Necesita trabajo ahora", "A travailler maintenant", "Sa bezwen travay kounye a")}
+                <div style={analysisGrid}>
+                  <div
+                    style={{
+                      ...compactCard,
+                      borderColor: "#bddfc6",
+                      background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+                    }}
+                  >
+                    <div style={{ ...rowLabel, color: "#476252" }}>
+                      {t("Strongest area", "Area mas fuerte", "Zone la plus forte", "Zon ki pi fo")}
+                    </div>
+                    <div style={{ ...metricValue, color: "#1f6f3d", fontSize: 20 }}>
+                      {topStrength ? formatCategoryLabel(topStrength) : t("Still forming", "Aun formandose", "Encore en formation", "Li poko byen klè")}
+                    </div>
+                    <div style={{ ...subText, color: "#476252" }}>
+                      {t("Main chapter", "Capitulo principal", "Chapitre principal", "Chapit prensipal")}:{" "}
+                      {topStrengthMainChapter
+                        ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${topStrengthMainChapter}`
+                        : noDataLabel()}
+                      {topStrengthSupportChapters.length
+                        ? ` | ${t("Support chapters", "Capitulos de apoyo", "Chapitres de soutien", "Chapit sipò")}: ${topStrengthSupportChapters
+                            .map((chapterId) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${chapterId}`)
+                            .join(", ")}`
+                        : ""}
+                    </div>
                   </div>
-                  <div style={{ ...metricValue, color: topHighRisk ? "var(--brand-red)" : "#7a5a00", fontSize: 20 }}>
-                    {topWeakCategory ? formatCategoryLabel(topWeakCategory) : t("No clear weak area yet", "Aun no hay area debil clara", "Pas encore de faiblesse claire", "Poko gen febles ki byen klè")}
-                  </div>
-                  <div style={{ ...subText, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
-                    {t("Priority chapter", "Capitulo prioritario", "Chapitre prioritaire", "Chapit priyorite")}:{" "}
-                    {topWeakChapter ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${topWeakChapter}` : noDataLabel()}
+
+                  <div
+                    style={{
+                      ...compactCard,
+                      borderColor: topHighRisk ? "#efc2c2" : "#eadba6",
+                      background: topHighRisk
+                        ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
+                        : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+                    }}
+                  >
+                    <div style={{ ...rowLabel, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
+                      {t("Needs work now", "Necesita trabajo ahora", "A travailler maintenant", "Sa bezwen travay kounye a")}
+                    </div>
+                    <div style={{ ...metricValue, color: topHighRisk ? "var(--brand-red)" : "#7a5a00", fontSize: 20 }}>
+                      {topWeakCategory ? formatCategoryLabel(topWeakCategory) : t("No clear weak area yet", "Aun no hay area debil clara", "Pas encore de faiblesse claire", "Poko gen febles ki byen klè")}
+                    </div>
+                    <div style={{ ...subText, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
+                      {t("Main chapter", "Capitulo principal", "Chapitre principal", "Chapit prensipal")}:{" "}
+                      {topWeakMainChapter ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${topWeakMainChapter}` : noDataLabel()}
+                      {topWeakSupportChapters.length
+                        ? ` | ${t("Support chapters", "Capitulos de apoyo", "Chapitres de soutien", "Chapit sipò")}: ${topWeakSupportChapters
+                            .map((chapterId) => `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${chapterId}`)
+                            .join(", ")}`
+                        : ""}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div
-                style={{
-                  ...compactCard,
-                  borderColor: statusTone.border,
-                  background: statusTone.bg,
-                }}
-              >
-                <div style={{ ...metricLabel, color: statusTone.muted }}>
-                  {t("What to do next", "Que hacer ahora", "Que faire maintenant", "Sa pou fè kounye a")}
-                </div>
-                <ul style={bulletList}>
-                  {nextActions.slice(0, 3).map((item, index) => (
-                    <li key={`student-next-${item.kind}-${item.value || index}`}>{renderNextAction(item)}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div style={{ display: "none" }}>
-                <div style={compactCard}>
-                  <div style={metricLabel}>{t("Progress", "Progreso", "Progression", "Pwogre")}</div>
+                <div style={sectionCard}>
+                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                    {t("Your category picture", "Tu panorama por categorias", "Votre panorama par categories", "Foto kategori ou yo")}
+                  </div>
                   <div style={subText}>
-                    {t("Average exam", "Promedio de examen", "Moyenne d'examen", "Mwayen egzamen")}: {formatPercent(progress.examAverage) || noDataLabel()}
+                    {t(
+                      "This gives you a fast read of what looks strong, what to watch, and what feels urgent.",
+                      "Esto le da una lectura rapida de lo que se ve fuerte, lo que hay que vigilar y lo que se siente urgente.",
+                      "Cela donne une lecture rapide de ce qui semble fort, de ce qu'il faut surveiller et de ce qui parait urgent.",
+                      "Sa ba ou yon lekti rapid sou sa ki fò, sa pou siveye, ak sa ki pi ijan."
+                    )}
                   </div>
-                  <div style={subText}>
-                    {t("Practice done", "Practica hecha", "Pratique faite", "Pratik fèt")}: {strengths.completedPractice}
-                    {" | "}
-                    {t("Remediation done", "Remediacion hecha", "Remediation faite", "Remedyasyon fèt")}: {strengths.completedRemediation}
-                  </div>
-                  <div style={subText}>
-                    {t("Questions seen", "Preguntas vistas", "Questions vues", "K kestyon ou wè")}: {progress.totalExposure}
-                  </div>
-                </div>
-
-                <div style={{ ...sectionCard, display: "none" }}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>{t("Next action", "Proximo paso", "Prochaine etape", "Pwochen etap")}</div>
-                  <div style={{ display: "grid", gap: 6 }}>
-                    {nextActions.map((item, index) => (
-                      <div key={`${item.kind}-${item.value || index}`} style={subText}>
-                        • {renderNextAction(item)}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                      gap: 10,
+                    }}
+                  >
+                    {categorySnapshotSections.map((section) => (
+                      <div
+                        key={section.key}
+                        style={{
+                          ...compactCard,
+                          borderColor: section.tone.border,
+                          background: section.tone.bg,
+                          padding: 12,
+                        }}
+                      >
+                        <div style={{ ...rowLabel, color: section.tone.title }}>{section.title}</div>
+                        {section.items.length ? (
+                          <ul style={bulletList}>
+                            {section.items.slice(0, 4).map((item) => (
+                              <li key={item}>{item}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div style={subText}>{section.empty}</div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1150,7 +1333,7 @@ export default function ReportsClient() {
                   </div>
                   <ul style={bulletList}>
                     {nextActions.slice(0, 3).map((item, index) => (
-                      <li key={`${item.kind}-${item.value || index}`}>{renderNextAction(item)}</li>
+                      <li key={`student-next-${item.kind}-${item.value || index}`}>{renderNextAction(item)}</li>
                     ))}
                   </ul>
                 </div>
@@ -1158,45 +1341,54 @@ export default function ReportsClient() {
 
               <div style={sectionCard}>
                 <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                  {t("Your category picture", "Tu panorama por categorias", "Votre panorama par categories", "Foto kategori ou yo")}
+                  {t("Progress over time", "Progreso en el tiempo", "Progression dans le temps", "Pwogresyon sou tan")}
                 </div>
                 <div style={subText}>
                   {t(
-                    "This gives you a fast read of what looks strong, what to watch, and what feels urgent.",
-                    "Esto le da una lectura rapida de lo que se ve fuerte, lo que hay que vigilar y lo que se siente urgente.",
-                    "Cela donne une lecture rapide de ce qui semble fort, de ce qu'il faut surveiller et de ce qui parait urgent.",
-                    "Sa ba ou yon lekti rapid sou sa ki fò, sa pou siveye, ak sa ki pi ijan."
+                    "Use this section to track your completed exam scores and the areas that keep repeating.",
+                    "Use esta seccion para seguir sus puntajes de examenes completados y las areas que siguen repitiendose.",
+                    "Utilisez cette section pour suivre vos scores d'examens termines et les domaines qui se repetent.",
+                    "Sèvi ak seksyon sa a pou swiv nòt egzamen ou fini yo ak zòn ki kontinye repete."
                   )}
                 </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
-                    gap: 10,
-                  }}
-                >
-                  {categorySnapshotSections.map((section) => (
-                    <div
-                      key={section.key}
-                      style={{
-                        ...compactCard,
-                        borderColor: section.tone.border,
-                        background: section.tone.bg,
-                        padding: 12,
-                      }}
-                    >
-                      <div style={{ ...rowLabel, color: section.tone.title }}>{section.title}</div>
-                      {section.items.length ? (
-                        <ul style={bulletList}>
-                          {section.items.slice(0, 4).map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div style={subText}>{section.empty}</div>
-                      )}
-                    </div>
-                  ))}
+                <div style={{ ...compactCard, padding: 12 }}>
+                  <div style={subText}>
+                    {t("Completed exams", "Examenes completados", "Examens termines", "Egzamen fini")}: {progress.completedAttempts}
+                    {" | "}
+                    {t("Average exam", "Promedio de examen", "Moyenne d'examen", "Mwayen egzamen")}: {formatPercent(progress.examAverage) || noDataLabel()}
+                    {" | "}
+                    {t("Best", "Mejor", "Meilleur", "Pi bon")}: {formatPercent(progress.bestScore) || noDataLabel()}
+                    {" | "}
+                    {t("Worst", "Mas bajo", "Le plus bas", "Pi ba")}: {formatPercent(progress.worstScore) || noDataLabel()}
+                  </div>
+                </div>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {examHistory.length ? (
+                    examHistory.map((attempt, index) => (
+                      <div key={`student-history-${attempt?.attemptId || index}`} style={{ ...compactCard, padding: 12 }}>
+                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                          {t("Exam", "Examen", "Examen", "Egzamen")} {progress.completedAttempts - index}
+                        </div>
+                        <div style={subText}>
+                          {t("Completed", "Completado", "Termine", "Fini")}: {formatDateTime(attempt?.completedAt)}
+                          {" | "}
+                          {t("Score", "Puntaje", "Score", "Not")}: {formatPercent(attempt?.score) || noDataLabel()}
+                        </div>
+                        <div style={subText}>
+                          {t("Weakest category", "Categoria mas debil", "Categorie la plus faible", "Kategori ki pi fèb")}:{" "}
+                          {attempt?.weakestCategory?.category ? formatCategoryLabel(attempt.weakestCategory.category) : noDataLabel()}
+                        </div>
+                        <div style={subText}>
+                          {t("Weakest chapter", "Capitulo mas debil", "Chapitre le plus faible", "Chapit ki pi fèb")}:{" "}
+                          {attempt?.weakestChapter?.chapterId
+                            ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${attempt.weakestChapter.chapterId}`
+                            : noDataLabel()}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={subText}>{noDataLabel()}</div>
+                  )}
                 </div>
               </div>
               </>

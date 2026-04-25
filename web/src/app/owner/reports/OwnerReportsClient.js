@@ -529,14 +529,14 @@ function buildClassNeedsAttention(summary, students) {
 
 function buildUrgentHighRiskSummary(summary) {
   const urgentCounts = rankCounts(summary?.highRiskCategoryCounts, 3);
-  const activeStudents = Number(summary?.activeStudents || 0);
+  const totalStudents = Number(summary?.totalStudents || 0);
   const topCount = Number(urgentCounts[0]?.[1] || 0);
   const thresholdRatio = 0.5;
-  const thresholdMet = activeStudents > 0 && topCount / activeStudents >= thresholdRatio;
-  const qualifyingCounts = urgentCounts.filter(([, value]) => activeStudents > 0 && Number(value || 0) / activeStudents >= thresholdRatio);
+  const thresholdMet = totalStudents > 0 && topCount / totalStudents >= thresholdRatio;
+  const qualifyingCounts = urgentCounts.filter(([, value]) => totalStudents > 0 && Number(value || 0) / totalStudents >= thresholdRatio);
 
   return {
-    activeStudents,
+    totalStudents,
     thresholdMet,
     items: qualifyingCounts.map(([key, value]) => {
       const mapping = CATEGORY_TO_CHAPTERS[key] || null;
@@ -748,6 +748,7 @@ function buildStudentNextActions(summary) {
 function buildStudentProgress(summary) {
   const examAverage = summary?.exams?.averageScore;
   const bestScore = summary?.exams?.bestScore;
+  const worstScore = summary?.exams?.worstScore;
   const completedAttempts = summary?.exams?.completedAttempts ?? 0;
   const totalPractice = summary?.practice?.totalSessions ?? 0;
   const totalRemediation = summary?.remediation?.totalSessions ?? 0;
@@ -756,6 +757,7 @@ function buildStudentProgress(summary) {
   return {
     examAverage,
     bestScore,
+    worstScore,
     completedAttempts,
     totalPractice,
     totalRemediation,
@@ -1022,6 +1024,27 @@ export default function OwnerReportsClient() {
   const studentPracticeQuestionsSeen = Number(studentSummary?.questionHistory?.bySourceType?.practice || 0);
   const studentExamHistory = Array.isArray(studentSummary?.examHistory) ? studentSummary.examHistory : [];
   const studentLatestExamResults = studentSummary?.latestExamResults || null;
+  const studentLatestExamBestChapter =
+    [...(studentLatestExamResults?.chapterBreakdown || [])].sort((a, b) => {
+      if ((b?.percent || 0) !== (a?.percent || 0)) return (b?.percent || 0) - (a?.percent || 0);
+      return (b?.correctCount || 0) - (a?.correctCount || 0);
+    })[0] || null;
+  const studentLatestExamWorstChapter = studentLatestExamResults?.weakestChapter || null;
+  const studentLatestExamScoreTone = getScoreTone(studentLatestExamResults?.score);
+  const studentTopStrength = studentStrengths.strongestCategories[0] || null;
+  const studentTopStrengthMapping = studentTopStrength ? CATEGORY_TO_CHAPTERS[studentTopStrength] || null : null;
+  const studentTopStrengthMainChapter = studentTopStrengthMapping?.primary?.[0] || null;
+  const studentTopStrengthSupportChapters = Array.isArray(studentTopStrengthMapping?.secondary)
+    ? studentTopStrengthMapping.secondary.slice(0, 2)
+    : [];
+  const studentTopWeakCategory =
+    studentWeaknesses.categoriesNeedingWork[0]?.category || studentWeaknesses.highRiskCategories[0]?.category || null;
+  const studentTopWeakMapping = studentTopWeakCategory ? CATEGORY_TO_CHAPTERS[studentTopWeakCategory] || null : null;
+  const studentTopWeakMainChapter =
+    studentTopWeakMapping?.primary?.[0] || studentWeaknesses.chapterPriorities[0]?.chapterId || null;
+  const studentTopWeakSupportChapters = Array.isArray(studentTopWeakMapping?.secondary)
+    ? studentTopWeakMapping.secondary.slice(0, 2)
+    : [];
   const selectedExamResults =
     studentExamHistory.find((attempt) => String(attempt?.attemptId) === String(selectedExamAttemptId)) ||
     studentLatestExamResults ||
@@ -1355,8 +1378,8 @@ export default function OwnerReportsClient() {
                 {urgentHighRiskSummary.thresholdMet ? (
                   <>
                     <div style={{ fontSize: 17, fontWeight: 800, color: "var(--brand-red)" }}>
-                      Important to review the following categories because they affect at least half of the active class
-                      and can have a strong impact on overall exam results.
+                      Important to review the following categories because they affect at least half of the class and
+                      can have a strong impact on overall exam results.
                     </div>
                     <div style={{ fontSize: 17, fontWeight: 800, color: "var(--brand-red)" }}>
                       {urgentHighRiskSummary.items.length
@@ -2072,66 +2095,101 @@ export default function OwnerReportsClient() {
 
                   {studentHasCompletedExam ? (
                     <>
-                      <div style={analysisGrid}>
-                        <div style={{ ...listCard, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
-                          <div style={{ fontWeight: 800, color: "#476252" }}>Strongest area</div>
-                          <div style={{ fontSize: 20, fontWeight: 800, color: "#1f6f3d" }}>
-                            {studentStrengths.strongestCategories[0] || "Still forming"}
-                          </div>
-                          <div style={subText}>Best exam: {formatPercent(studentStrengths.bestScore)}</div>
-                        </div>
-
-                        <div style={{ ...listCard, borderColor: "#efc2c2", background: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)" }}>
-                          <div style={{ fontWeight: 800, color: "#6f4747" }}>Needs work now</div>
-                          <div style={{ fontSize: 20, fontWeight: 800, color: "var(--brand-red)" }}>
-                            {studentWeaknesses.categoriesNeedingWork[0]?.category ||
-                              studentWeaknesses.highRiskCategories[0]?.category ||
-                              "No clear weak area yet"}
-                          </div>
-                          <div style={subText}>
-                            Priority chapter:{" "}
-                            {studentWeaknesses.chapterPriorities[0]?.chapterId
-                              ? `Chapter ${studentWeaknesses.chapterPriorities[0].chapterId}`
-                              : "No data yet"}
-                          </div>
-                        </div>
-                      </div>
-
                       <div style={listCard}>
-                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>What to do next</div>
-                        <div style={{ display: "grid", gap: 6 }}>
-                          {studentNextActions.slice(0, 3).map((item) => (
-                            <div key={item} style={subText}>
-                              {item}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div style={listCard}>
-                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>Your category picture</div>
-                        <div style={subText}>This gives a fast read of what looks strong, what to watch, and what feels urgent.</div>
+                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>Snapshot from the latest exam</div>
+                        <div style={subText}>This section is based on the student&apos;s latest completed exam.</div>
                         <div style={analysisGrid}>
-                          {studentExamCategorySections.map((section) => (
-                            <div
-                              key={`owner-exam-${section.key}`}
-                              style={{ ...listCard, background: section.tone.bg, borderColor: section.tone.border, padding: 12 }}
-                            >
-                              <div style={{ fontWeight: 800, color: section.tone.title }}>{section.title}</div>
-                              <div style={subText}>{section.items.length ? section.items.join(" | ") : section.empty}</div>
+                          <div style={{ ...listCard, borderColor: studentLatestExamScoreTone.border, background: studentLatestExamScoreTone.bg }}>
+                            <div style={{ fontWeight: 800, color: studentLatestExamScoreTone.muted }}>Latest exam score</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: studentLatestExamScoreTone.accent }}>
+                              {formatPercent(studentLatestExamResults?.score)}
                             </div>
-                          ))}
+                          </div>
+
+                          <div style={{ ...listCard, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
+                            <div style={{ fontWeight: 800, color: "#476252" }}>Best chapter</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: "#1f6f3d" }}>
+                              {studentLatestExamBestChapter?.chapterId ? `Chapter ${studentLatestExamBestChapter.chapterId}` : "No data yet"}
+                            </div>
+                            <div style={subText}>{formatPercent(studentLatestExamBestChapter?.percent)}</div>
+                          </div>
+
+                          <div style={{ ...listCard, borderColor: "#eadba6", background: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)" }}>
+                            <div style={{ fontWeight: 800, color: "#6f6340" }}>Worst chapter</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: "#7a5a00" }}>
+                              {studentLatestExamWorstChapter?.chapterId ? `Chapter ${studentLatestExamWorstChapter.chapterId}` : "No data yet"}
+                            </div>
+                            <div style={subText}>{formatPercent(studentLatestExamWorstChapter?.percent)}</div>
+                          </div>
+                        </div>
+
+                        <div style={analysisGrid}>
+                          <div style={{ ...listCard, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
+                            <div style={{ fontWeight: 800, color: "#476252" }}>Strongest area</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: "#1f6f3d" }}>
+                              {studentTopStrength || "Still forming"}
+                            </div>
+                            <div style={subText}>
+                              Main chapter: {studentTopStrengthMainChapter ? `Chapter ${studentTopStrengthMainChapter}` : "No data yet"}
+                              {studentTopStrengthSupportChapters.length
+                                ? ` | Support chapters: ${studentTopStrengthSupportChapters.map((chapterId) => `Chapter ${chapterId}`).join(", ")}`
+                                : ""}
+                            </div>
+                          </div>
+
+                          <div style={{ ...listCard, borderColor: "#efc2c2", background: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)" }}>
+                            <div style={{ fontWeight: 800, color: "#6f4747" }}>Needs work now</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--brand-red)" }}>
+                              {studentTopWeakCategory || "No clear weak area yet"}
+                            </div>
+                            <div style={subText}>
+                              Main chapter: {studentTopWeakMainChapter ? `Chapter ${studentTopWeakMainChapter}` : "No data yet"}
+                              {studentTopWeakSupportChapters.length
+                                ? ` | Support chapters: ${studentTopWeakSupportChapters.map((chapterId) => `Chapter ${chapterId}`).join(", ")}`
+                                : ""}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={listCard}>
+                          <div style={{ fontWeight: 800, color: "var(--heading)" }}>Your category picture</div>
+                          <div style={subText}>This gives a fast read of what looks strong, what to watch, and what feels urgent.</div>
+                          <div style={analysisGrid}>
+                            {studentExamCategorySections.map((section) => (
+                              <div
+                                key={`owner-exam-${section.key}`}
+                                style={{ ...listCard, background: section.tone.bg, borderColor: section.tone.border, padding: 12 }}
+                              >
+                                <div style={{ fontWeight: 800, color: section.tone.title }}>{section.title}</div>
+                                <div style={subText}>{section.items.length ? section.items.join(" | ") : section.empty}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div style={listCard}>
+                          <div style={{ fontWeight: 800, color: "var(--heading)" }}>What to do next</div>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            {studentNextActions.slice(0, 3).map((item) => (
+                              <div key={item} style={subText}>
+                                {item}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
 
                       {selectedExamResults ? (
                         <div style={listCard}>
-                          <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                            {studentExamHistory.length > 1 ? "Selected exam results" : "Latest exam results"}
+                          <div style={{ fontWeight: 800, color: "var(--heading)" }}>Progress over time</div>
+                          <div style={subText}>Use this section to track completed exam scores and the areas that keep repeating.</div>
+                          <div style={subText}>
+                            Completed exams: {studentProgress.completedAttempts} | Average exam: {formatPercent(studentProgress.examAverage)} |
+                            {" "}Best score: {formatPercent(studentProgress.bestScore)} | Worst score: {formatPercent(studentProgress.worstScore)}
                           </div>
                           {studentExamHistory.length > 1 ? (
                             <div style={{ display: "grid", gap: 8 }}>
-                              <div style={subText}>Open any completed exam to swap the results panel below.</div>
+                              <div style={subText}>The first exam in this list is the latest one. Open any completed exam to review that point in the student&apos;s progression.</div>
                               <div
                                 style={{
                                   display: "grid",
