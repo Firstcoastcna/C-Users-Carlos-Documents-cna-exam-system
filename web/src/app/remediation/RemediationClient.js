@@ -305,17 +305,17 @@ const UI_TEXT = {
   en: {
     introTitle: "Remediation Session",
 introBody: (cats) =>
-  `This practice set is based on your last exam. It focuses on: ${cats}. The goal is to strengthen the decisions you miss most so your next score improves.`,
+  `This practice set is based on your last exam. It focuses on: ${cats}. The goal is to help you better understand the kinds of questions you missed so your next score improves.`,
 introHowItWorks:
-  "Each remediation session gives you a short targeted set based on weaker areas from your exam. If you are not showing enough improvement, another session is recommended before moving on.",
+  "Each remediation session gives you a short targeted set based on the categories that need the most work from your exam. If you are still struggling after one set, another session is recommended before moving on.",
 introRecommendation:
-  "You may complete up to 3 remediation sessions for the same focus areas. Remediation is optional, but doing more than one session is recommended when you still need reinforcement.",
+  "You may complete up to 3 remediation sessions for the same focus areas. Remediation is optional, but doing more than one session can help when you still need support.",
 introStart: "Start",
     remediationTitle: "Remediation",
     loading: "Loading…",
     missingSessionId: "Missing session_id.",
     sessionNotFound: "Remediation session not found.",
-    btnBackToResults: "Back to analytics",
+    btnBackToResults: "Back to exam analytics",
     btnBackToOverview: "Back to start",
     endTitle: "End remediation?",
     endBody: (n) =>
@@ -346,7 +346,7 @@ completeIfAllStrength:
 completeIfNeedsWork:
   "Do another short remediation set to reinforce the areas above before returning to full exam practice.",
 btnAnotherSet: "Do another set",
-btnBackToResultsDone: "Back to analytics",
+btnBackToResultsDone: "Back to exam analytics",
 btnFinish: "Finish",
 completeNavOverview:
   "Back to start lets you review this remediation set and your focus areas.",
@@ -558,6 +558,49 @@ outcomeStabilizing: "Bezwen ranfòsman",
   },
 };
 
+const UI_TEXT_OVERRIDES = {
+  en: {
+    introBody: (cats) =>
+      `This practice set is based on your last exam. It focuses on: ${cats}. The goal is to help you better understand the kinds of questions you missed so your next score improves.`,
+    introHowItWorks:
+      "Each remediation session gives you a short targeted set based on the categories that need the most work from your exam. If you are still struggling after one set, another session is recommended before moving on.",
+    introRecommendation:
+      "You may complete up to 3 remediation sessions for the same focus areas. Remediation is optional, but doing more than one session can help when you still need support.",
+    btnBackToResults: "Back to Exam Insights",
+    btnBackToResultsDone: "Back to Exam Insights",
+  },
+  es: {
+    introBody: (cats) =>
+      `Este set de práctica se basa en tu último examen. Se enfoca en: ${cats}. El objetivo es ayudarte a entender mejor el tipo de preguntas que fallaste para mejorar tu próximo puntaje.`,
+    introHowItWorks:
+      "Cada sesión de remediación te da un set corto y dirigido basado en las categorías que más necesitas trabajar de tu examen. Si todavía sigues teniendo dificultad después de un set, se recomienda otra sesión antes de continuar.",
+    introRecommendation:
+      "Puedes completar hasta 3 sesiones de remediación para las mismas áreas de enfoque. La remediación es opcional, pero hacer más de una sesión puede ayudarte cuando todavía necesitas apoyo.",
+    btnBackToResults: "Volver a Ideas del Examen",
+    btnBackToResultsDone: "Volver a Ideas del Examen",
+  },
+  fr: {
+    introBody: (cats) =>
+      `Cette série de pratique est basée sur votre dernier examen. Elle se concentre sur : ${cats}. L’objectif est de vous aider à mieux comprendre le type de questions que vous avez manquées afin d’améliorer votre prochain score.`,
+    introHowItWorks:
+      "Chaque session de remédiation vous donne une courte série ciblée basée sur les catégories qui demandent le plus de travail dans votre examen. Si vous avez encore des difficultés après une session, une autre session est recommandée avant de continuer.",
+    introRecommendation:
+      "Vous pouvez faire jusqu'à 3 sessions de remédiation pour les mêmes domaines de travail. La remédiation reste facultative, mais faire plus d'une session peut aider si vous avez encore besoin de soutien.",
+    btnBackToResults: "Retour aux aperçus de l’examen",
+    btnBackToResultsDone: "Retour aux aperçus de l’examen",
+  },
+  ht: {
+    introBody: (cats) =>
+      `Set kestyon pratik sa a baze sou dènye egzamen ou. Li konsantre sou: ${cats}. Objektif la se ede ou pi byen konprann kalite kestyon ou te rate yo pou pwochen nòt ou ka monte.`,
+    introHowItWorks:
+      "Chak sesyon remedyasyon ba ou yon ti set kestyon ki vize kategori ki plis bezwen travay nan egzamen ou. Si ou toujou ap lite apre yon premye set, yon lòt sesyon toujou rekòmande anvan ou kontinye.",
+    introRecommendation:
+      "Ou ka fè jiska 3 sesyon remedyasyon pou menm zòn fokis yo. Remedyasyon an opsyonèl, men fè plis pase yon sesyon ka ede lè ou toujou bezwen plis sipò.",
+    btnBackToResults: "Tounen nan apèsi egzamen an",
+    btnBackToResultsDone: "Tounen nan apèsi egzamen an",
+  },
+};
+
 const CATEGORY_LABELS_BY_LANG = {
   en: {
     "Scope of Practice & Reporting": "Scope of Practice & Reporting",
@@ -662,7 +705,7 @@ function getDisplayBlocks(q) {
   return blocks;
 }
 
-const T = UI_TEXT[lang] || UI_TEXT.en;
+const T = { ...(UI_TEXT[lang] || UI_TEXT.en), ...(UI_TEXT_OVERRIDES[lang] || {}) };
 const runtimeText = {
   missingAttemptId: lang === "es"
     ? "Falta attemptId. Vuelve a resultados y abre la remediación otra vez."

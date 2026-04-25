@@ -66,17 +66,64 @@ const CHAPTER_NAMES = {
   5: "Providing Specialized Care for Residents with Changes in Health",
 };
 
+const CATEGORY_NAMES = {
+  en: {
+    "Scope of Practice & Reporting": "Scope of Practice & Reporting",
+    "Change in Condition": "Change in Condition",
+    "Observation & Safety": "Observation & Safety",
+    "Environment & Safety": "Environment & Safety",
+    "Infection Control": "Infection Control",
+    "Personal Care & Comfort": "Personal Care & Comfort",
+    "Mobility & Positioning": "Mobility & Positioning",
+    "Communication & Emotional Support": "Communication & Emotional Support",
+    "Dignity & Resident Rights": "Dignity & Resident Rights",
+  },
+  es: {
+    "Scope of Practice & Reporting": "Alcance de la práctica y qué reportar",
+    "Change in Condition": "Cambio en la condición",
+    "Observation & Safety": "Observación y seguridad",
+    "Environment & Safety": "Entorno y seguridad",
+    "Infection Control": "Control de infecciones",
+    "Personal Care & Comfort": "Cuidado personal y comodidad",
+    "Mobility & Positioning": "Movilidad y posicionamiento",
+    "Communication & Emotional Support": "Comunicación y apoyo emocional",
+    "Dignity & Resident Rights": "Dignidad y derechos del residente",
+  },
+  fr: {
+    "Scope of Practice & Reporting": "Champ de pratique et signalement",
+    "Change in Condition": "Changement d’état",
+    "Observation & Safety": "Observation et sécurité",
+    "Environment & Safety": "Environnement et sécurité",
+    "Infection Control": "Contrôle des infections",
+    "Personal Care & Comfort": "Soins personnels et confort",
+    "Mobility & Positioning": "Mobilité et positionnement",
+    "Communication & Emotional Support": "Communication et soutien émotionnel",
+    "Dignity & Resident Rights": "Dignité et droits du résident",
+  },
+  ht: {
+    "Scope of Practice & Reporting": "Wòl mwen ak sa pou rapòte",
+    "Change in Condition": "Chanjman nan kondisyon",
+    "Observation & Safety": "Obsèvasyon ak sekirite",
+    "Environment & Safety": "Anviwònman ak sekirite",
+    "Infection Control": "Kontwòl enfeksyon",
+    "Personal Care & Comfort": "Swen pèsonèl ak konfò",
+    "Mobility & Positioning": "Mobilite ak pozisyonman",
+    "Communication & Emotional Support": "Kominikasyon ak sipò emosyonèl",
+    "Dignity & Resident Rights": "Diyite ak dwa rezidan an",
+  },
+};
+
 const UI_TEXT = {
   en: {
     resultsPage: "RESULTS PAGE",
-    analytics: "ANALYTICS",
-    reviewResults: "Review Your Results",
+    analytics: "EXAM INSIGHTS",
+    reviewResults: "Understand your scores | Exit to Exam Hub",
     readiness: "Readiness",
     readinessAssessment: "Readiness Assessment",
     categoryDiagnosis: "Category Diagnosis",
     whatToStudyNext: "What to Study Next",
     backToResults: "Back to Results",
-    backToAnalytics: "Back to Analytics",
+    backToAnalytics: "Back to Exam Insights",
     reviewQuestions: "Review Questions",
     startRemediation: "Start Remediation",
     exitToHome: "Exit to Exam Hub",
@@ -101,12 +148,26 @@ const UI_TEXT = {
     page: "Page",
     scoreLine: (percent, didPass) => `Score: ${percent}% – ${didPass ? "Pass" : "Fail"}`,
     nextStepTitle: "Next step",
-nextStepOnTrack: "You’re on track. Review missed questions, or start a short remediation set to reinforce weak spots.",
-nextStepBorderline: "You’re close. Start Remediation for targeted practice in the areas most likely to raise your score.",
-nextStepHighRisk: "Focus on safety-critical areas first. Start Remediation to practice high-risk decisions, then review missed questions.",
+    nextStepLeadOnTrack: "You are on track. Keep the momentum, but tighten the weak spots from this exam before the next one.",
+    nextStepLeadBorderline: "You are close. A focused review cycle can lift this result faster than broad studying.",
+    nextStepLeadHighRisk: "Start with the most critical gaps from this exam first so your next study cycle stays focused and useful.",
+    nextStepStep1: (category) => `Step 1: Work on ${category} first.`,
+    nextStepStep2: (chapter) => `Step 2: Review Chapter ${chapter} next to reinforce that decision pattern.`,
+    nextStepStep3HighRisk: "Step 3: Start Remediation, then review the missed questions from that same area.",
+    nextStepStep3Default: "Step 3: Review missed questions, then use a short Remediation set to reinforce the same pattern.",
+    improveScoreTitle: "How to improve your score",
+    improveScoreStep1Title: "Step 1 - Start a Remediation session",
+    improveScoreStep1Body: (categories) => `A 12-question practice session that helps you better understand how to think through the kinds of questions you missed in ${categories}.`,
+    improveScoreStep2Title: "Step 2 - Chapter review",
+    improveScoreStep2Lead: "Review these chapters to go back over the content and material connected to the questions you missed.",
+    improveScoreStep2CategoryLine: (category, chapter) => `For ${category}: ${chapter}.`,
+    analyticsStrongExplainer: "This area looks stronger because you answered more questions in this category correctly than in the others.",
+    analyticsNoStrongExplainer: "No clear strength is showing yet because this exam did not leave one category standing out as stronger than the rest.",
+    analyticsWeakExplainer: "These categories need more work because too many missed questions in this exam point back to them.",
+    analyticsHighRiskExplainer: "These categories were flagged because too many missed questions in this exam point back to them, and mistakes here can have a bigger impact on safety and exam results.",
     onceEnded: "Once the exam is ended, answers cannot be changed.",
     analyticsIntro:
-      "This section analyzes your exam performance to help guide your next study steps. It does not affect your exam score or result.",
+      "This section helps you understand your exam performance and choose your next study steps.",
     categoryExplainer:
   "What these categories mean: Categories represent the types of decisions the exam is testing (for example: safety judgment, recognizing changes, or knowing when to report). They reflect decision patterns, not isolated mistakes. A single question can influence more than one category. Use this to understand how you approached decisions—not just what you missed.",
     chapterExplainer:
@@ -123,7 +184,7 @@ nextStepHighRisk: "Focus on safety-critical areas first. Start Remediation to pr
     unanswered: "Unanswered",
     scoreByChapter: "Score by Chapter",
     scoreByChapterHint: "(Correct Answers / Total Questions)",
-    examPerformanceInsights: "Exam Performance Insights",
+    examPerformanceInsights: "Exam Insights",
     statusOnTrack: "On Track",
     statusBorderline: "Borderline",
     statusHighRisk: "High Risk",
@@ -153,7 +214,7 @@ timeExpiredExplanation:
   es: {
     resultsPage: "RESULTADOS",
     analytics: "ANÁLISIS",
-    reviewResults: "Revisar tus resultados",
+    reviewResults: "Entiende tus puntajes | Salir al Centro de Exámenes",
     readiness: "Preparación",
     readinessAssessment: "Evaluación de preparación",
     categoryDiagnosis: "Diagnóstico por categoría",
@@ -184,9 +245,23 @@ timeExpiredExplanation:
     page: "Pagina",
     scoreLine: (percent, didPass) => `Puntaje: ${percent}% – ${didPass ? "Aprobado" : "No aprobado"}`,
     nextStepTitle: "Siguiente paso",
-nextStepOnTrack: "Vas por buen camino. Revisa las preguntas falladas o inicia una remediación corta para reforzar puntos débiles.",
-nextStepBorderline: "Estás muy cerca. Inicia Remediación para practicar de forma dirigida las áreas que más subirán tu puntaje.",
-nextStepHighRisk: "Enfócate primero en áreas críticas de seguridad. Inicia Remediación para practicar decisiones de alto riesgo y luego revisa las preguntas falladas.",
+    nextStepLeadOnTrack: "Vas por buen camino. Mantén el impulso, pero corrige primero los puntos débiles de este examen.",
+    nextStepLeadBorderline: "Estás cerca. Un ciclo de revisión bien enfocado puede subir este resultado más rápido que estudiar todo.",
+    nextStepLeadHighRisk: "Empieza por los vacíos más críticos de este examen para que el próximo ciclo de estudio sea claro y útil.",
+    nextStepStep1: (category) => `Paso 1: Trabaja primero ${category}.`,
+    nextStepStep2: (chapter) => `Paso 2: Revisa el Capítulo ${chapter} para reforzar ese patrón de decisión.`,
+    nextStepStep3HighRisk: "Paso 3: Inicia Remediación y luego revisa las preguntas falladas de esa misma área.",
+    nextStepStep3Default: "Paso 3: Revisa las preguntas falladas y luego usa una Remediación corta para reforzar el mismo patrón.",
+    improveScoreTitle: "Cómo mejorar tu puntaje",
+    improveScoreStep1Title: "Paso 1 - Inicia una sesión de Remediación",
+    improveScoreStep1Body: (categories) => `Una sesión de práctica de 12 preguntas que te ayuda a entender mejor el razonamiento detrás de las preguntas que fallaste en ${categories}.`,
+    improveScoreStep2Title: "Paso 2 - Revisión de capítulos",
+    improveScoreStep2Lead: "Revisa estos capítulos para reforzar las ideas centrales detrás de las preguntas que fallaste.",
+    improveScoreStep2CategoryLine: (category, chapter) => `Para ${category}: ${chapter}.`,
+    analyticsStrongExplainer: "Esta área se ve más fuerte porque respondió correctamente más preguntas de esta categoría que de las demás.",
+    analyticsNoStrongExplainer: "Todavía no aparece una fortaleza clara porque este examen no dejó una categoría destacándose por encima de las otras.",
+    analyticsWeakExplainer: "Estas categorías necesitan más trabajo porque demasiadas preguntas falladas en este examen apuntan a ellas.",
+    analyticsHighRiskExplainer: "Estas categorías se marcaron porque demasiadas preguntas falladas en este examen apuntan a ellas, y los errores aquí pueden tener un mayor impacto en la seguridad y en el resultado del examen.",
     onceEnded: "Una vez finalizado el examen, las respuestas no se pueden cambiar.",
     analyticsIntro:
       "Esta sección analiza tu desempeño para guiar tus próximos pasos de estudio. No afecta tu puntaje ni tu resultado.",
@@ -236,7 +311,7 @@ timeExpiredExplanation:
   fr: {
     resultsPage: "RÉSULTATS",
     analytics: "ANALYSE",
-    reviewResults: "Revoir vos résultats",
+    reviewResults: "Comprendre vos scores | Quitter vers le hub d'examen",
     readiness: "Préparation",
     readinessAssessment: "Évaluation de préparation",
     categoryDiagnosis: "Diagnostic par catégorie",
@@ -267,9 +342,23 @@ timeExpiredExplanation:
     page: "Page",
     scoreLine: (percent, didPass) => `Score : ${percent}% – ${didPass ? "Réussi" : "Échoué"}`,
     nextStepTitle: "Prochaine étape",
-nextStepOnTrack: "Vous êtes sur la bonne voie. Revoyez les questions manquées ou commencez une courte remédiation pour renforcer vos points faibles.",
-nextStepBorderline: "Vous êtes proche. Commencez la remédiation pour une pratique ciblée des domaines qui amélioreront le plus votre score.",
-nextStepHighRisk: "Concentrez-vous d’abord sur les domaines critiques pour la sécurité. Commencez la remédiation pour pratiquer les décisions à haut risque, puis revoyez les questions manquées.",
+    nextStepLeadOnTrack: "Vous êtes sur la bonne voie. Gardez l’élan, mais resserrez d’abord les points faibles de cet examen.",
+    nextStepLeadBorderline: "Vous êtes proche. Un cycle de révision ciblé peut améliorer ce résultat plus vite qu’une révision trop large.",
+    nextStepLeadHighRisk: "Commencez par les lacunes les plus critiques de cet examen afin que votre prochain cycle d’étude reste clair et utile.",
+    nextStepStep1: (category) => `Étape 1 : Travaillez d’abord ${category}.`,
+    nextStepStep2: (chapter) => `Étape 2 : Révisez le Chapitre ${chapter} pour renforcer ce schéma de décision.`,
+    nextStepStep3HighRisk: "Étape 3 : Commencez la remédiation, puis revoyez les questions manquées dans cette même zone.",
+    nextStepStep3Default: "Étape 3 : Revoyez les questions manquées, puis utilisez une courte remédiation pour renforcer le même schéma.",
+    improveScoreTitle: "Comment améliorer votre score",
+    improveScoreStep1Title: "Étape 1 - Commencez une séance de remédiation",
+    improveScoreStep1Body: (categories) => `Une séance de pratique de 12 questions qui vous aide à mieux comprendre le raisonnement derrière les questions manquées en ${categories}.`,
+    improveScoreStep2Title: "Étape 2 - Révision des chapitres",
+    improveScoreStep2Lead: "Révisez ces chapitres pour renforcer les idées centrales derrière les questions manquées.",
+    improveScoreStep2CategoryLine: (category, chapter) => `Pour ${category} : ${chapter}.`,
+    analyticsStrongExplainer: "Cette zone semble plus forte parce que vous avez répondu correctement à plus de questions dans cette catégorie que dans les autres.",
+    analyticsNoStrongExplainer: "Aucune force claire ne se dégage encore, car cet examen n’a pas montré une catégorie nettement plus forte que les autres.",
+    analyticsWeakExplainer: "Ces catégories demandent plus de travail parce qu’un trop grand nombre de questions manquées dans cet examen y renvoient.",
+    analyticsHighRiskExplainer: "Ces catégories ont été signalées parce qu’un trop grand nombre de questions manquées dans cet examen y renvoient, et les erreurs ici peuvent avoir un impact plus important sur la sécurité et sur le résultat de l’examen.",
     onceEnded: "Une fois l’examen terminé, les réponses ne peuvent plus être modifiées.",
     analyticsIntro:
       "Cette section analyse vos résultats pour guider vos prochaines étapes d’étude. Elle n’affecte pas votre score ni votre résultat.",
@@ -319,7 +408,7 @@ timeExpiredExplanation:
   ht: {
     resultsPage: "REZILTA",
     analytics: "ANALIZ",
-    reviewResults: "Revize rezilta ou yo",
+    reviewResults: "Konprann nòt ou yo | Sòti pou ale nan Hub Egzamen an",
     readiness: "Preparasyon",
     readinessAssessment: "Evalyasyon preparasyon",
     categoryDiagnosis: "Dyagnostik pa kategori",
@@ -350,9 +439,23 @@ timeExpiredExplanation:
     page: "Paj",
     scoreLine: (percent, didPass) => `Nòt: ${percent}% – ${didPass ? "Pase" : "Pa pase"}`,
     nextStepTitle: "Pwochen etap",
-nextStepOnTrack: "Ou sou bon wout la. Revize kestyon ou rate yo, oswa kòmanse yon ti remedyasyon pou ranfòse pwen fèb yo.",
-nextStepBorderline: "Ou prèt pou w pase. Kòmanse Remedyasyon pou pratike zòn ki pi ka ogmante nòt ou.",
-nextStepHighRisk: "Fòk ou konsantre sou zòn sekirite ki pi enpòtan yo anvan. Kòmanse Remedyasyon pou pratike desizyon ki gen gwo risk, epi apre sa revize kestyon ou rate yo.",
+    nextStepLeadOnTrack: "Ou sou bon chemen an. Kenbe bon ritm nan, men sere pwen fèb egzamen sa a anvan pwochen an.",
+    nextStepLeadBorderline: "Ou prè. Yon sik revizyon ki byen vize ka monte rezilta sa a pi vit pase yon revizyon twò laj.",
+    nextStepLeadHighRisk: "Kòmanse ak twou ki pi grav nan egzamen sa a pou pwochen sik etid la rete klè epi itil.",
+    nextStepStep1: (category) => `Etap 1: Travay sou ${category} an premye.`,
+    nextStepStep2: (chapter) => `Etap 2: Revize Chapit ${chapter} apre sa pou ranfòse modèl desizyon sa a.`,
+    nextStepStep3HighRisk: "Etap 3: Kòmanse Remedyasyon, epi apre sa revize kestyon ou rate nan menm zòn nan.",
+    nextStepStep3Default: "Etap 3: Revize kestyon ou rate yo, epi sèvi ak yon ti Remedyasyon pou ranfòse menm modèl la.",
+    improveScoreTitle: "Kijan pou amelyore nòt ou",
+    improveScoreStep1Title: "Etap 1 - Kòmanse yon sesyon Remedyasyon",
+    improveScoreStep1Body: (categories) => `Yon sesyon pratik 12 kestyon ki ede ou konprann pi byen lojik ki dèyè kestyon ou rate yo nan ${categories}.`,
+    improveScoreStep2Title: "Etap 2 - Revizyon chapit yo",
+    improveScoreStep2Lead: "Revize chapit sa yo pou ranfòse lide prensipal ki dèyè kestyon ou rate yo.",
+    improveScoreStep2CategoryLine: (category, chapter) => `Pou ${category}: ${chapter}.`,
+    analyticsStrongExplainer: "Zòn sa a sanble pi fò paske ou te reponn plis kestyon nan kategori sa a kòrèk pase nan lòt yo.",
+    analyticsNoStrongExplainer: "Poko gen yon fòs ki byen klè paske egzamen sa a pa t montre yon kategori ki te kanpe pi fò pase lòt yo.",
+    analyticsWeakExplainer: "Kategori sa yo bezwen plis travay paske twòp kestyon ou rate nan egzamen sa a mennen tounen sou yo.",
+    analyticsHighRiskExplainer: "Yo make kategori sa yo paske twòp kestyon ou rate nan egzamen sa a mennen tounen sou yo, epi erè la yo ka gen plis efè sou sekirite ak sou rezilta egzamen an.",
     onceEnded: "Lè egzamen an fini, ou pa ka chanje repons yo ankò.",
     analyticsIntro:
       "Seksiyon sa a analize pèfòmans ou pou gide pwochen etap etid ou. Li pa chanje nòt oswa rezilta ou.",
@@ -401,8 +504,31 @@ timeExpiredExplanation:
   },
 };
 
+const UI_TEXT_OVERRIDES = {
+  en: {
+    analytics: "EXAM INSIGHTS",
+    backToAnalytics: "Back to Exam Insights",
+    examPerformanceInsights: "Exam Insights",
+  },
+  es: {
+    analytics: "IDEAS DEL EXAMEN",
+    backToAnalytics: "Volver a Ideas del Examen",
+    examPerformanceInsights: "Ideas del Examen",
+  },
+  fr: {
+    analytics: "APERÇUS DE L’EXAMEN",
+    backToAnalytics: "Retour aux aperçus de l’examen",
+    examPerformanceInsights: "Aperçus de l’examen",
+  },
+  ht: {
+    analytics: "APÈSI EGZAMEN AN",
+    backToAnalytics: "Tounen nan apèsi egzamen an",
+    examPerformanceInsights: "Apèsi egzamen an",
+  },
+};
+
 // safe fallback
-const T = UI_TEXT[lang] || UI_TEXT.en;
+const T = { ...(UI_TEXT[lang] || UI_TEXT.en), ...(UI_TEXT_OVERRIDES[lang] || {}) };
 const remediationUnavailableAttemptText =
   lang === "es"
     ? "La remediación no está disponible porque no se encontró el attempt id."
@@ -1440,6 +1566,32 @@ deliveredQuestionIds.forEach((qid) => {
   }
 });
 
+const chapterPerformance = [1, 2, 3, 4, 5].map((chapterId) => {
+  const stats = chapterStats[chapterId];
+  const percent = stats.total ? Math.round((stats.correct / stats.total) * 100) : null;
+  return {
+    chapterId,
+    correct: stats.correct,
+    total: stats.total,
+    incorrect: Math.max(0, stats.total - stats.correct),
+    percent,
+  };
+});
+
+const strongestChapter = [...chapterPerformance]
+  .filter((item) => item.total > 0)
+  .sort((a, b) => {
+    if ((b.percent || 0) !== (a.percent || 0)) return (b.percent || 0) - (a.percent || 0);
+    return (b.correct || 0) - (a.correct || 0);
+  })[0] || null;
+
+const weakestChapter = [...chapterPerformance]
+  .filter((item) => item.total > 0)
+  .sort((a, b) => {
+    if ((a.percent || 0) !== (b.percent || 0)) return (a.percent || 0) - (b.percent || 0);
+    return (b.incorrect || 0) - (a.incorrect || 0);
+  })[0] || null;
+
     return (
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         <div
@@ -1456,28 +1608,11 @@ deliveredQuestionIds.forEach((qid) => {
               textTransform: "uppercase",
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
+              justifyContent: "flex-start",
               gap: "12px",
             }}
           >
             <span>{T.resultsPage}</span>
-            <button
-              onClick={() => {
-                router.push(hubUrl);
-              }}
-              style={{
-                ...btnSecondary,
-                minWidth: "130px",
-                padding: "8px 12px",
-                fontSize: "13px",
-                opacity: 0.92,
-                background: "white",
-                color: "#536779",
-                border: "1px solid #cfdde6",
-              }}
-            >
-              {T.exitToHome}
-            </button>
           </div>
 
           <div
@@ -1552,31 +1687,6 @@ deliveredQuestionIds.forEach((qid) => {
   </div>
 </div>
 
-{deriveOverallStatusFromPercent(percent) && (
-  <div
-    style={{
-      margin: "0 auto 14px",
-      maxWidth: "640px",
-      ...softPanel,
-      padding: "12px 14px",
-      textAlign: "left",
-      background: "linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%)",
-    }}
-  >
-    <div style={{ fontWeight: 700, fontSize: "18px", marginBottom: "6px", color: "var(--heading)" }}>
-      {T.nextStepTitle}
-    </div>
-
-    <div style={{ fontSize: "14px", lineHeight: "1.65", color: "#334455" }}>
-      {deriveOverallStatusFromPercent(percent) === "On Track"
-        ? T.nextStepOnTrack
-        : deriveOverallStatusFromPercent(percent) === "High Risk"
-          ? T.nextStepHighRisk
-          : T.nextStepBorderline}
-    </div>
-  </div>
-)}
-
               <div
                 style={{
                   maxWidth: "640px",
@@ -1617,6 +1727,53 @@ deliveredQuestionIds.forEach((qid) => {
                   ))}
                 </div>
 
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: isNarrow ? "1fr" : "repeat(2, minmax(0, 1fr))",
+                    gap: 10,
+                    marginBottom: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      border: "1px solid #bddfc6",
+                      borderRadius: 12,
+                      background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)",
+                      padding: "12px 12px",
+                    }}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#476252", marginBottom: 6 }}>
+                      Strongest chapter
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#1f6f3d", marginBottom: 4 }}>
+                      {strongestChapter ? CHAPTER_NAMES[strongestChapter.chapterId] : "No chapter signal yet"}
+                    </div>
+                    <div style={{ fontSize: 14, color: "#476252", lineHeight: 1.5 }}>
+                      {strongestChapter ? `${strongestChapter.correct}/${strongestChapter.total} correct (${strongestChapter.percent}%)` : ""}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      border: "1px solid #eadba6",
+                      borderRadius: 12,
+                      background: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+                      padding: "12px 12px",
+                    }}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6f6340", marginBottom: 6 }}>
+                      Weakest chapter
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#7a5a00", marginBottom: 4 }}>
+                      {weakestChapter ? CHAPTER_NAMES[weakestChapter.chapterId] : "No chapter signal yet"}
+                    </div>
+                    <div style={{ fontSize: 14, color: "#6f6340", lineHeight: 1.5 }}>
+                      {weakestChapter ? `${weakestChapter.correct}/${weakestChapter.total} correct (${weakestChapter.percent}%)` : ""}
+                    </div>
+                  </div>
+                </div>
+
                 <div style={{ marginTop: "14px" }}>
   <div style={{ fontWeight: "bold", marginBottom: "6px", color: "var(--heading)" }}>
     {T.scoreByChapter}
@@ -1626,9 +1783,9 @@ deliveredQuestionIds.forEach((qid) => {
     {T.scoreByChapterHint}
   </div>
 
-  {[1, 2, 3, 4, 5].map((ch) => (
+  {chapterPerformance.map((chapter) => (
     <div
-      key={ch}
+      key={chapter.chapterId}
       style={{
         fontSize: "15px",
         marginBottom: "8px",
@@ -1644,10 +1801,10 @@ deliveredQuestionIds.forEach((qid) => {
       }}
     >
       <span style={{ color: "#334455", flex: 1, minWidth: 0, lineHeight: 1.45 }}>
-        {CHAPTER_NAMES[ch]}
+        {CHAPTER_NAMES[chapter.chapterId]}
       </span>
       <strong style={{ color: "var(--heading)", flexShrink: 0, whiteSpace: "nowrap" }}>
-        {chapterStats[ch].correct} / {chapterStats[ch].total}
+        {chapter.correct} / {chapter.total} {Number.isFinite(chapter.percent) ? `(${chapter.percent}%)` : ""}
       </strong>
     </div>
   ))}
@@ -1666,6 +1823,16 @@ deliveredQuestionIds.forEach((qid) => {
     ...shellFooter,
   }}
 >
+<button
+  onClick={() => {
+    setRationaleChapter(1);
+    setMode("rationales");
+  }}
+  style={{ ...btnSecondary, ...actionButtonStyle }}
+>
+  {T.reviewQuestions}
+</button>
+
 <button
   onClick={() => {
     const key = attemptId ? `cna:results:${attemptId}` : null;
@@ -1955,7 +2122,7 @@ if (mode === "rationales") {
   })()}
 </span>
           <button
-            onClick={() => setMode("analytics")}
+            onClick={() => setMode("finished")}
             style={{
               ...btnSecondary,
               minWidth: "130px",
@@ -1967,7 +2134,7 @@ if (mode === "rationales") {
               border: "1px solid #cfdde6",
             }}
           >
-            {T.backToAnalytics}
+            {T.backToResults}
           </button>
 
         </div>
@@ -2447,27 +2614,10 @@ let resultsPayload = null;
             textTransform: "uppercase",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "flex-start",
           }}
         >
           <span>{T.analytics}</span>
-          <button
-            onClick={() => {
-              router.push(hubUrl);
-            }}
-            style={{
-              ...btnSecondary,
-              minWidth: "130px",
-              padding: "8px 12px",
-              fontSize: "13px",
-              opacity: 0.92,
-              background: "white",
-              color: "#536779",
-              border: "1px solid #cfdde6",
-            }}
-          >
-            {T.exitToHome}
-          </button>
         </div>
 
         {/* Body */}
@@ -2577,241 +2727,157 @@ let resultsPayload = null;
   </div>
 )}
 
-{Array.isArray(resultsPayload?.category_diagnosis) &&
-  resultsPayload.category_diagnosis.length > 0 && (
-    <div
-      style={{
-        marginTop: "14px",
-        padding: "12px",
-        border: "1px solid #d4dee8",
-        borderRadius: "12px",
-        background: "linear-gradient(180deg, #f8fcff 0%, #f1f7fb 100%)",
-      }}
-    >
-      <div style={{ fontSize: "16px", fontWeight: "700", color: "#455867", marginBottom: "8px" }}>
-  {T.categoryDiagnosis}
-</div>
-      <div style={{ fontSize: "12px", color: "#555", lineHeight: "1.5", marginBottom: "10px" }}>
-  {T.categoryExplainer}
-
-</div>
-
-      {(() => {
-  const all = resultsPayload.category_diagnosis || [];
-  const strengths = all.filter((c) => c.label === "Strength");
-  const weaknesses = all.filter((c) => c.label === "Weakness");
-  const highRisk = all.filter(
-  (c) => c.label === "High Risk" || c.label === "High-Risk Flag"
-);
-
-
-  const colBox = {
-    border: "1px solid #dbe7ef",
-    borderRadius: "10px",
-    padding: "10px",
-    background: "#ffffff",
-    minHeight: "140px",
-    minWidth: 0,
+{(() => {
+  const categoryPriority = Array.isArray(resultsPayload?.category_priority) ? resultsPayload.category_priority : [];
+  const chapterGuidance = Array.isArray(resultsPayload?.chapter_guidance) ? resultsPayload.chapter_guidance : [];
+  const CATN = CATEGORY_NAMES[lang] || CATEGORY_NAMES.en;
+  const strongestCategory = categoryPriority.find((item) => item?.level === "Strong") || null;
+  const highRiskCategory = categoryPriority.find((item) => item?.is_high_risk && item?.level === "Weak") || null;
+  const weakerCategories = categoryPriority.filter((item) => item?.level === "Weak" || item?.level === "Developing");
+  const weakCategory =
+    highRiskCategory ||
+    weakerCategories[0] ||
+    null;
+  const secondaryWeakCategory =
+    weakerCategories.find((item) => item?.category_id && item.category_id !== weakCategory?.category_id) || null;
+  const chapterIds = Array.from(new Set(chapterGuidance.map((item) => item?.chapter_id).filter(Boolean))).slice(0, 3);
+  const remediationTargets = [weakCategory, ...categoryPriority.filter((item) => item?.category_id !== weakCategory?.category_id)]
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((item) => CATN[item.category_id] || item.category_id);
+  const remediationCategoryEntries = [weakCategory, secondaryWeakCategory].filter(Boolean);
+  const cardBox = {
+    borderRadius: "12px",
+    padding: "14px",
+    border: "1px solid #d6e1e8",
+    background: "linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%)",
   };
-
-  const colTitle = (text, extra = {}) => (
-    <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "8px", ...extra }}>
-      {text}
-    </div>
-  );
-
-const CATEGORY_NAMES_BY_LANG = {
-  es: {
-    "Scope of Practice & Reporting": "Alcance de la práctica y qué reportar",
-    "Change in Condition": "Cambio en la condición",
-    "Observation & Safety": "Observación y seguridad",
-    "Environment & Safety": "Entorno y seguridad",
-    "Infection Control": "Control de infecciones",
-    "Personal Care & Comfort": "Cuidado personal y comodidad",
-    "Mobility & Positioning": "Movilidad y posicionamiento",
-    "Communication & Emotional Support": "Comunicación y apoyo emocional",
-    "Dignity & Resident Rights": "Dignidad y derechos del residente",
-  },
-
-  fr: {
-    "Scope of Practice & Reporting": "Champ de pratique et signalement",
-    "Change in Condition": "Changement d’état",
-    "Observation & Safety": "Observation et sécurité",
-    "Environment & Safety": "Environnement et sécurité",
-    "Infection Control": "Contrôle des infections",
-    "Personal Care & Comfort": "Soins personnels et confort",
-    "Mobility & Positioning": "Mobilité et positionnement",
-    "Communication & Emotional Support": "Communication et soutien émotionnel",
-    "Dignity & Resident Rights": "Dignité et droits du résident",
-  },
-
-  ht: {
-    "Scope of Practice & Reporting": "Wòl mwen ak sa pou rapòte",
-    "Change in Condition": "Chanjman nan kondisyon",
-    "Observation & Safety": "Obsèvasyon ak sekirite",
-    "Environment & Safety": "Anviwònman ak sekirite",
-    "Infection Control": "Kontwòl enfeksyon",
-    "Personal Care & Comfort": "Swen pèsonèl ak konfò",
-    "Mobility & Positioning": "Mobilite ak pozisyonman",
-    "Communication & Emotional Support": "Kominikasyon ak sipò emosyonèl",
-    "Dignity & Resident Rights": "Diyite ak dwa rezidan an",
-  },
-};
-
-const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
-
-  const renderList = (items, emptyText) => {
-    if (!items.length) {
-      return <div style={{ fontSize: "12px", color: "#666" }}>{emptyText}</div>;
-    }
-    return items.map((c) => (
-      <div key={c.category_id} style={{ fontSize: "13px", marginBottom: "6px" }}>
-        {(CATN && CATN[c.category_id]) ? CATN[c.category_id] : c.category_id}
-      </div>
-    ));
-  };
+  const categoryChapterLines = remediationCategoryEntries
+    .map((item) => {
+      const guide = CATEGORY_GUIDE[item?.category_id];
+      if (!guide) return null;
+      const chapterId = guide.primary?.[0] || null;
+      if (!chapterId) return null;
+      const chapterText = `${A.chapter} ${chapterId}${CHN?.[chapterId] ? ` - ${CHN[chapterId]}` : ""}`;
+      return T.improveScoreStep2CategoryLine(CATN[item.category_id] || item.category_id, chapterText);
+    })
+    .filter(Boolean);
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
-        gap: "10px",
-        marginTop: "10px",
-      }}
-    >
-      <div style={{ ...colBox, background: "#f5fff7", border: "1px solid #d8eadf" }}>
-        {colTitle(T.colStrengths, { color: "#2f6b43" })}
-        {renderList(strengths, T.noneStrengths)}
+    <div style={{ display: "grid", gap: "14px", marginTop: "14px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isNarrow ? "1fr" : "repeat(2, minmax(0, 1fr))",
+          gap: "12px",
+        }}
+      >
+        <div style={{ ...cardBox, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
+          <div style={{ fontSize: "15px", fontWeight: "700", color: "#476252", marginBottom: "6px" }}>Strongest area</div>
+          <div style={{ fontSize: "20px", fontWeight: "800", color: "#1f6f3d", marginBottom: "6px" }}>
+            {strongestCategory
+              ? `${CATN[strongestCategory.category_id] || strongestCategory.category_id}${
+                  Number.isFinite(Number(strongestCategory?.accuracy))
+                    ? ` (${Math.round(Number(strongestCategory.accuracy) * 100)}%)`
+                    : ""
+                }`
+              : T.noneStrengths}
+          </div>
+          <div style={{ fontSize: "13px", color: "#476252", lineHeight: "1.55" }}>
+            {strongestCategory ? T.analyticsStrongExplainer : T.analyticsNoStrongExplainer}
+          </div>
+        </div>
+
+        <div
+          style={{
+            ...cardBox,
+            borderColor: highRiskCategory ? "#efc2c2" : "#eadba6",
+            background: highRiskCategory
+              ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
+              : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+          }}
+        >
+          <div style={{ fontSize: "15px", fontWeight: "700", color: highRiskCategory ? "#6f4747" : "#6f6340", marginBottom: "6px" }}>
+            Needs work now
+          </div>
+          <div style={{ fontSize: "20px", fontWeight: "800", color: highRiskCategory ? "var(--brand-red)" : "#7a5a00", marginBottom: "6px" }}>
+            {weakCategory
+              ? `${CATN[weakCategory.category_id] || weakCategory.category_id}${
+                  Number.isFinite(Number(weakCategory?.accuracy))
+                    ? ` (${Math.round(Number(weakCategory.accuracy) * 100)}%)`
+                    : ""
+                }`
+              : T.noneWeaknesses}
+          </div>
+          {secondaryWeakCategory?.category_id ? (
+            <div style={{ fontSize: "14px", color: highRiskCategory ? "#6f4747" : "#6f6340", lineHeight: "1.55", fontWeight: 700 }}>
+              Secondary area:{" "}
+              {`${CATN[secondaryWeakCategory.category_id] || secondaryWeakCategory.category_id}${
+                Number.isFinite(Number(secondaryWeakCategory?.accuracy))
+                  ? ` (${Math.round(Number(secondaryWeakCategory.accuracy) * 100)}%)`
+                  : ""
+              }`}
+            </div>
+          ) : null}
+          <div style={{ fontSize: "13px", color: highRiskCategory ? "#6f4747" : "#6f6340", lineHeight: "1.55" }}>
+            {highRiskCategory ? T.analyticsHighRiskExplainer : T.analyticsWeakExplainer}
+          </div>
+        </div>
       </div>
 
-      <div style={{ ...colBox, background: "#fffdf7", border: "1px solid #eadfbf" }}>
-        {colTitle(T.colWeaknesses, { color: "#7a5a00" })}
-        {renderList(weaknesses, T.noneWeaknesses)}
-      </div>
-
-      <div style={{ ...colBox, background: "#fff8f8", border: "1px solid #efcfcf" }}>
-        {colTitle(T.colHighRisk, { color: "var(--brand-red)" })}
-        {renderList(highRisk, T.noneHighRisk)}
+      <div style={{ ...cardBox, borderColor: "#d4dee8", background: "linear-gradient(180deg, #f8fcff 0%, #f1f7fb 100%)" }}>
+        <div style={{ fontSize: "16px", fontWeight: "700", color: "#455867", marginBottom: "8px" }}>
+          {T.improveScoreTitle}
+        </div>
+        <div style={{ display: "grid", gap: "8px" }}>
+          {remediationTargets.length ? (
+            <div
+              style={{
+                borderRadius: "10px",
+                padding: "10px 12px",
+                background: "rgba(255,255,255,0.75)",
+                border: "1px solid rgba(120, 145, 166, 0.18)",
+                display: "grid",
+                gap: "4px",
+              }}
+            >
+              <div style={{ fontSize: "14px", lineHeight: "1.6", color: "#2f4150", fontWeight: 700 }}>
+                {T.improveScoreStep1Title}
+              </div>
+              <div style={{ fontSize: "14px", lineHeight: "1.6", color: "#2f4150" }}>
+                {T.improveScoreStep1Body(remediationTargets.join(" and "))}
+              </div>
+            </div>
+          ) : null}
+          {categoryChapterLines.length ? (
+            <div
+              style={{
+                borderRadius: "10px",
+                padding: "10px 12px",
+                background: "rgba(255,255,255,0.75)",
+                border: "1px solid rgba(120, 145, 166, 0.18)",
+                display: "grid",
+                gap: "4px",
+              }}
+            >
+              <div style={{ fontSize: "14px", lineHeight: "1.6", color: "#2f4150", fontWeight: 700 }}>
+                {T.improveScoreStep2Title}
+              </div>
+              <div style={{ fontSize: "14px", lineHeight: "1.6", color: "#2f4150" }}>
+                {T.improveScoreStep2Lead}
+              </div>
+              {categoryChapterLines.map((line, index) => (
+                <div key={`improve-score-chapter-${index}`} style={{ fontSize: "14px", lineHeight: "1.6", color: "#2f4150" }}>
+                  {line}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
 })()}
-
-    </div>
-  )}
-{Array.isArray(resultsPayload?.chapter_guidance) &&
-  resultsPayload.chapter_guidance.length > 0 && (
-    <div
-      style={{
-        marginTop: "16px",
-        padding: "14px",
-        border: "1px solid #d4dee8",
-        borderRadius: "12px",
-        background: "linear-gradient(180deg, #f8fcff 0%, #f1f7fb 100%)",
-      }}
-    >
-      <div style={{ fontSize: "16px", fontWeight: "700", color: "#455867", marginBottom: "8px" }}>
-  {T.whatToStudyNext}
-</div>
-<div style={{ fontSize: "12px", color: "#555", lineHeight: "1.5", marginBottom: "10px" }}>
-  {T.chapterExplainer}
-</div>
-
-            <div style={{ fontSize: "14px", color: "#222", lineHeight: "1.6" }}>
-        {(() => {
-          const topCategories = Array.isArray(resultsPayload?.category_priority)
-            ? resultsPayload.category_priority.slice(0, 2)
-            : [];
-
-          const line = (label, items) => {
-            if (!items.length) return null;
-            return (
-              <div style={{ marginTop: "2px" }}>
-                <div style={{ fontWeight: "700", color: "#555", marginBottom: "2px" }}>{label}</div>
-                {items.map((it) => (
-                  <div key={`${label}-${it.chapter_id}`} style={{ color: "#333", marginBottom: "2px" }}>
-                    {A.chapter} {it.chapter_id}
-                    {CHN?.[it.chapter_id] ? ` - ${CHN[it.chapter_id]}` : ""}
-                  </div>
-                ))}
-              </div>
-            );
-          };
-
-          if (topCategories.length > 0) {
-            return topCategories.map((category) => {
-              const guide = CATEGORY_GUIDE[category.category_id];
-              if (!guide) return null;
-
-              return (
-                <div
-                  key={category.category_id}
-                  style={{
-                    border: "1px solid #d8e4ec",
-                    borderRadius: "10px",
-                    padding: "12px",
-                    background: "linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%)",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <div style={{ fontSize: "15px", fontWeight: "700", marginBottom: "2px" }}>
-                    {CATN?.[category.category_id] || category.category_id}
-                  </div>
-                  <div style={{ color: "#516677", marginBottom: "6px" }}>
-                    {localizeLensTitle(guide.lens)}
-                  </div>
-
-                  {line(A.primary, guide.primary.map((chapter_id) => ({ chapter_id })))}
-                  {line(A.secondary, guide.secondary.map((chapter_id) => ({ chapter_id })))}
-                </div>
-              );
-            });
-          }
-
-          // Fallback for older payloads
-          const order = [];
-          const groups = {};
-
-          (resultsPayload.chapter_guidance || []).forEach((g) => {
-            const lensTitle = localizeLensTitle(extractGuidanceLens(g.guidance_text));
-            if (!groups[lensTitle]) {
-              groups[lensTitle] = { primary: [], secondary: [] };
-              order.push(lensTitle);
-            }
-
-            const p = String(g.priority || "").toLowerCase();
-            const bucket = p === "primary" ? "primary" : "secondary";
-
-            if (!groups[lensTitle][bucket].some((x) => x.chapter_id === g.chapter_id)) {
-              groups[lensTitle][bucket].push({ chapter_id: g.chapter_id });
-            }
-          });
-
-          return order.map((lensTitle) => (
-            <div
-              key={lensTitle}
-              style={{
-                border: "1px solid #d8e4ec",
-                borderRadius: "10px",
-                padding: "12px",
-                background: "linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%)",
-                marginBottom: "12px",
-              }}
-            >
-              <div style={{ fontSize: "15px", fontWeight: "700", marginBottom: "2px" }}>
-                {lensTitle}
-              </div>
-
-              {line(A.primary, groups[lensTitle].primary)}
-              {line(A.secondary, groups[lensTitle].secondary)}
-            </div>
-          ));
-        })()}
-      </div>
-
-    </div>
-  )}
 
           <div
             style={{
@@ -2824,43 +2890,85 @@ const CATN = CATEGORY_NAMES_BY_LANG[lang] || null;
               marginTop: "18px",
             }}
           >
-            <button
-              onClick={() => {
-                setMode("finished");
-              }}
-              style={{ ...btnSecondary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
-            >
-              {T.backToResults}
-            </button>
+            {(isNarrow
+              ? [
+                  <button
+                    key="start-remediation"
+                    onClick={() => {
+                      if (!attemptId) {
+                        alert(remediationUnavailableAttemptText);
+                        return;
+                      }
 
-            <button
-              onClick={() => {
-                setRationaleChapter(1);
-                setMode("rationales");
-              }}
-              style={{ ...btnSecondary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
-            >
-              {T.reviewQuestions}
-            </button>
+                      if (!resultsPayload) {
+                        alert(remediationUnavailablePayloadText);
+                        return;
+                      }
 
-            <button
-              onClick={() => {
-                if (!attemptId) {
-                  alert(remediationUnavailableAttemptText);
-                  return;
-                }
+                      router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}${useServer ? "&storage=server" : ""}`);
+                    }}
+                    style={{ ...btnPrimary, minWidth: "180px", width: "100%" }}
+                  >
+                    {T.startRemediation}
+                  </button>,
+                  <button
+                    key="back-results"
+                    onClick={() => {
+                      setMode("finished");
+                    }}
+                    style={{ ...btnSecondary, minWidth: "180px", width: "100%" }}
+                  >
+                    {T.backToResults}
+                  </button>,
+                  <button
+                    key="exit-hub"
+                    onClick={() => {
+                      router.push(hubUrl);
+                    }}
+                    style={{ ...btnSecondary, minWidth: "180px", width: "100%" }}
+                  >
+                    {T.exitToHome}
+                  </button>,
+                ]
+              : [
+                  <button
+                    key="back-results"
+                    onClick={() => {
+                      setMode("finished");
+                    }}
+                    style={{ ...btnSecondary, minWidth: "180px", width: "auto" }}
+                  >
+                    {T.backToResults}
+                  </button>,
+                  <button
+                    key="exit-hub"
+                    onClick={() => {
+                      router.push(hubUrl);
+                    }}
+                    style={{ ...btnSecondary, minWidth: "180px", width: "auto" }}
+                  >
+                    {T.exitToHome}
+                  </button>,
+                  <button
+                    key="start-remediation"
+                    onClick={() => {
+                      if (!attemptId) {
+                        alert(remediationUnavailableAttemptText);
+                        return;
+                      }
 
-                if (!resultsPayload) {
-                  alert(remediationUnavailablePayloadText);
-                  return;
-                }
+                      if (!resultsPayload) {
+                        alert(remediationUnavailablePayloadText);
+                        return;
+                      }
 
-                router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}${useServer ? "&storage=server" : ""}`);
-              }}
-              style={{ ...btnPrimary, minWidth: "180px", width: isNarrow ? "100%" : "auto" }}
-            >
-              {T.startRemediation}
-            </button>
+                      router.push(`/remediation?attemptId=${encodeURIComponent(attemptId)}&lang=${lang}${useServer ? "&storage=server" : ""}`);
+                    }}
+                    style={{ ...btnPrimary, minWidth: "180px", width: "auto" }}
+                  >
+                    {T.startRemediation}
+                  </button>,
+                ])}
 
           </div>
 
