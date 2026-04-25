@@ -25,7 +25,9 @@ export default function ExamClient({ form, bankById, lang }) {
   const forceServer = storageMode === "server";
   const useServer = forceServer || isServerPersistenceEnabled();
   const serverUser = forceServer ? "dev-exam-server-user" : null;
+  const searchParamsKey = sp.toString();
   const queryAttemptId = sp.get("attempt_id");
+  const queryMode = sp.get("mode");
   const queryTestId = Number(sp.get("test_id") || 0) || null;
   const bootAttemptedRef = useRef(false);
   const persistedFinalPayloadRef = useRef(null);
@@ -509,26 +511,59 @@ const UI_TEXT_OVERRIDES = {
     analytics: "EXAM INSIGHTS",
     backToAnalytics: "Back to Exam Insights",
     examPerformanceInsights: "Exam Insights",
+    analyticsIntro:
+      "This section helps you understand your exam performance and choose your next study steps.",
   },
   es: {
     analytics: "IDEAS DEL EXAMEN",
     backToAnalytics: "Volver a Ideas del Examen",
     examPerformanceInsights: "Ideas del Examen",
+    analyticsIntro:
+      "Esta sección te ayuda a entender tu desempeño en el examen y a elegir tus próximos pasos de estudio.",
   },
   fr: {
     analytics: "APERÇUS DE L’EXAMEN",
     backToAnalytics: "Retour aux aperçus de l’examen",
     examPerformanceInsights: "Aperçus de l’examen",
+    analyticsIntro:
+      "Cette section vous aide à comprendre vos résultats à l’examen et à choisir vos prochaines étapes d’étude.",
   },
   ht: {
     analytics: "APÈSI EGZAMEN AN",
     backToAnalytics: "Tounen nan apèsi egzamen an",
     examPerformanceInsights: "Apèsi egzamen an",
+    analyticsIntro:
+      "Seksyon sa a ede ou konprann pèfòmans ou nan egzamen an epi chwazi pwochen etap etid ou.",
+  },
+};
+
+const UI_TEXT_LANGUAGE_SWEEP = {
+  es: {
+    improveScoreStep1Body: (categories) =>
+      `Una sesión de práctica de 12 preguntas que te ayuda a entender mejor cómo pensar este tipo de preguntas que fallaste en ${categories}.`,
+    improveScoreStep2Lead:
+      "Revisa estos capítulos para volver a estudiar el contenido y el material conectados con las preguntas que fallaste.",
+  },
+  fr: {
+    improveScoreStep1Body: (categories) =>
+      `Une séance de pratique de 12 questions qui vous aide à mieux comprendre comment réfléchir au type de questions que vous avez manquées en ${categories}.`,
+    improveScoreStep2Lead:
+      "Révisez ces chapitres pour revenir sur le contenu et le matériel liés aux questions que vous avez manquées.",
+  },
+  ht: {
+    improveScoreStep1Body: (categories) =>
+      `Yon sesyon pratik 12 kestyon ki ede ou pi byen konprann kijan pou reflechi sou kalite kestyon ou te rate yo nan ${categories}.`,
+    improveScoreStep2Lead:
+      "Revize chapit sa yo pou tounen sou kontni ak materyèl ki konekte ak kestyon ou te rate yo.",
   },
 };
 
 // safe fallback
-const T = { ...(UI_TEXT[lang] || UI_TEXT.en), ...(UI_TEXT_OVERRIDES[lang] || {}) };
+const T = {
+  ...(UI_TEXT[lang] || UI_TEXT.en),
+  ...(UI_TEXT_OVERRIDES[lang] || {}),
+  ...(UI_TEXT_LANGUAGE_SWEEP[lang] || {}),
+};
 const remediationUnavailableAttemptText =
   lang === "es"
     ? "La remediación no está disponible porque no se encontró el attempt id."
@@ -865,7 +900,10 @@ function pauseAndPersist() {
         if (saved.answersByQid && typeof saved.answersByQid === "object") setAnswersByQid(saved.answersByQid);
         if (saved.reviewByQid && typeof saved.reviewByQid === "object") setReviewByQid(saved.reviewByQid);
         if (saved.resultsPayload) setResultsPayload(saved.resultsPayload);
-        if (typeof saved.mode === "string") setMode(normalizeCompletedReviewMode(saved.mode));
+        if (typeof saved.mode === "string") {
+          const normalizedMode = normalizeCompletedReviewMode(saved.mode);
+          setMode(queryMode === "analytics" ? "analytics" : normalizedMode);
+        }
         if (typeof saved.summaryPage === "number") setSummaryPage(saved.summaryPage);
         if (typeof saved.summaryFilter === "string") setSummaryFilter(saved.summaryFilter);
 
@@ -1050,7 +1088,7 @@ if (typeof saved.pausedRemainingSec === "number") {
   setRemainingSec(START_SEC);
 }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [STORAGE_KEY, bankById, form.exam_form_id, hubUrl, lang, queryAttemptId, queryTestId, router, serverUser, testId, useServer]);
+}, [STORAGE_KEY, bankById, form.exam_form_id, hubUrl, lang, router, searchParamsKey, serverUser, testId, useServer]);
 
   // ----------------------------
   // Tick countdown (based on endAtMs)

@@ -140,7 +140,7 @@ const [loopStateVersion, setLoopStateVersion] = useState(0);
 
 const examReturnUrl = useMemo(() => {
   const sourceAttemptId = resultsPayload?.attempt_id || attemptIdParam || null;
-  return `/exam?lang=${lang}${sourceAttemptId ? `&attempt_id=${encodeURIComponent(sourceAttemptId)}` : ""}${forceServer ? "&storage=server" : ""}`;
+  return `/exam?lang=${lang}${sourceAttemptId ? `&attempt_id=${encodeURIComponent(sourceAttemptId)}` : ""}&mode=analytics${forceServer ? "&storage=server" : ""}`;
 }, [attemptIdParam, forceServer, lang, resultsPayload?.attempt_id]);
 
 function refreshLoopState(payload = resultsPayload) {
@@ -568,6 +568,8 @@ const UI_TEXT_OVERRIDES = {
       "You may complete up to 3 remediation sessions for the same focus areas. Remediation is optional, but doing more than one session can help when you still need support.",
     btnBackToResults: "Back to Exam Insights",
     btnBackToResultsDone: "Back to Exam Insights",
+    completeNavResults:
+      "Back to Exam Insights returns you to your exam guidance, where you can review the study plan and start another remediation set if needed.",
   },
   es: {
     introBody: (cats) =>
@@ -578,6 +580,8 @@ const UI_TEXT_OVERRIDES = {
       "Puedes completar hasta 3 sesiones de remediación para las mismas áreas de enfoque. La remediación es opcional, pero hacer más de una sesión puede ayudarte cuando todavía necesitas apoyo.",
     btnBackToResults: "Volver a Ideas del Examen",
     btnBackToResultsDone: "Volver a Ideas del Examen",
+    completeNavResults:
+      "Volver a Ideas del Examen te lleva a la guÃ­a de tu examen, donde puedes revisar el plan de estudio e iniciar otro set de remediaciÃ³n si lo necesitas.",
   },
   fr: {
     introBody: (cats) =>
@@ -588,6 +592,8 @@ const UI_TEXT_OVERRIDES = {
       "Vous pouvez faire jusqu'à 3 sessions de remédiation pour les mêmes domaines de travail. La remédiation reste facultative, mais faire plus d'une session peut aider si vous avez encore besoin de soutien.",
     btnBackToResults: "Retour aux aperçus de l’examen",
     btnBackToResultsDone: "Retour aux aperçus de l’examen",
+    completeNavResults:
+      "Retour aux aperçus de l’examen vous ramène à votre guide d’examen, où vous pouvez revoir le plan d’étude et commencer une autre série de remédiation si nécessaire.",
   },
   ht: {
     introBody: (cats) =>
@@ -598,6 +604,8 @@ const UI_TEXT_OVERRIDES = {
       "Ou ka fè jiska 3 sesyon remedyasyon pou menm zòn fokis yo. Remedyasyon an opsyonèl, men fè plis pase yon sesyon ka ede lè ou toujou bezwen plis sipò.",
     btnBackToResults: "Tounen nan apèsi egzamen an",
     btnBackToResultsDone: "Tounen nan apèsi egzamen an",
+    completeNavResults:
+      "Tounen nan Apèsi Egzamen an mennen ou tounen nan gid egzamen ou a, kote ou ka revize plan etid la epi kòmanse yon lòt set remedyasyon si sa nesesè.",
   },
 };
 
@@ -694,13 +702,19 @@ function getDisplayBlocks(q) {
 
   if (!q || !q.variants) return blocks;
 
-  if (lang === "en") blocks.push({ label: null, v: q.variants.en });
-  if (lang === "es") blocks.push({ label: null, v: q.variants.es });
-  if (lang === "fr") blocks.push({ label: null, v: q.variants.fr });
-  if (lang === "ht") blocks.push({ label: null, v: q.variants.ht });
+  if (lang === "en") blocks.push({ label: "", v: q.variants.en });
+  if (lang === "es") blocks.push({ label: "", v: q.variants.es });
+  if (lang === "fr") {
+    blocks.push({ label: "EN", v: q.variants.en });
+    blocks.push({ label: "FR", v: q.variants.fr });
+  }
+  if (lang === "ht") {
+    blocks.push({ label: "EN", v: q.variants.en });
+    blocks.push({ label: "HT", v: q.variants.ht });
+  }
 
   // Safe fallback
-  if (blocks.length === 0) blocks.push({ label: null, v: q.variants.en });
+  if (blocks.length === 0) blocks.push({ label: "EN", v: q.variants.en });
 
   return blocks;
 }
@@ -882,10 +896,17 @@ useEffect(() => {
   return (q.variants && q.variants.en) || null;
 }, [q]);
 
+const isBilingualSupport = lang === "fr" || lang === "ht";
+const variantSupport = useMemo(() => {
+  if (!q || !isBilingualSupport) return null;
+  return (q.variants && q.variants[lang]) || null;
+}, [isBilingualSupport, q, lang]);
+
 const variantPrimary = useMemo(() => {
   if (!q) return null;
+  if (isBilingualSupport) return variantEn;
   return (q.variants && q.variants[lang]) || (q.variants && q.variants.en) || null;
-}, [q, lang]);
+}, [isBilingualSupport, q, lang, variantEn]);
 
 
   function persistSessionPatch(patch) {
@@ -1746,9 +1767,9 @@ if (view === "complete" && session) {
   const isLast = session.currentIndex >= (session.questionIds || []).length - 1;
   
 
-const rationaleEn = q?.variants?.en?.rationale || null;
-const rationaleSupport = null;
+const rationaleEn = variantEn?.rationale || null;
 const rationalePrimary = q?.variants?.[lang]?.rationale || rationaleEn || null;
+const rationaleSupport = null;
 
 const whyPrimary = rationalePrimary?.why_correct || null;
 const sigPrimary = rationalePrimary?.prometric_signal || null;
@@ -1823,18 +1844,20 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
   {getDisplayBlocks(q).map((b, idx) => (
     <div key={`${b.label || "primary"}_${idx}`} style={{ marginTop: idx === 0 ? 0 : 12 }}>
       <div style={{ fontSize: isNarrow ? 17 : 20, fontWeight: 600, lineHeight: isNarrow ? 1.42 : 1.5, color: "#1e3342" }}>
-        <span
-          style={{
-            display: "inline-block",
-            fontWeight: "bold",
-            fontSize: isNarrow ? 12 : 13,
-            color: "#607282",
-            marginRight: 8,
-            letterSpacing: "0.04em",
-          }}
-        >
-          {b.label}
-        </span>
+        {b.label ? (
+          <span
+            style={{
+              display: "inline-block",
+              fontWeight: "bold",
+              fontSize: isNarrow ? 12 : 13,
+              color: "#607282",
+              marginRight: 8,
+              letterSpacing: "0.04em",
+            }}
+          >
+            {b.label}
+          </span>
+        ) : null}
         {b.v?.question_text}
       </div>
     </div>
