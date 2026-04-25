@@ -546,6 +546,19 @@ const remediationUnavailablePayloadText =
         ? "Remedyasyon an pa disponib paske done rezilta yo pa jwenn."
         : "Remediation is unavailable because the results payload was not found.";
 
+function normalizeCompletedReviewMode(savedMode) {
+  if (
+    savedMode === "finished" ||
+    savedMode === "time_expired" ||
+    savedMode === "analytics" ||
+    savedMode === "rationales"
+  ) {
+    return "finished";
+  }
+  if (savedMode === "confirm_exit") return "exam";
+  return savedMode;
+}
+
 
 // ----------------------------
   // Random selection helpers (NEW)
@@ -852,7 +865,7 @@ function pauseAndPersist() {
         if (saved.answersByQid && typeof saved.answersByQid === "object") setAnswersByQid(saved.answersByQid);
         if (saved.reviewByQid && typeof saved.reviewByQid === "object") setReviewByQid(saved.reviewByQid);
         if (saved.resultsPayload) setResultsPayload(saved.resultsPayload);
-        if (typeof saved.mode === "string") setMode(saved.mode === "confirm_exit" ? "exam" : saved.mode);
+        if (typeof saved.mode === "string") setMode(normalizeCompletedReviewMode(saved.mode));
         if (typeof saved.summaryPage === "number") setSummaryPage(saved.summaryPage);
         if (typeof saved.summaryFilter === "string") setSummaryFilter(saved.summaryFilter);
 
