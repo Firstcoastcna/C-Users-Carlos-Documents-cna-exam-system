@@ -159,7 +159,7 @@ function PracticeInner() {
   const forceServer = storageMode === "server";
   const serverUser = forceServer ? "dev-practice-server-user" : null;
   const [isNarrow, setIsNarrow] = useState(false);
-  const [mode, setMode] = useState("chapter");
+  const [mode, setMode] = useState(null);
   const [count, setCount] = useState(5);
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState("Change in Condition");
@@ -639,6 +639,16 @@ function PracticeInner() {
     startPractice: t("Start Practice", "Comenzar practica", "Commencer la pratique", "KÃƒÂ²manse pratik"),
   };
 
+  if (lang === "ht") {
+    TEXT.modesTitle = "Chwazi yon mòd pratik";
+    TEXT.categoryGroup1 = "Obsève epi konprann";
+    TEXT.categoryGroup3 = "Respekte, deplase, epi rapòte";
+    TEXT.chapterDesc = "Konsantre sou yon chapit a la fwa pou yon revizyon pa sijè.";
+    TEXT.resumeBody = "Kontinye dènye sesyon pratik gide ou a kote ou te rete a.";
+    TEXT.progressHint = "Wè sesyon ou fini yo ak nòt resan yo";
+    TEXT.startPractice = "Kòmanse pratik";
+  }
+
   const countOptions = [5, 10, 15];
   const chapterOptions = [1, 2, 3, 4, 5];
   const categoryOptions = [
@@ -702,7 +712,13 @@ function PracticeInner() {
   ];
 
   const selectedModeLabel =
-    mode === "chapter" ? TEXT.modeChapter : mode === "category" ? TEXT.modeCategory : TEXT.modeMixed;
+    mode === "chapter"
+      ? TEXT.modeChapter
+      : mode === "category"
+        ? TEXT.modeCategory
+        : mode === "mixed"
+          ? TEXT.modeMixed
+          : t("Choose a practice mode", "Elija un modo de practica", "Choisissez un mode de pratique", "Chwazi yon mòd pratik");
   const selectedTargetLabel =
     mode === "chapter"
       ? chapterLabel(selectedChapter)
@@ -789,6 +805,7 @@ function PracticeInner() {
   };
 
   function startPractice() {
+    if (!mode) return;
     const base = `/practice-session?lang=${lang}&mode=${encodeURIComponent(mode)}&count=${encodeURIComponent(count)}${forceServer ? "&storage=server" : ""}`;
     if (mode === "chapter") {
       router.push(`${base}&chapter=${encodeURIComponent(selectedChapter)}`);
@@ -1032,22 +1049,6 @@ function PracticeInner() {
                 }}
               >
                 <button
-                  onClick={() => setMode("chapter")}
-                  style={{
-                    ...btnSecondary,
-                    minWidth: 0,
-                    width: "100%",
-                    padding: isNarrow ? "11px 8px" : "12px 10px",
-                    fontWeight: 800,
-                    fontSize: isNarrow ? 13 : 14,
-                    background: mode === "chapter" ? "white" : theme.secondaryBg,
-                    border: mode === "chapter" ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
-                    boxShadow: mode === "chapter" ? "0 8px 18px rgba(37, 131, 166, 0.12)" : "none",
-                  }}
-                >
-                  {TEXT.modeChapter}
-                </button>
-                <button
                   onClick={() => setMode("category")}
                   style={{
                     ...btnSecondary,
@@ -1062,6 +1063,22 @@ function PracticeInner() {
                   }}
                 >
                   {TEXT.modeCategory}
+                </button>
+                <button
+                  onClick={() => setMode("chapter")}
+                  style={{
+                    ...btnSecondary,
+                    minWidth: 0,
+                    width: "100%",
+                    padding: isNarrow ? "11px 8px" : "12px 10px",
+                    fontWeight: 800,
+                    fontSize: isNarrow ? 13 : 14,
+                    background: mode === "chapter" ? "white" : theme.secondaryBg,
+                    border: mode === "chapter" ? "2px solid var(--brand-teal)" : `1px solid ${theme.buttonBorder}`,
+                    boxShadow: mode === "chapter" ? "0 8px 18px rgba(37, 131, 166, 0.12)" : "none",
+                  }}
+                >
+                  {TEXT.modeChapter}
                 </button>
                 <button
                   onClick={() => setMode("mixed")}
@@ -1310,7 +1327,7 @@ function PracticeInner() {
                   </div>
                 </div>
               </div>
-              <div style={{ color: "#4d6174", lineHeight: 1.7 }}>
+              <div style={{ color: "#4d6174", lineHeight: 1.7, display: lang === "ht" ? "none" : undefined }}>
                 {t(
                   "Start an untimed guided session with immediate feedback and optional explanations after each answer.",
                   "Comience una sesion guiada sin limite de tiempo, con retroalimentacion inmediata y explicaciones opcionales despues de cada respuesta.",
@@ -1318,6 +1335,11 @@ function PracticeInner() {
                   "KÃƒÂ²manse yon sesyon gide san limit tan, ak fidbak touswit ansanm ak eksplikasyon opsyonel apre chak repons."
                 )}
               </div>
+              {lang === "ht" ? (
+                <div style={{ color: "#4d6174", lineHeight: 1.7 }}>
+                  Kòmanse yon sesyon gide san limit tan, ak fidbak touswit ansanm ak eksplikasyon opsyonèl apre chak repons.
+                </div>
+              ) : null}
             </div>
           }
           action={
@@ -1326,16 +1348,16 @@ function PracticeInner() {
                 style={{
                   ...btnPrimary,
                   width: "100%",
-                  opacity: mode === "category" && !selectedCategory ? 0.6 : activeSession ? 0.55 : 1,
+                  opacity: !mode || (mode === "category" && !selectedCategory) ? 0.6 : activeSession ? 0.55 : 1,
                   cursor:
-                    mode === "category" && !selectedCategory
+                    !mode || (mode === "category" && !selectedCategory)
                       ? "not-allowed"
                       : activeSession
                         ? "not-allowed"
                         : "pointer",
                 }}
                 onClick={startPractice}
-                disabled={mode === "category" && !selectedCategory || !!activeSession}
+                disabled={!mode || (mode === "category" && !selectedCategory) || !!activeSession}
               >
                 {TEXT.startPractice}
               </button>
