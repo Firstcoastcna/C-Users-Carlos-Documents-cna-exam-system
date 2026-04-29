@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { resolveBackendRequestUser } from "@/app/lib/backend/auth/requestUser";
-import { loadSchoolContextForUser } from "@/app/lib/backend/db/client";
+import { loadClassGroupStaffForUser, loadSchoolContextForUser } from "@/app/lib/backend/db/client";
 
 export async function GET(request) {
   try {
     const resolved = await resolveBackendRequestUser(request, null, "School User");
-    const context = await loadSchoolContextForUser(resolved.userId);
+    const [context, classStaff] = await Promise.all([
+      loadSchoolContextForUser(resolved.userId),
+      loadClassGroupStaffForUser(resolved.userId).catch(() => []),
+    ]);
 
     return NextResponse.json({
       ok: true,
@@ -15,7 +18,10 @@ export async function GET(request) {
         source: resolved.source,
         appUser: resolved.appUser,
       },
-      context,
+      context: {
+        ...(context || {}),
+        classStaff: Array.isArray(classStaff) ? classStaff : [],
+      },
     });
   } catch (error) {
     return NextResponse.json(

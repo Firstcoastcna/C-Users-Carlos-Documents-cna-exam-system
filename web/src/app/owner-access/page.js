@@ -112,7 +112,11 @@ function hasSchoolAdminAccess(payload) {
 
 function hasTeacherAccess(payload) {
   const staff = payload?.context?.staff;
-  return Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "teacher");
+  const classStaff = payload?.context?.classStaff;
+  return (
+    (Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "teacher")) ||
+    (Array.isArray(classStaff) && classStaff.some((row) => String(row?.role || "").toLowerCase() === "teacher"))
+  );
 }
 
 export default function OwnerAccessPage() {
