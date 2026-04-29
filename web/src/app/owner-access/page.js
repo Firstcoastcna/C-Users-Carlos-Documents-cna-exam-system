@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   fetchSchoolContext,
   getStudentSessionSnapshot,
+  redirectRecoveryFlowIfPresent,
   requestPasswordReset,
   signOutStudent,
   signInStudent,
@@ -120,8 +121,13 @@ export default function OwnerAccessPage() {
   useEffect(() => {
     let cancelled = false;
 
+    if (redirectRecoveryFlowIfPresent()) {
+      return;
+    }
+
     void (async () => {
       try {
+        if (redirectRecoveryFlowIfPresent()) return;
         const session = await getStudentSessionSnapshot().catch(() => null);
         if (!session?.user?.email || cancelled) return;
 
