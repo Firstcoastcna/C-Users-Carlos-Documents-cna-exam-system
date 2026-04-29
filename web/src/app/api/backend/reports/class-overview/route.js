@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveBackendRequestUser } from "@/app/lib/backend/auth/requestUser";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import { loadQuestionBank } from "@/app/lib/questionBank";
 import {
   loadClassGroupRoster,
@@ -7,7 +7,7 @@ import {
   loadPracticeSessionRecords,
   loadQuestionHistoryRecords,
   loadRemediationSessionRecords,
-  loadSchoolContextForUser,
+  listClassGroupRecords,
 } from "@/app/lib/backend/db/client";
 
 function isCompletedExamAttempt(attempt) {
@@ -500,11 +500,11 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const lang = searchParams.get("lang");
-
-    const resolved = await resolveBackendRequestUser(request, null, "Class Reporter");
-    const schoolContext = await loadSchoolContextForUser(resolved.userId);
+    const resolved = await requireControlCenterRequestUser(request, { allowTeacher: true });
+    const schoolContext = resolved.schoolContext || { classGroups: [], enrollments: [] };
     const targetClassGroupId =
       searchParams.get("class_group_id") ||
+      resolved.allowedClassGroupIds?.[0] ||
       schoolContext.classGroups?.[0]?.id ||
       schoolContext.enrollments?.[0]?.class_group_id ||
       null;
@@ -517,6 +517,39 @@ export async function GET(request) {
           error: "No class group was found for this user.",
         },
         { status: 404 }
+      );
+    }
+
+    const allClassGroups = await listClassGroupRecords();
+    const targetClassGroup = allClassGroups.find((group) => group.id === targetClassGroupId) || null;
+
+    if (!targetClassGroup) {
+      return NextResponse.json(
+        {
+          ok: false,
+          service: "class-overview-report",
+          error: "This class group could not be found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const viewerRole = String(resolved?.role || resolved?.appUser?.account_role || "").toLowerCase();
+    const allowedSchoolIds = new Set(resolved?.allowedSchoolIds || []);
+    const allowedClassGroupIds = new Set(resolved?.allowedClassGroupIds || []);
+    const canAccessClass =
+      viewerRole === "owner" ||
+      (viewerRole === "school_admin" && allowedSchoolIds.has(targetClassGroup.school_id)) ||
+      (viewerRole === "teacher" && allowedClassGroupIds.has(targetClassGroupId));
+
+    if (!canAccessClass) {
+      return NextResponse.json(
+        {
+          ok: false,
+          service: "class-overview-report",
+          error: "This class is not available for this account.",
+        },
+        { status: 403 }
       );
     }
 

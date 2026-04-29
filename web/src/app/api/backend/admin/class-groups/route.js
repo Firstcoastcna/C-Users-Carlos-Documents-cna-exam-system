@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser, requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
 import {
   deleteSingleClassGroupEnrollment,
   deleteClassGroupEnrollments,
+  loadClassGroupEnrollmentRecord,
   deleteClassGroupRecord,
   upsertClassGroup,
 } from "@/app/lib/backend/db/client";
@@ -101,11 +102,13 @@ export async function DELETE(request) {
 
 export async function PATCH(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: true });
     const body = await request.json().catch(() => ({}));
     const classGroupId = String(body?.id || "").trim();
     const action = String(body?.action || "").trim();
     const enrollmentId = String(body?.enrollmentId || "").trim();
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedClassGroupIds = new Set(viewer?.allowedClassGroupIds || []);
 
     if (!action) {
       return NextResponse.json(
@@ -115,6 +118,13 @@ export async function PATCH(request) {
     }
 
     if (action === "clear-enrollments") {
+      if (viewerRole === "teacher") {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "Teachers cannot clear an entire class roster." },
+          { status: 403 }
+        );
+      }
+
       if (!classGroupId) {
         return NextResponse.json(
           { ok: false, service: "admin-class-groups", error: "Class id is required." },
@@ -136,6 +146,16 @@ export async function PATCH(request) {
           { ok: false, service: "admin-class-groups", error: "Enrollment id is required." },
           { status: 400 }
         );
+      }
+
+      if (viewerRole === "teacher") {
+        const enrollment = await loadClassGroupEnrollmentRecord(enrollmentId);
+        if (!enrollment || !allowedClassGroupIds.has(String(enrollment.class_group_id || ""))) {
+          return NextResponse.json(
+            { ok: false, service: "admin-class-groups", error: "Teachers can only remove students from their assigned classes." },
+            { status: 403 }
+          );
+        }
       }
 
       const result = await deleteSingleClassGroupEnrollment(enrollmentId);

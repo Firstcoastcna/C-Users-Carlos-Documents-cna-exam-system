@@ -261,8 +261,10 @@ export default function OwnerSchoolsClient() {
   const [openClassPanels, setOpenClassPanels] = useState({});
   const [openRosterPanels, setOpenRosterPanels] = useState({});
   const [openLiveExamPanels, setOpenLiveExamPanels] = useState({});
+  const [openLiveExamStudentPanels, setOpenLiveExamStudentPanels] = useState({});
   const [openCodePanels, setOpenCodePanels] = useState({});
   const [openTeacherPanels, setOpenTeacherPanels] = useState({});
+  const [openTeacherDetailPanels, setOpenTeacherDetailPanels] = useState({});
   const [openRedemptionPanels, setOpenRedemptionPanels] = useState({});
   const [confirmRemoveEnrollmentId, setConfirmRemoveEnrollmentId] = useState("");
   const [moveStudentForms, setMoveStudentForms] = useState({});
@@ -303,6 +305,16 @@ export default function OwnerSchoolsClient() {
   const schoolAdmins = overview?.schoolAdmins ?? EMPTY_ITEMS;
   const schoolTeachers = overview?.schoolTeachers ?? EMPTY_ITEMS;
   const teacherClassAssignments = overview?.teacherClassAssignments ?? EMPTY_ITEMS;
+  const viewerRole = overview?.owner?.appUser?.account_role
+    ? String(overview.owner.appUser.account_role).toLowerCase()
+    : "";
+  const roleReady = !loading && !!viewerRole;
+  const isTeacher = viewerRole === "teacher";
+
+  useEffect(() => {
+    if (!roleReady || !isTeacher || typeof window === "undefined") return;
+    window.location.replace("/owner");
+  }, [isTeacher, roleReady]);
 
   const classGroupsBySchool = useMemo(
     () =>
@@ -542,9 +554,13 @@ export default function OwnerSchoolsClient() {
       <div style={card}>
         <div style={header}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={title}>Manage Schools</div>
+            <div style={title}>{isTeacher ? "My Classes" : "Manage Schools"}</div>
             <div style={subText}>
-              This lane is school-centered: open a school, then drill into its classes, codes, and reports.
+              {!roleReady
+                ? "Loading your class access..."
+                : isTeacher
+                ? "Open your assigned classes, review rosters, move students between your classes, and launch reports."
+                : "This lane is school-centered: open a school, then drill into its classes, codes, and reports."}
             </div>
           </div>
           <Link href="/owner" style={buttonSecondary}>
@@ -557,7 +573,7 @@ export default function OwnerSchoolsClient() {
           {success ? <InlineMessage tone="success">{success}</InlineMessage> : null}
           {showLoadingNotice ? <InlineMessage>Loading schools...</InlineMessage> : null}
 
-          {(schoolForm.id || classForm.id) && !loading ? (
+          {roleReady && !isTeacher && (schoolForm.id || classForm.id) && !loading ? (
             <div style={editGrid}>
               {schoolForm.id ? (
                 <div style={editCard}>
@@ -781,168 +797,209 @@ export default function OwnerSchoolsClient() {
 
           <div style={{ display: "grid", gap: 14 }}>
             {schools.length ? (
-              schools.map((school) => (
+              schools.map((school) => {
+                const schoolIsOpen = isTeacher ? true : openSchoolId === school.id;
+
+                return (
                 <details
                   key={school.id}
                   id={`owner-school-${school.id}`}
                   style={listCard}
-                  open={openSchoolId === school.id}
+                  open={schoolIsOpen}
                 >
-                  <summary
-                    style={{ cursor: "pointer", listStyle: "none" }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleSchoolPanel(school.id);
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                  {!isTeacher ? (
+                    <summary
+                      style={{ cursor: "pointer", listStyle: "none" }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleSchoolPanel(school.id);
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                        <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 17 }}>{school.name}</div>
+                        <HintText isOpen={schoolIsOpen} />
+                      </div>
+                    </summary>
+                  ) : (
+                    <div style={{ display: "grid", gap: 4 }}>
                       <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 17 }}>{school.name}</div>
-                      <HintText isOpen={openSchoolId === school.id} />
+                      <div style={listMeta}>
+                        {(classGroupsBySchool[school.id] || []).length} class
+                        {(classGroupsBySchool[school.id] || []).length === 1 ? "" : "es"}
+                      </div>
                     </div>
-                  </summary>
+                  )}
 
                   <div style={{ display: "grid", gap: 10 }}>
-                    <div style={listMeta}>School ID: {school.slug || "Not set"}</div>
-                    <div style={listMeta}>
-                      School admin:{" "}
-                      {(schoolAdminsBySchool[school.id] || []).length
-                        ? (schoolAdminsBySchool[school.id] || [])
-                            .map((item) => item.user?.full_name || item.user?.email || item.user_id)
-                            .join(", ")
-                        : "No school admin assigned"}
-                    </div>
-                    <div style={listMeta}>Teachers: {(schoolTeachersBySchool[school.id] || []).length}</div>
+                    {!isTeacher ? (
+                      <>
+                        <div style={listMeta}>School ID: {school.slug || "Not set"}</div>
+                        <div style={listMeta}>
+                          School admin:{" "}
+                          {(schoolAdminsBySchool[school.id] || []).length
+                            ? (schoolAdminsBySchool[school.id] || [])
+                                .map((item) => item.user?.full_name || item.user?.email || item.user_id)
+                                .join(", ")
+                            : "No school admin assigned"}
+                        </div>
+                        <div style={listMeta}>Teachers: {(schoolTeachersBySchool[school.id] || []).length}</div>
+                      </>
+                    ) : null}
                     <div style={listMeta}>
                       {(classGroupsBySchool[school.id] || []).length} class
                       {(classGroupsBySchool[school.id] || []).length === 1 ? "" : "es"}
                     </div>
                     <div style={actionsRow}>
-                      <Link
-                        href={`/owner/reports?scope=school&school_id=${encodeURIComponent(
-                          school.id
-                        )}&school_name=${encodeURIComponent(school.name || "")}&lang=en&from=schools`}
-                        style={buttonSecondary}
-                      >
-                        School report
-                      </Link>
-                      <button
-                        style={openTeacherPanels[school.id] ? buttonSecondaryActive : buttonSecondary}
-                        onClick={() =>
-                          setOpenTeacherPanels((prev) => ({
-                            ...prev,
-                            [school.id]: !prev[school.id],
-                          }))
-                        }
-                      >
-                        {openTeacherPanels[school.id] ? "Close teachers" : "Teachers"}
-                      </button>
-                      <button
-                        style={buttonSecondary}
-                        disabled={busy}
-                        onClick={() =>
-                          setSchoolForm({
-                            id: school.id,
-                            name: school.name || "",
-                            slug: school.slug || "",
-                          })
-                        }
-                      >
-                        Edit school
-                      </button>
-                      <button
-                        style={buttonSecondary}
-                        disabled={busy}
-                        onClick={() =>
-                          runAction(async () => {
-                            await deleteOwnerSchool(school.id);
-                          }, "School deleted.")
-                        }
-                      >
-                        Delete school
-                      </button>
+                      {!isTeacher ? (
+                        <>
+                          <Link
+                            href={`/owner/reports?scope=school&school_id=${encodeURIComponent(
+                              school.id
+                            )}&school_name=${encodeURIComponent(school.name || "")}&lang=en&from=schools`}
+                            style={buttonSecondary}
+                          >
+                            School report
+                          </Link>
+                          <button
+                            style={openTeacherPanels[school.id] ? buttonSecondaryActive : buttonSecondary}
+                            onClick={() =>
+                              setOpenTeacherPanels((prev) => ({
+                                ...prev,
+                                [school.id]: !prev[school.id],
+                              }))
+                            }
+                          >
+                            {openTeacherPanels[school.id] ? "Close teachers" : "Teachers"}
+                          </button>
+                          <button
+                            style={buttonSecondary}
+                            disabled={busy}
+                            onClick={() =>
+                              setSchoolForm({
+                                id: school.id,
+                                name: school.name || "",
+                                slug: school.slug || "",
+                              })
+                            }
+                          >
+                            Edit school
+                          </button>
+                          <button
+                            style={buttonSecondary}
+                            disabled={busy}
+                            onClick={() =>
+                              runAction(async () => {
+                                await deleteOwnerSchool(school.id);
+                              }, "School deleted.")
+                            }
+                          >
+                            Delete school
+                          </button>
+                        </>
+                      ) : null}
                     </div>
 
-                    {openTeacherPanels[school.id] ? (
+                    {!isTeacher && openTeacherPanels[school.id] ? (
                       (schoolTeachersBySchool[school.id] || []).length ? (
                         <div style={{ display: "grid", gap: 8 }}>
                           {(schoolTeachersBySchool[school.id] || []).map((teacher) => {
                             const assignments = teacherAssignmentsByUserId[teacher.user_id] || [];
                             const currentForm = teacherForms[teacher.user_id] || { classGroupId: "" };
+                            const isTeacherDetailOpen = openTeacherDetailPanels[school.id] === teacher.user_id;
 
                             return (
                               <div key={teacher.id} style={{ ...listCard, background: "white" }}>
-                                <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                                  {teacher.user?.full_name || teacher.user?.email || teacher.user_id}
-                                </div>
-                                <div style={listMeta}>{teacher.user?.email || "No email on record"}</div>
-                                <div style={listMeta}>
-                                  Assigned classes:{" "}
-                                  {assignments.length
-                                    ? assignments.map((item) => item.classGroup?.name || item.class_group_id).join(", ")
-                                    : "No classes assigned yet"}
-                                </div>
-                                {assignments.length ? (
-                                  <div style={actionsRow}>
-                                    {assignments.map((assignment) => (
-                                      <button
-                                        key={assignment.id}
-                                        style={buttonTinyWarning}
-                                        disabled={busy}
-                                        onClick={() =>
-                                          runAction(async () => {
-                                            await deleteOwnerTeacherAssignment(assignment.id);
-                                          }, "Teacher class assignment removed.")
-                                        }
-                                      >
-                                        Remove {assignment.classGroup?.name || "class"}
-                                      </button>
-                                    ))}
+                                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                                  <div style={{ display: "grid", gap: 4 }}>
+                                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                      {teacher.user?.full_name || teacher.user?.email || teacher.user_id}
+                                    </div>
+                                    <div style={listMeta}>{teacher.user?.email || "No email on record"}</div>
+                                    <div style={listMeta}>
+                                      Assigned classes:{" "}
+                                      {assignments.length
+                                        ? assignments.map((item) => item.classGroup?.name || item.class_group_id).join(", ")
+                                        : "No classes assigned yet"}
+                                    </div>
                                   </div>
+                                  <button
+                                    style={isTeacherDetailOpen ? buttonTinyActive : buttonTiny}
+                                    onClick={() =>
+                                      setOpenTeacherDetailPanels((prev) => ({
+                                        ...prev,
+                                        [school.id]: prev[school.id] === teacher.user_id ? "" : teacher.user_id,
+                                      }))
+                                    }
+                                  >
+                                    {isTeacherDetailOpen ? "Close teacher" : "Open teacher"}
+                                  </button>
+                                </div>
+                                {isTeacherDetailOpen ? (
+                                  <>
+                                    {assignments.length ? (
+                                      <div style={actionsRow}>
+                                        {assignments.map((assignment) => (
+                                          <button
+                                            key={assignment.id}
+                                            style={buttonTinyWarning}
+                                            disabled={busy}
+                                            onClick={() =>
+                                              runAction(async () => {
+                                                await deleteOwnerTeacherAssignment(assignment.id);
+                                              }, "Teacher class assignment removed.")
+                                            }
+                                          >
+                                            Remove {assignment.classGroup?.name || "class"}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    ) : null}
+                                    <div style={{ ...editCard, padding: 12 }}>
+                                      <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Assign class</div>
+                                      <LabeledField label="Class">
+                                        <select
+                                          style={input}
+                                          value={currentForm.classGroupId || ""}
+                                          onChange={(e) =>
+                                            setTeacherForms((prev) => ({
+                                              ...prev,
+                                              [teacher.user_id]: {
+                                                classGroupId: e.target.value,
+                                              },
+                                            }))
+                                          }
+                                        >
+                                          <option value="">Select class</option>
+                                          {(classGroupsBySchool[school.id] || []).map((item) => (
+                                            <option key={item.id} value={item.id}>
+                                              {item.name}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </LabeledField>
+                                      <div style={actionsRow}>
+                                        <button
+                                          style={buttonSecondary}
+                                          disabled={!currentForm.classGroupId || busy}
+                                          onClick={() =>
+                                            runAction(async () => {
+                                              await assignOwnerTeacherToClass({
+                                                teacherId: teacher.user_id,
+                                                classGroupId: currentForm.classGroupId,
+                                              });
+                                              setTeacherForms((prev) => ({
+                                                ...prev,
+                                                [teacher.user_id]: { classGroupId: "" },
+                                              }));
+                                            }, "Teacher assigned to class.")
+                                          }
+                                        >
+                                          Assign class
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </>
                                 ) : null}
-                                <div style={{ ...editCard, padding: 12 }}>
-                                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Assign class</div>
-                                  <LabeledField label="Class">
-                                    <select
-                                      style={input}
-                                      value={currentForm.classGroupId || ""}
-                                      onChange={(e) =>
-                                        setTeacherForms((prev) => ({
-                                          ...prev,
-                                          [teacher.user_id]: {
-                                            classGroupId: e.target.value,
-                                          },
-                                        }))
-                                      }
-                                    >
-                                      <option value="">Select class</option>
-                                      {(classGroupsBySchool[school.id] || []).map((item) => (
-                                        <option key={item.id} value={item.id}>
-                                          {item.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </LabeledField>
-                                  <div style={actionsRow}>
-                                    <button
-                                      style={buttonSecondary}
-                                      disabled={!currentForm.classGroupId || busy}
-                                      onClick={() =>
-                                        runAction(async () => {
-                                          await assignOwnerTeacherToClass({
-                                            teacherId: teacher.user_id,
-                                            classGroupId: currentForm.classGroupId,
-                                          });
-                                          setTeacherForms((prev) => ({
-                                            ...prev,
-                                            [teacher.user_id]: { classGroupId: "" },
-                                          }));
-                                        }, "Teacher assigned to class.")
-                                      }
-                                    >
-                                      Assign class
-                                    </button>
-                                  </div>
-                                </div>
                               </div>
                             );
                           })}
@@ -1042,30 +1099,34 @@ export default function OwnerSchoolsClient() {
                               >
                                 Class report
                               </Link>
-                              <button
-                                style={openCodePanels[item.id] ? buttonSecondaryActive : buttonSecondary}
-                                onClick={() =>
-                                  setOpenCodePanels((prev) => ({
-                                    ...prev,
-                                    [item.id]: !prev[item.id],
-                                  }))
-                                }
-                              >
-                                {openCodePanels[item.id] ? "Close access code" : "Access code"}
-                              </button>
-                              <button
-                                style={buttonSecondary}
-                                disabled={busy}
-                                onClick={() =>
-                                  setClassForm({
-                                    id: item.id,
-                                    schoolId: item.school_id || "",
-                                    name: item.name || "",
-                                  })
-                                }
-                              >
-                                Edit class
-                              </button>
+                              {!isTeacher ? (
+                                <>
+                                  <button
+                                    style={openCodePanels[item.id] ? buttonSecondaryActive : buttonSecondary}
+                                    onClick={() =>
+                                      setOpenCodePanels((prev) => ({
+                                        ...prev,
+                                        [item.id]: !prev[item.id],
+                                      }))
+                                    }
+                                  >
+                                    {openCodePanels[item.id] ? "Close access code" : "Access code"}
+                                  </button>
+                                  <button
+                                    style={buttonSecondary}
+                                    disabled={busy}
+                                    onClick={() =>
+                                      setClassForm({
+                                        id: item.id,
+                                        schoolId: item.school_id || "",
+                                        name: item.name || "",
+                                      })
+                                    }
+                                  >
+                                    Edit class
+                                  </button>
+                                </>
+                              ) : null}
                             </div>
 
                             {openLiveExamPanels[item.id] ? (
@@ -1073,45 +1134,65 @@ export default function OwnerSchoolsClient() {
                                 <div style={{ display: "grid", gap: 8 }}>
                                   {liveExamRows.map((row) => {
                                     const liveExam = row.studentSummary?.liveExam;
+                                    const isLiveExamStudentOpen = openLiveExamStudentPanels[item.id] === row.id;
                                     return (
                                       <div key={`live-exam-${row.id}`} style={{ ...listCard, background: "#fffdf8", borderColor: "#eadba6" }}>
-                                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                                          {row.user?.full_name || row.user?.email || row.user_id}
-                                        </div>
-                                        <div style={listMeta}>{row.user?.email || "No email on file"} | Live exam in progress</div>
-                                        <div style={listMeta}>
-                                          Current score: {Number.isFinite(liveExam?.currentScore) ? `${liveExam.currentScore}%` : "No score yet"} | Answered:{" "}
-                                          {liveExam?.answeredCount ?? 0}/{liveExam?.questionCount ?? 0} | Started: {formatDateTime(liveExam?.startedAt)}
-                                        </div>
-                                        <div style={listMeta}>
-                                          Weakest category: {liveExam?.weakestCategory?.categoryId || "No clear category yet"} | Weakest chapter:{" "}
-                                          {liveExam?.weakestChapter?.chapterId ? `Chapter ${liveExam.weakestChapter.chapterId}` : "No clear chapter yet"}
-                                        </div>
-                                        {(liveExam?.chapterBreakdown || []).length ? (
-                                          <div
-                                            style={{
-                                              display: "grid",
-                                              gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                                              gap: 8,
-                                            }}
+                                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                                          <div style={{ display: "grid", gap: 4 }}>
+                                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                              {row.user?.full_name || row.user?.email || row.user_id}
+                                            </div>
+                                            <div style={listMeta}>{row.user?.email || "No email on file"} | Live exam in progress</div>
+                                          </div>
+                                          <button
+                                            style={isLiveExamStudentOpen ? buttonTinyActive : buttonTiny}
+                                            onClick={() =>
+                                              setOpenLiveExamStudentPanels((prev) => ({
+                                                ...prev,
+                                                [item.id]: prev[item.id] === row.id ? "" : row.id,
+                                              }))
+                                            }
                                           >
-                                            {liveExam.chapterBreakdown.map((chapter) => (
+                                            {isLiveExamStudentOpen ? "Close student" : "Open student"}
+                                          </button>
+                                        </div>
+                                        {isLiveExamStudentOpen ? (
+                                          <>
+                                            <div style={listMeta}>
+                                              Current score: {Number.isFinite(liveExam?.currentScore) ? `${liveExam.currentScore}%` : "No score yet"} | Answered:{" "}
+                                              {liveExam?.answeredCount ?? 0}/{liveExam?.questionCount ?? 0} | Started: {formatDateTime(liveExam?.startedAt)}
+                                            </div>
+                                            <div style={listMeta}>
+                                              Weakest category: {liveExam?.weakestCategory?.categoryId || "No clear category yet"} | Weakest chapter:{" "}
+                                              {liveExam?.weakestChapter?.chapterId ? `Chapter ${liveExam.weakestChapter.chapterId}` : "No clear chapter yet"}
+                                            </div>
+                                            {(liveExam?.chapterBreakdown || []).length ? (
                                               <div
-                                                key={`live-exam-chapter-${row.id}-${chapter.chapterId}`}
                                                 style={{
-                                                  ...listCard,
-                                                  background: "white",
-                                                  borderColor: "#d6e1e8",
-                                                  padding: 10,
+                                                  display: "grid",
+                                                  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                                                  gap: 8,
                                                 }}
                                               >
-                                                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter {chapter.chapterId}</div>
-                                                <div style={listMeta}>Score: {Number.isFinite(chapter.percent) ? `${chapter.percent}%` : "No data yet"}</div>
-                                                <div style={listMeta}>Answered: {chapter.answeredCount ?? 0}/{chapter.totalQuestions ?? 0}</div>
-                                                <div style={listMeta}>Correct: {chapter.correctCount ?? 0}</div>
+                                                {liveExam.chapterBreakdown.map((chapter) => (
+                                                  <div
+                                                    key={`live-exam-chapter-${row.id}-${chapter.chapterId}`}
+                                                    style={{
+                                                      ...listCard,
+                                                      background: "white",
+                                                      borderColor: "#d6e1e8",
+                                                      padding: 10,
+                                                    }}
+                                                  >
+                                                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter {chapter.chapterId}</div>
+                                                    <div style={listMeta}>Score: {Number.isFinite(chapter.percent) ? `${chapter.percent}%` : "No data yet"}</div>
+                                                    <div style={listMeta}>Answered: {chapter.answeredCount ?? 0}/{chapter.totalQuestions ?? 0}</div>
+                                                    <div style={listMeta}>Correct: {chapter.correctCount ?? 0}</div>
+                                                  </div>
+                                                ))}
                                               </div>
-                                            ))}
-                                          </div>
+                                            ) : null}
+                                          </>
                                         ) : null}
                                       </div>
                                     );
@@ -1372,7 +1453,8 @@ export default function OwnerSchoolsClient() {
                     )}
                   </div>
                 </details>
-              ))
+              );
+            })
             ) : (
               <div style={subText}>No schools yet.</div>
             )}

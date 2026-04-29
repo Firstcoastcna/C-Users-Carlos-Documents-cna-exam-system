@@ -1,5 +1,5 @@
 import { getServerStudentSession } from "./session";
-import { loadSchoolContextForUser, upsertAppUser } from "../db/client";
+import { loadClassGroupStaffForUser, loadSchoolContextForUser, upsertAppUser } from "../db/client";
 
 const DEFAULT_OWNER_EMAILS = [
   "cchaveztafur@gmail.com",
@@ -24,6 +24,10 @@ function hasTeacherRole(context) {
   return Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "teacher");
 }
 
+function hasTeacherClassAssignments(classStaff) {
+  return Array.isArray(classStaff) && classStaff.some((row) => String(row?.role || "").toLowerCase() === "teacher");
+}
+
 export function getOwnerEmails() {
   const configured = String(process.env.OWNER_EMAILS || "")
     .split(",")
@@ -33,7 +37,7 @@ export function getOwnerEmails() {
   return configured.length ? configured : DEFAULT_OWNER_EMAILS;
 }
 
-export async function requireOwnerRequestUser(request) {
+export async function requireControlCenterRequestUser(request, { allowTeacher = false } = {}) {
   const student = await getServerStudentSession(request);
   if (!student?.id) {
     if (isLocalDevOwnerBypassEnabled()) {
@@ -59,11 +63,12 @@ export async function requireOwnerRequestUser(request) {
 
   const email = student.email || "";
   const schoolContext = await loadSchoolContextForUser(student.id).catch(() => null);
+  const classStaff = allowTeacher ? await loadClassGroupStaffForUser(student.id).catch(() => []) : [];
   const requestedAccountRole = getOwnerEmails().includes(normalizeEmail(email))
     ? "owner"
     : hasSchoolAdminRole(schoolContext)
       ? "school_admin"
-      : hasTeacherRole(schoolContext)
+      : hasTeacherRole(schoolContext) || hasTeacherClassAssignments(classStaff)
         ? "teacher"
         : null;
   const appUser = await upsertAppUser({
@@ -76,16 +81,46 @@ export async function requireOwnerRequestUser(request) {
   const isAllowedControlCenterUser =
     isLocalDevOwnerBypassEnabled() ||
     getOwnerEmails().includes(normalizeEmail(email)) ||
-    hasSchoolAdminRole(schoolContext);
+    hasSchoolAdminRole(schoolContext) ||
+    (allowTeacher && (hasTeacherRole(schoolContext) || hasTeacherClassAssignments(classStaff)));
 
   if (!isAllowedControlCenterUser) {
     throw new Error("This account is not authorized for the owner workspace.");
   }
 
+  const allowedSchoolIds =
+    requestedAccountRole === "owner"
+      ? []
+      : Array.from(new Set((schoolContext?.schools || []).map((school) => school?.id).filter(Boolean)));
+  const allowedClassGroupIds =
+    requestedAccountRole === "teacher"
+      ? Array.from(
+          new Set(
+            (Array.isArray(classStaff) ? classStaff : [])
+              .filter((row) => String(row?.role || "").toLowerCase() === "teacher")
+              .map((row) => row?.class_group_id)
+              .filter(Boolean)
+          )
+        )
+      : [];
+
   return {
     userId: student.id,
     email,
     appUser,
-    source: getOwnerEmails().includes(normalizeEmail(email)) ? "auth-owner" : "auth-school-admin",
+    role: requestedAccountRole,
+    schoolContext,
+    classStaff,
+    allowedSchoolIds,
+    allowedClassGroupIds,
+    source: getOwnerEmails().includes(normalizeEmail(email))
+      ? "auth-owner"
+      : requestedAccountRole === "teacher"
+        ? "auth-teacher"
+        : "auth-school-admin",
   };
+}
+
+export async function requireOwnerRequestUser(request) {
+  return requireControlCenterRequestUser(request, { allowTeacher: false });
 }

@@ -1202,6 +1202,30 @@ export async function deleteClassGroupEnrollments(classGroupId) {
   return { ok: true, classGroupId };
 }
 
+export async function loadClassGroupEnrollmentRecord(enrollmentId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedId = String(enrollmentId || "").trim();
+  if (!normalizedId) {
+    throw new Error("Enrollment id is required.");
+  }
+
+  const { data, error } = await supabase
+    .from("class_group_enrollments")
+    .select("id, class_group_id, user_id, role, status, created_at, updated_at")
+    .eq("id", normalizedId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase load class enrollment failed: ${error.message}`);
+  }
+
+  return data;
+}
+
 export async function deleteSingleClassGroupEnrollment(enrollmentId) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {

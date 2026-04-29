@@ -110,6 +110,11 @@ function hasSchoolAdminAccess(payload) {
   return Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "admin");
 }
 
+function hasTeacherAccess(payload) {
+  const staff = payload?.context?.staff;
+  return Array.isArray(staff) && staff.some((row) => String(row?.role || "").toLowerCase() === "teacher");
+}
+
 export default function OwnerAccessPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -140,7 +145,7 @@ export default function OwnerAccessPage() {
         }
 
         const schoolContext = await fetchSchoolContext().catch(() => null);
-        if (!cancelled && hasSchoolAdminAccess(schoolContext)) {
+        if (!cancelled && (hasSchoolAdminAccess(schoolContext) || hasTeacherAccess(schoolContext))) {
           router.replace("/owner");
         }
       } catch {
@@ -164,7 +169,7 @@ export default function OwnerAccessPage() {
 
       if (!isAllowedOwnerEmail(email)) {
         const schoolContext = await fetchSchoolContext().catch(() => null);
-        if (hasSchoolAdminAccess(schoolContext)) {
+        if (hasSchoolAdminAccess(schoolContext) || hasTeacherAccess(schoolContext)) {
           router.push("/owner");
           return;
         }
@@ -192,7 +197,7 @@ export default function OwnerAccessPage() {
               First Coast CNA Exam Prep Platform
             </div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#3f5564", marginTop: 2 }}>
-              Admin Access
+              Control Center Access
             </div>
           </div>
           <img
@@ -204,7 +209,7 @@ export default function OwnerAccessPage() {
 
         <div style={body}>
           <div style={{ color: "#4a6272", lineHeight: 1.6 }}>
-            Use your admin email and password to enter the Control Center.
+            Use your owner, school admin, or teacher email and password to enter the Control Center.
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
@@ -215,7 +220,7 @@ export default function OwnerAccessPage() {
                 setEmail(e.target.value);
                 if (message) setMessage("");
               }}
-              placeholder="Admin email"
+              placeholder="Control Center email"
               autoComplete="email"
             />
             <input
@@ -266,7 +271,7 @@ export default function OwnerAccessPage() {
                 setMessageType("info");
 
                 if (!email.trim()) {
-                  setMessage("Enter your admin email first so we can send the reset link.");
+                  setMessage("Enter your Control Center email first so we can send the reset link.");
                   setMessageType("error");
                   return;
                 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import { loadQuestionBank } from "@/app/lib/questionBank";
 import {
   listAccessCodeRecords,
@@ -317,9 +317,9 @@ function summarizeAccessCodes(codes, redemptions, usersById) {
 
 export async function GET(request) {
   try {
-    const owner = await requireOwnerRequestUser(request);
+    const owner = await requireControlCenterRequestUser(request, { allowTeacher: true });
     const questionBankIndex = buildQuestionBankIndex();
-    const [schools, classGroups, accessCodes, redemptions, accessGrantedPreferences, schoolStaff, classGroupStaff] = await Promise.all([
+    const [allSchools, allClassGroups, allAccessCodes, allRedemptions, allAccessGrantedPreferences, allSchoolStaff, allClassGroupStaff] = await Promise.all([
       listSchoolRecords(),
       listClassGroupRecords(),
       listAccessCodeRecords(),
@@ -328,6 +328,56 @@ export async function GET(request) {
       listSchoolStaffRecords(),
       listClassGroupStaffRecords(),
     ]);
+
+    const role = String(owner?.role || owner?.appUser?.account_role || "").toLowerCase();
+    const allowedSchoolIds = new Set(owner?.allowedSchoolIds || []);
+    const allowedClassGroupIds = new Set(owner?.allowedClassGroupIds || []);
+
+    const schools =
+      role === "owner"
+        ? allSchools
+        : allSchools.filter((school) => allowedSchoolIds.has(school.id));
+
+    const classGroups =
+      role === "owner"
+        ? allClassGroups
+        : role === "teacher"
+          ? allClassGroups.filter((group) => allowedClassGroupIds.has(group.id))
+          : allClassGroups.filter((group) => allowedSchoolIds.has(group.school_id));
+
+    const classGroupIds = new Set(classGroups.map((group) => group.id));
+    const schoolIds = new Set(schools.map((school) => school.id));
+
+    const accessCodes =
+      role === "owner"
+        ? allAccessCodes
+        : role === "teacher"
+          ? allAccessCodes.filter((code) => code?.class_group_id && classGroupIds.has(code.class_group_id))
+          : allAccessCodes.filter((code) => {
+              if (code?.school_id && schoolIds.has(code.school_id)) return true;
+              if (code?.class_group_id && classGroupIds.has(code.class_group_id)) return true;
+              return false;
+            });
+
+    const redemptions = allRedemptions.filter((row) =>
+      accessCodes.some((code) => code.id === row.access_code_id)
+    );
+    const accessGrantedPreferences =
+      role === "teacher"
+        ? []
+        : allAccessGrantedPreferences;
+    const schoolStaff =
+      role === "owner"
+        ? allSchoolStaff
+        : role === "teacher"
+          ? allSchoolStaff.filter((row) => schoolIds.has(row.school_id) && row.user_id === owner.userId)
+          : allSchoolStaff.filter((row) => schoolIds.has(row.school_id));
+    const classGroupStaff =
+      role === "owner"
+        ? allClassGroupStaff
+        : role === "teacher"
+          ? allClassGroupStaff.filter((row) => classGroupIds.has(row.class_group_id))
+          : allClassGroupStaff.filter((row) => classGroupIds.has(row.class_group_id));
 
     const rosterEntries = await Promise.all(
       classGroups.map(async (group) => ({
@@ -369,7 +419,7 @@ export async function GET(request) {
       })
       .filter(Boolean);
 
-    const schoolAdmins = schoolStaff
+    const schoolAdmins = role === "teacher" ? [] : schoolStaff
       .filter((row) => String(row.role || "").toLowerCase() === "admin")
       .map((row) => {
         const user = usersById[row.user_id];
@@ -398,7 +448,7 @@ export async function GET(request) {
       })
       .filter(Boolean);
 
-    const schoolTeachers = schoolStaff
+    const schoolTeachers = role === "teacher" ? [] : schoolStaff
       .filter((row) => String(row.role || "").toLowerCase() === "teacher")
       .map((row) => {
         const user = usersById[row.user_id];

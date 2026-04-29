@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import {
   listClassGroupRecords,
   listSchoolRecords,
@@ -274,7 +274,7 @@ export async function GET(request) {
     const lang = searchParams.get("lang");
     const requestedSchoolId = searchParams.get("school_id") || "";
 
-    const resolved = await requireOwnerRequestUser(request);
+    const resolved = await requireControlCenterRequestUser(request, { allowTeacher: false });
     const schoolContext = await loadSchoolContextForUser(resolved.userId).catch(() => ({
       schools: [],
     }));

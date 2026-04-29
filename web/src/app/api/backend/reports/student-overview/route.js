@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import { resolveBackendRequestUser } from "@/app/lib/backend/auth/requestUser";
 import { loadQuestionBank } from "@/app/lib/questionBank";
 import {
@@ -8,6 +8,7 @@ import {
   loadPracticeSessionRecords,
   loadQuestionHistoryRecords,
   loadRemediationSessionRecords,
+  loadSchoolContextForUser,
 } from "@/app/lib/backend/db/client";
 
 export const dynamic = "force-dynamic";
@@ -608,7 +609,7 @@ export async function GET(request) {
     let userId = resolved.userId;
 
     if (requestedUserId && requestedUserId !== resolved.userId) {
-      const owner = await requireOwnerRequestUser(request);
+      const owner = await requireControlCenterRequestUser(request, { allowTeacher: true });
       const targetUser = await loadAppUser(requestedUserId);
       if (!targetUser) {
         return NextResponse.json(
@@ -619,6 +620,28 @@ export async function GET(request) {
           },
           { status: 404 }
         );
+      }
+
+      if (String(owner?.role || "").toLowerCase() === "teacher") {
+        const targetContext = await loadSchoolContextForUser(requestedUserId).catch(() => ({ enrollments: [] }));
+        const targetClassIds = new Set(
+          (targetContext?.enrollments || [])
+            .filter((row) => String(row?.role || "").toLowerCase() === "student" && String(row?.status || "").toLowerCase() === "active")
+            .map((row) => row?.class_group_id)
+            .filter(Boolean)
+        );
+        const allowedClassIds = new Set(owner?.allowedClassGroupIds || []);
+        const canAccess = Array.from(targetClassIds).some((classGroupId) => allowedClassIds.has(classGroupId));
+        if (!canAccess) {
+          return NextResponse.json(
+            {
+              ok: false,
+              service: "student-overview-report",
+              error: "This student is not available for this teacher account.",
+            },
+            { status: 403 }
+          );
+        }
       }
 
       userId = requestedUserId;
