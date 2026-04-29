@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireControlCenterRequestUser, requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import {
   deleteSingleClassGroupEnrollment,
   deleteClassGroupEnrollments,
+  loadClassGroupRecord,
   loadClassGroupEnrollmentRecord,
   deleteClassGroupRecord,
   upsertClassGroup,
@@ -19,11 +20,13 @@ function slugify(value) {
 
 export async function POST(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
     const body = await request.json().catch(() => ({}));
     const schoolId = String(body?.schoolId || "").trim();
     const name = String(body?.name || "").trim();
     const code = String(body?.code || "").trim().toUpperCase();
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!schoolId) {
       return NextResponse.json(
@@ -36,6 +39,13 @@ export async function POST(request) {
       return NextResponse.json(
         { ok: false, service: "admin-class-groups", error: "Class name is required." },
         { status: 400 }
+      );
+    }
+
+    if (viewerRole === "school_admin" && !allowedSchoolIds.has(schoolId)) {
+      return NextResponse.json(
+        { ok: false, service: "admin-class-groups", error: "School admins can only create classes inside their own school." },
+        { status: 403 }
       );
     }
 
@@ -68,14 +78,26 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
     const classGroupId = new URL(request.url).searchParams.get("id") || "";
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!classGroupId) {
       return NextResponse.json(
         { ok: false, service: "admin-class-groups", error: "Class id is required." },
         { status: 400 }
       );
+    }
+
+    if (viewerRole === "school_admin") {
+      const classGroup = await loadClassGroupRecord(classGroupId);
+      if (!classGroup || !allowedSchoolIds.has(String(classGroup.school_id || ""))) {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "School admins can only delete classes inside their own school." },
+          { status: 403 }
+        );
+      }
     }
 
     const result = await deleteClassGroupRecord(classGroupId);

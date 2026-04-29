@@ -46,6 +46,13 @@ const title = {
   color: "var(--heading)",
 };
 
+const scopedTitle = {
+  fontSize: 23,
+  fontWeight: 800,
+  color: "var(--heading)",
+  lineHeight: 1.2,
+};
+
 const subText = {
   color: "#5a6b78",
   lineHeight: 1.6,
@@ -252,6 +259,11 @@ export default function OwnerIndependentClient() {
   const schools = overview?.schools ?? EMPTY_ITEMS;
   const classGroups = overview?.classGroups ?? EMPTY_ITEMS;
   const accessGrantedStudents = overview?.accessGrantedStudents ?? EMPTY_ITEMS;
+  const viewerRole = overview?.owner?.appUser?.account_role
+    ? String(overview.owner.appUser.account_role).toLowerCase()
+    : "";
+  const isSchoolAdmin = viewerRole === "school_admin";
+  const scopedSchoolName = schools[0]?.name || "School";
   const accessCodesById = useMemo(
     () => Object.fromEntries(accessCodes.map((item) => [item.id, item])),
     [accessCodes]
@@ -361,7 +373,9 @@ export default function OwnerIndependentClient() {
       <div style={card}>
         <div style={header}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={title}>Independent Students</div>
+            <div style={isSchoolAdmin ? scopedTitle : title}>
+              {isSchoolAdmin ? `${scopedSchoolName} | Independent Students` : "Independent Students"}
+            </div>
             <div style={subText}>
               Review independent student activity and open student reports.
             </div>

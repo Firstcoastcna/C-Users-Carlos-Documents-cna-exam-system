@@ -359,13 +359,27 @@ export async function GET(request) {
               return false;
             });
 
+    const accessCodesById = Object.fromEntries(
+      accessCodes.map((code) => [code.id, code])
+    );
     const redemptions = allRedemptions.filter((row) =>
       accessCodes.some((code) => code.id === row.access_code_id)
+    );
+    const independentRedemptionUserIds = new Set(
+      redemptions
+        .filter((row) => {
+          const code = accessCodesById[row.access_code_id];
+          return code && !code.class_group_id;
+        })
+        .map((row) => row.user_id)
+        .filter(Boolean)
     );
     const accessGrantedPreferences =
       role === "teacher"
         ? []
-        : allAccessGrantedPreferences;
+        : role === "school_admin"
+          ? allAccessGrantedPreferences.filter((prefs) => independentRedemptionUserIds.has(prefs.user_id))
+          : allAccessGrantedPreferences;
     const schoolStaff =
       role === "owner"
         ? allSchoolStaff
@@ -477,6 +491,38 @@ export async function GET(request) {
       })
       .filter(Boolean);
 
+    const unassignedStaff = role === "teacher" ? [] : schoolStaff
+      .filter((row) => {
+        const normalizedRole = String(row.role || "").toLowerCase();
+        return normalizedRole === "unassigned_admin" || normalizedRole === "unassigned_teacher";
+      })
+      .map((row) => {
+        const user = usersById[row.user_id];
+        const school = schoolsById[row.school_id];
+        if (!user || !school) return null;
+
+        return {
+          id: row.id,
+          school_id: row.school_id,
+          user_id: row.user_id,
+          role: row.role,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          school: {
+            id: school.id,
+            name: school.name,
+            slug: school.slug || null,
+          },
+          user: {
+            id: user.id,
+            email: user.email || null,
+            full_name: user.full_name || null,
+            account_role: user.account_role || (String(row.role || "").toLowerCase().includes("admin") ? "school_admin" : "teacher"),
+          },
+        };
+      })
+      .filter(Boolean);
+
     const teacherClassAssignments = classGroupStaff
       .filter((row) => String(row.role || "").toLowerCase() === "teacher")
       .map((row) => {
@@ -529,6 +575,7 @@ export async function GET(request) {
       })),
       schoolAdmins,
       schoolTeachers,
+      unassignedStaff,
       teacherClassAssignments,
       accessGrantedStudents,
       accessCodes: summarizeAccessCodes(accessCodes, redemptions, usersById),

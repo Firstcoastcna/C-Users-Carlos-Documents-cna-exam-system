@@ -50,6 +50,13 @@ const title = {
   color: "var(--heading)",
 };
 
+const scopedTitle = {
+  fontSize: 23,
+  fontWeight: 800,
+  color: "var(--heading)",
+  lineHeight: 1.2,
+};
+
 const subText = {
   color: "#5a6b78",
   lineHeight: 1.6,
@@ -276,6 +283,17 @@ export default function OwnerCodesPage() {
   const schools = overview?.schools ?? EMPTY_ITEMS;
   const classGroups = overview?.classGroups ?? EMPTY_ITEMS;
   const accessCodes = overview?.accessCodes ?? EMPTY_ITEMS;
+  const viewerRole = overview?.owner?.appUser?.account_role
+    ? String(overview.owner.appUser.account_role).toLowerCase()
+    : "";
+  const roleReady = !loading && !!viewerRole;
+  const isSchoolAdmin = viewerRole === "school_admin";
+  const scopedSchoolName =
+    schools.length === 1
+      ? schools[0]?.name || "Your school"
+      : schools.length > 1
+        ? `${schools.length} schools`
+        : "Your school";
   const schoolById = useMemo(() => Object.fromEntries(schools.map((item) => [item.id, item])), [schools]);
   const classById = useMemo(() => Object.fromEntries(classGroups.map((item) => [item.id, item])), [classGroups]);
 
@@ -358,9 +376,15 @@ export default function OwnerCodesPage() {
       <div style={card}>
         <div style={header}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={title}>Manage Codes</div>
+            <div style={isSchoolAdmin ? scopedTitle : title}>
+              {!roleReady ? "Loading your workspace..." : isSchoolAdmin ? `${scopedSchoolName} | Manage Codes` : "Manage Codes"}
+            </div>
             <div style={subText}>
-              This lane is code-centered. Use it to review all codes together, then edit, deactivate, reactivate, or safely delete them.
+              {!roleReady
+                ? "Loading your code access..."
+                : isSchoolAdmin
+                ? "This lane is code-centered. Use it to review, edit, deactivate, reactivate, or safely delete your school's class and independent codes."
+                : "This lane is code-centered. Use it to review all codes together, then edit, deactivate, reactivate, or safely delete them."}
             </div>
           </div>
           <Link href="/owner" style={buttonSecondary}>
@@ -385,10 +409,11 @@ export default function OwnerCodesPage() {
                       setCodeForm((prev) => ({
                         ...prev,
                         codeType: e.target.value,
-                        schoolId: e.target.value === "independent" ? "" : prev.schoolId,
+                        schoolId: e.target.value === "independent" ? prev.schoolId : prev.schoolId,
                         classGroupId: e.target.value === "independent" ? "" : prev.classGroupId,
-                      }))
+                        }))
                     }
+                    disabled={false}
                   >
                     <option value="independent">Independent student</option>
                     <option value="class">Class code</option>
@@ -554,25 +579,17 @@ export default function OwnerCodesPage() {
                         </button>
                         <button
                           style={buttonSecondary}
-                          disabled={busy || item.status === "inactive"}
+                          disabled={busy}
                           onClick={() =>
                             runAction(async () => {
-                              await updateOwnerAccessCodeStatus(item.id, "inactive");
-                            }, "Access code deactivated.")
+                              await updateOwnerAccessCodeStatus(
+                                item.id,
+                                item.status === "active" ? "inactive" : "active"
+                              );
+                            }, item.status === "active" ? "Access code deactivated." : "Access code reactivated.")
                           }
                         >
-                          Deactivate
-                        </button>
-                        <button
-                          style={buttonSecondary}
-                          disabled={busy || item.status === "active"}
-                          onClick={() =>
-                            runAction(async () => {
-                              await updateOwnerAccessCodeStatus(item.id, "active");
-                            }, "Access code reactivated.")
-                          }
-                        >
-                          Reactivate
+                          {item.status === "active" ? "Deactivate" : "Reactivate"}
                         </button>
                         {item.class_group_id ? (
                           <Link

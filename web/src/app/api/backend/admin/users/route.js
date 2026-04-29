@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import { getPublicAppUrl } from "@/app/lib/backend/config";
 import { getSupabaseServerClient } from "@/app/lib/backend/supabase/serverClient";
 import {
   createAccessCodeRedemption,
   loadAccessCodeRecord,
   loadAccessCodeRedemptionCount,
+  loadClassGroupRecord,
   upsertAppUser,
   upsertClassGroupEnrollment,
   upsertSchoolStaff,
@@ -28,7 +29,7 @@ function getInviteRoleLabel(role) {
 
 export async function POST(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
 
     const body = await request.json().catch(() => ({}));
     const email = String(body?.email || "").trim().toLowerCase();
@@ -38,6 +39,8 @@ export async function POST(request) {
     const classGroupId = String(body?.classGroupId || "").trim();
     const accessCodeId = String(body?.accessCodeId || "").trim();
     const supabase = getSupabaseServerClient();
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!email) {
       return NextResponse.json({ ok: false, service: "admin-create-user", error: "Email is required." }, { status: 400 });
@@ -47,11 +50,34 @@ export async function POST(request) {
       return NextResponse.json({ ok: false, service: "admin-create-user", error: "Select a user role." }, { status: 400 });
     }
 
+    if (viewerRole !== "owner" && role !== "student" && role !== "teacher" && role !== "school_admin") {
+      return NextResponse.json({ ok: false, service: "admin-create-user", error: "That role is not allowed here." }, { status: 403 });
+    }
+
     if ((role === "school_admin" || role === "teacher") && !schoolId) {
       return NextResponse.json(
         { ok: false, service: "admin-create-user", error: "Choose a school for this staff user." },
         { status: 400 }
       );
+    }
+
+    if (viewerRole === "school_admin") {
+      if ((role === "school_admin" || role === "teacher") && !allowedSchoolIds.has(schoolId)) {
+        return NextResponse.json(
+          { ok: false, service: "admin-create-user", error: "School admins can only create staff inside their own school." },
+          { status: 403 }
+        );
+      }
+
+      if (role === "student" && classGroupId) {
+        const classGroup = await loadClassGroupRecord(classGroupId);
+        if (!classGroup || !allowedSchoolIds.has(String(classGroup.school_id || ""))) {
+          return NextResponse.json(
+            { ok: false, service: "admin-create-user", error: "School admins can only assign students into classes inside their own school." },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     if (role === "student" && !classGroupId && !accessCodeId) {
@@ -133,6 +159,12 @@ export async function POST(request) {
         }
         if (accessCodeRecord.code_type !== "independent" || accessCodeRecord.class_group_id) {
           throw new Error("Choose an independent access code for this student.");
+        }
+        if (viewerRole === "school_admin" && !allowedSchoolIds.has(String(accessCodeRecord.school_id || ""))) {
+          return NextResponse.json(
+            { ok: false, service: "admin-create-user", error: "School admins can only use independent access codes from their own school." },
+            { status: 403 }
+          );
         }
         if (Number.isFinite(accessCodeRecord.max_redemptions) && accessCodeRecord.max_redemptions >= 0) {
           const redemptionCount = await loadAccessCodeRedemptionCount(accessCodeRecord.id);

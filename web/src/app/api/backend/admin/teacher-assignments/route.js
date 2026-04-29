@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import {
+  loadClassGroupStaffRecord,
   deleteClassGroupStaffRecord,
   loadAppUser,
   loadClassGroupRecord,
@@ -10,11 +11,13 @@ import {
 
 export async function PATCH(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
 
     const body = await request.json().catch(() => ({}));
     const teacherId = String(body?.teacherId || "").trim();
     const classGroupId = String(body?.classGroupId || "").trim();
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!teacherId || !classGroupId) {
       return NextResponse.json(
@@ -55,6 +58,17 @@ export async function PATCH(request) {
       return NextResponse.json(
         { ok: false, service: "admin-teacher-assignments", error: "Class could not be found." },
         { status: 404 }
+      );
+    }
+
+    if (viewerRole === "school_admin" && !allowedSchoolIds.has(String(classGroup.school_id || ""))) {
+      return NextResponse.json(
+        {
+          ok: false,
+          service: "admin-teacher-assignments",
+          error: "School admins can only assign teachers inside their own school.",
+        },
+        { status: 403 }
       );
     }
 
@@ -104,14 +118,31 @@ export async function PATCH(request) {
 
 export async function DELETE(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
 
     const id = new URL(request.url).searchParams.get("id") || "";
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
     if (!id.trim()) {
       return NextResponse.json(
         { ok: false, service: "admin-teacher-assignments", error: "Assignment id is required." },
         { status: 400 }
       );
+    }
+
+    if (viewerRole === "school_admin") {
+      const assignment = await loadClassGroupStaffRecord(id);
+      const classGroup = assignment?.class_group_id ? await loadClassGroupRecord(assignment.class_group_id) : null;
+      if (!assignment || !classGroup || !allowedSchoolIds.has(String(classGroup.school_id || ""))) {
+        return NextResponse.json(
+          {
+            ok: false,
+            service: "admin-teacher-assignments",
+            error: "School admins can only remove teacher assignments inside their own school.",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     await deleteClassGroupStaffRecord(id);

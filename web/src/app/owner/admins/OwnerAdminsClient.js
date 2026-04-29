@@ -49,6 +49,13 @@ const title = {
   color: "var(--heading)",
 };
 
+const scopedTitle = {
+  fontSize: 23,
+  fontWeight: 800,
+  color: "var(--heading)",
+  lineHeight: 1.2,
+};
+
 const subText = {
   color: "#5a6b78",
   lineHeight: 1.6,
@@ -215,7 +222,9 @@ function OpenHint({ isOpen }) {
 }
 
 function toUiRole(staffRole) {
-  return String(staffRole || "").toLowerCase() === "admin" ? "school_admin" : "teacher";
+  const normalized = String(staffRole || "").toLowerCase();
+  if (normalized === "admin" || normalized === "unassigned_admin") return "school_admin";
+  return "teacher";
 }
 
 function toRoleLabel(uiRole) {
@@ -230,6 +239,7 @@ export default function OwnerAdminsClient() {
   const [overview, setOverview] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [openSection, setOpenSection] = useState("assigned");
   const [openStaffId, setOpenStaffId] = useState("");
   const [busyStaffId, setBusyStaffId] = useState("");
   const [showManageForms, setShowManageForms] = useState({});
@@ -266,6 +276,17 @@ export default function OwnerAdminsClient() {
   const schools = overview?.schools ?? EMPTY_ITEMS;
   const schoolAdmins = overview?.schoolAdmins ?? EMPTY_ITEMS;
   const schoolTeachers = overview?.schoolTeachers ?? EMPTY_ITEMS;
+  const unassignedStaff = overview?.unassignedStaff ?? EMPTY_ITEMS;
+  const viewerRole = overview?.owner?.appUser?.account_role
+    ? String(overview.owner.appUser.account_role).toLowerCase()
+    : "";
+  const isSchoolAdmin = viewerRole === "school_admin";
+  const scopedSchoolName =
+    schools.length === 1
+      ? schools[0]?.name || "Your school"
+      : schools.length > 1
+        ? `${schools.length} schools`
+        : "Your school";
   const staffAssignments = useMemo(
     () =>
       [...schoolAdmins, ...schoolTeachers]
@@ -277,6 +298,17 @@ export default function OwnerAdminsClient() {
         ),
     [schoolAdmins, schoolTeachers]
   );
+  const unassignedStaffAssignments = useMemo(
+    () =>
+      [...unassignedStaff]
+        .slice()
+        .sort((a, b) =>
+          (a.user?.full_name || a.user?.email || "").localeCompare(b.user?.full_name || b.user?.email || "", undefined, {
+            sensitivity: "base",
+          })
+        ),
+    [unassignedStaff]
+  );
   const ownerRole = overview?.owner?.appUser?.account_role || "";
 
   return (
@@ -284,28 +316,53 @@ export default function OwnerAdminsClient() {
       <div style={card}>
         <div style={header}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={title}>Manage School Staff</div>
+            <div style={isSchoolAdmin ? scopedTitle : title}>
+              {isSchoolAdmin ? `${scopedSchoolName} | Manage School Staff` : "Manage School Staff"}
+            </div>
             <div style={subText}>
-              Review teacher and school-admin assignments, move staff between schools, or reassign an existing user into a different role when needed.
+              {isSchoolAdmin
+                ? "Review teacher and school-admin assignments for your school, then adjust roles when needed."
+                : "Review teacher and school-admin assignments, move staff between schools, or reassign an existing user into a different role when needed."}
             </div>
-            <div style={statGrid}>
-              <div style={statCard}>
-                <div style={statLabel}>Staff</div>
-                <div style={statValue}>{staffAssignments.length}</div>
+            {isSchoolAdmin ? (
+              <div style={statGrid}>
+                <div style={statCard}>
+                  <div style={statLabel}>Admins</div>
+                  <div style={statValue}>{schoolAdmins.length}</div>
+                </div>
+                <div style={statCard}>
+                  <div style={statLabel}>Teachers</div>
+                  <div style={statValue}>{schoolTeachers.length}</div>
+                </div>
+                <div style={statCard}>
+                  <div style={statLabel}>Unassigned</div>
+                  <div style={statValue}>{unassignedStaffAssignments.length}</div>
+                </div>
               </div>
-              <div style={statCard}>
-                <div style={statLabel}>Admins</div>
-                <div style={statValue}>{schoolAdmins.length}</div>
+            ) : (
+              <div style={statGrid}>
+                <div style={statCard}>
+                  <div style={statLabel}>Staff</div>
+                  <div style={statValue}>{staffAssignments.length}</div>
+                </div>
+                <div style={statCard}>
+                  <div style={statLabel}>Admins</div>
+                  <div style={statValue}>{schoolAdmins.length}</div>
+                </div>
+                <div style={statCard}>
+                  <div style={statLabel}>Teachers</div>
+                  <div style={statValue}>{schoolTeachers.length}</div>
+                </div>
+                <div style={statCard}>
+                  <div style={statLabel}>Unassigned</div>
+                  <div style={statValue}>{unassignedStaffAssignments.length}</div>
+                </div>
+                <div style={statCard}>
+                  <div style={statLabel}>Schools</div>
+                  <div style={statValue}>{new Set(staffAssignments.map((item) => item.school_id)).size}</div>
+                </div>
               </div>
-              <div style={statCard}>
-                <div style={statLabel}>Teachers</div>
-                <div style={statValue}>{schoolTeachers.length}</div>
-              </div>
-              <div style={statCard}>
-                <div style={statLabel}>Schools</div>
-                <div style={statValue}>{new Set(staffAssignments.map((item) => item.school_id)).size}</div>
-              </div>
-            </div>
+            )}
           </div>
           <Link href="/owner" style={buttonSecondary}>
             Control Center
@@ -317,14 +374,21 @@ export default function OwnerAdminsClient() {
           {success ? <InlineMessage tone="success">{success}</InlineMessage> : null}
           {showLoadingNotice ? <InlineMessage>Loading staff assignments...</InlineMessage> : null}
 
-          {ownerRole !== "owner" ? (
-            <InlineMessage>
-              School admins can view this lane, but only the owner can change staff assignments or reassign roles.
-            </InlineMessage>
-          ) : null}
-
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>School staff assignments</div>
+            <details style={listCard} open={openSection === "assigned"}>
+              <summary
+                style={detailsSummary}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenSection((prev) => (prev === "assigned" ? "" : "assigned"));
+                }}
+              >
+                <div style={summaryRow}>
+                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>School staff assignments</div>
+                  <OpenHint isOpen={openSection === "assigned"} />
+                </div>
+              </summary>
+              <div style={detailsBody}>
             {staffAssignments.length ? (
               <div style={listGrid}>
                 {staffAssignments.map((staff) => {
@@ -333,7 +397,7 @@ export default function OwnerAdminsClient() {
                     schoolId: staff.school_id,
                     targetRole: toUiRole(staff.role),
                   };
-                  const canEdit = ownerRole === "owner";
+                  const canEdit = ownerRole === "owner" || isSchoolAdmin;
                   const currentRole = toUiRole(staff.role);
 
                   return (
@@ -437,27 +501,31 @@ export default function OwnerAdminsClient() {
 
                             <label style={{ display: "grid", gap: 6 }}>
                               <span style={statLabel}>School</span>
-                              <select
-                                style={input}
-                                value={currentForm.schoolId || ""}
-                                disabled={currentForm.targetRole === "student"}
-                                onChange={(e) =>
-                                  setEditForms((prev) => ({
-                                    ...prev,
-                                    [staff.id]: {
-                                      ...currentForm,
-                                      schoolId: e.target.value,
-                                    },
-                                  }))
-                                }
-                              >
-                                <option value="">{currentForm.targetRole === "student" ? "Not needed for student" : "Select school"}</option>
-                                {schools.map((school) => (
-                                  <option key={school.id} value={school.id}>
-                                    {school.name}
-                                  </option>
-                                ))}
-                              </select>
+                              {isSchoolAdmin && currentForm.targetRole !== "student" ? (
+                                <input style={{ ...input, background: "#f7fafc", color: "#445565" }} value={staff.school?.name || scopedSchoolName} readOnly />
+                              ) : (
+                                <select
+                                  style={input}
+                                  value={currentForm.schoolId || ""}
+                                  disabled={currentForm.targetRole === "student"}
+                                  onChange={(e) =>
+                                    setEditForms((prev) => ({
+                                      ...prev,
+                                      [staff.id]: {
+                                        ...currentForm,
+                                        schoolId: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                >
+                                  <option value="">{currentForm.targetRole === "student" ? "Not needed for student" : "Select school"}</option>
+                                  {schools.map((school) => (
+                                    <option key={school.id} value={school.id}>
+                                      {school.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
                             </label>
 
                             <div style={actionsRow}>
@@ -546,6 +614,210 @@ export default function OwnerAdminsClient() {
             ) : (
               <div style={subText}>No school staff have been created yet.</div>
             )}
+              </div>
+            </details>
+
+            <details style={listCard} open={openSection === "unassigned"}>
+              <summary
+                style={detailsSummary}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setOpenSection((prev) => (prev === "unassigned" ? "" : "unassigned"));
+                }}
+              >
+                <div style={summaryRow}>
+                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>Unassigned staff</div>
+                  <OpenHint isOpen={openSection === "unassigned"} />
+                </div>
+              </summary>
+              <div style={detailsBody}>
+            {unassignedStaffAssignments.length ? (
+              <div style={listGrid}>
+                {unassignedStaffAssignments.map((staff) => {
+                  const isOpen = openStaffId === staff.id;
+                  const currentForm = editForms[staff.id] || {
+                    schoolId: staff.school_id,
+                    targetRole: toUiRole(staff.role),
+                  };
+                  const canEdit = ownerRole === "owner" || isSchoolAdmin;
+                  const currentRole = toUiRole(staff.role);
+
+                  return (
+                    <details key={staff.id} style={listCard} open={isOpen}>
+                      <summary
+                        style={detailsSummary}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setOpenStaffId((prev) => (prev === staff.id ? "" : staff.id));
+                          setRemoveConfirmId("");
+                          setEditForms((prev) => ({
+                            ...prev,
+                            [staff.id]:
+                              prev[staff.id] || {
+                                schoolId: staff.school_id,
+                                targetRole: currentRole,
+                              },
+                          }));
+                        }}
+                      >
+                        <div style={summaryRow}>
+                          <div style={{ display: "grid", gap: 2 }}>
+                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                              {staff.user?.full_name || staff.user?.email || "Staff user"}
+                            </div>
+                            <div style={metaText}>
+                              {toRoleLabel(currentRole)} (unassigned) | {staff.school?.name || "School not found"}
+                            </div>
+                          </div>
+                          <OpenHint isOpen={isOpen} />
+                        </div>
+                      </summary>
+
+                      <div style={detailsBody}>
+                        <div style={metaText}>{staff.user?.email || "No email on record"}</div>
+                        <div style={metaText}>
+                          Last school: {staff.school?.name || "School not found"} | Unassigned{" "}
+                          {staff.updated_at ? new Date(staff.updated_at).toLocaleDateString() : "Unknown date"}
+                        </div>
+
+                        <div style={actionsRow}>
+                          <Link
+                            href={`/owner/schools?school_id=${encodeURIComponent(staff.school_id)}`}
+                            style={buttonSecondary}
+                          >
+                            Open school
+                          </Link>
+                          {canEdit ? (
+                            <button
+                              style={buttonPrimary}
+                              onClick={() => {
+                                setShowManageForms((prev) => ({
+                                  ...prev,
+                                  [staff.id]: !prev[staff.id],
+                                }));
+                                setRemoveConfirmId("");
+                              }}
+                            >
+                              {showManageForms[staff.id] ? "Close role management" : "Manage role"}
+                            </button>
+                          ) : null}
+                        </div>
+
+                        {canEdit && showManageForms[staff.id] ? (
+                          <div
+                            style={{
+                              border: "1px solid var(--chrome-border)",
+                              borderRadius: 12,
+                              background: "white",
+                              padding: 12,
+                              display: "grid",
+                              gap: 8,
+                            }}
+                          >
+                            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Role management</div>
+                            <div style={metaText}>
+                              Reassign this unassigned staff member back into a school role, or convert the account into a student if needed.
+                            </div>
+
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={statLabel}>Role</span>
+                              <select
+                                style={input}
+                                value={currentForm.targetRole || ""}
+                                onChange={(e) =>
+                                  setEditForms((prev) => ({
+                                    ...prev,
+                                    [staff.id]: {
+                                      ...currentForm,
+                                      targetRole: e.target.value,
+                                      schoolId: e.target.value === "student" ? "" : currentForm.schoolId || staff.school_id,
+                                    },
+                                  }))
+                                }
+                              >
+                                <option value="school_admin">School admin</option>
+                                <option value="teacher">Teacher</option>
+                                <option value="student">Student</option>
+                              </select>
+                            </label>
+
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={statLabel}>School</span>
+                              {isSchoolAdmin && currentForm.targetRole !== "student" ? (
+                                <input style={{ ...input, background: "#f7fafc", color: "#445565" }} value={staff.school?.name || scopedSchoolName} readOnly />
+                              ) : (
+                                <select
+                                  style={input}
+                                  value={currentForm.schoolId || ""}
+                                  disabled={currentForm.targetRole === "student"}
+                                  onChange={(e) =>
+                                    setEditForms((prev) => ({
+                                      ...prev,
+                                      [staff.id]: {
+                                        ...currentForm,
+                                        schoolId: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                >
+                                  <option value="">{currentForm.targetRole === "student" ? "Not needed for student" : "Select school"}</option>
+                                  {schools.map((school) => (
+                                    <option key={school.id} value={school.id}>
+                                      {school.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </label>
+
+                            <div style={actionsRow}>
+                              <button
+                                style={buttonSecondary}
+                                disabled={
+                                  busyStaffId === staff.id ||
+                                  !currentForm.targetRole ||
+                                  ((currentForm.targetRole === "teacher" || currentForm.targetRole === "school_admin") &&
+                                    !currentForm.schoolId)
+                                }
+                                onClick={async () => {
+                                  try {
+                                    setBusyStaffId(staff.id);
+                                    setError("");
+                                    setSuccess("");
+                                    await updateOwnerUserRole({
+                                      userId: staff.user_id,
+                                      targetRole: currentForm.targetRole,
+                                      schoolId: currentForm.targetRole === "student" ? "" : currentForm.schoolId,
+                                    });
+                                    setSuccess("User role updated.");
+                                    setShowManageForms((prev) => ({
+                                      ...prev,
+                                      [staff.id]: false,
+                                    }));
+                                    setOpenStaffId("");
+                                    await loadOverview();
+                                  } catch (nextError) {
+                                    setError(nextError instanceof Error ? nextError.message : "Unable to update role.");
+                                  } finally {
+                                    setBusyStaffId("");
+                                  }
+                                }}
+                              >
+                                Save role change
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={subText}>No unassigned staff right now.</div>
+            )}
+              </div>
+            </details>
           </div>
         </div>
       </div>

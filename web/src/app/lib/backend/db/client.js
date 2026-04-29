@@ -707,6 +707,30 @@ export async function loadSchoolStaffForUser(userId) {
   return Array.isArray(data) ? data : [];
 }
 
+export async function loadSchoolStaffRecord(recordId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedId = String(recordId || "").trim();
+  if (!normalizedId) {
+    throw new Error("School staff record id is required.");
+  }
+
+  const { data, error } = await supabase
+    .from("school_staff")
+    .select("id, school_id, user_id, role, created_at, updated_at")
+    .eq("id", normalizedId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase load school staff record failed: ${error.message}`);
+  }
+
+  return data || null;
+}
+
 export async function deleteSchoolStaffRecord(recordId) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -1142,6 +1166,30 @@ export async function loadClassGroupStaffForUser(userId) {
   }
 
   return Array.isArray(data) ? data : [];
+}
+
+export async function loadClassGroupStaffRecord(recordId) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedId = String(recordId || "").trim();
+  if (!normalizedId) {
+    throw new Error("Class staff record id is required.");
+  }
+
+  const { data, error } = await supabase
+    .from("class_group_staff")
+    .select("id, class_group_id, user_id, role, created_at, updated_at")
+    .eq("id", normalizedId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Supabase load class staff record failed: ${error.message}`);
+  }
+
+  return data || null;
 }
 
 export async function deleteClassGroupStaffRecord(recordId) {

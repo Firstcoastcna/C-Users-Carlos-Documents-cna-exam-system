@@ -51,6 +51,46 @@ const title = {
   color: "var(--heading)",
 };
 
+const scopedTitle = {
+  fontSize: 23,
+  fontWeight: 800,
+  color: "var(--heading)",
+  lineHeight: 1.2,
+};
+
+const statGrid = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 6,
+};
+
+const statCard = {
+  border: "1px solid #d6e1e8",
+  borderRadius: 10,
+  background: "var(--surface-soft)",
+  padding: "4px 8px",
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: 6,
+  whiteSpace: "nowrap",
+};
+
+const statLabel = {
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: "0.05em",
+  textTransform: "uppercase",
+  color: "#607282",
+};
+
+const statValue = {
+  fontSize: 13,
+  fontWeight: 800,
+  color: "var(--heading)",
+  lineHeight: 1.1,
+};
+
 const body = {
   padding: 20,
   display: "grid",
@@ -309,7 +349,15 @@ export default function OwnerSchoolsClient() {
     ? String(overview.owner.appUser.account_role).toLowerCase()
     : "";
   const roleReady = !loading && !!viewerRole;
+  const isOwner = viewerRole === "owner";
+  const isSchoolAdmin = viewerRole === "school_admin";
   const isTeacher = viewerRole === "teacher";
+  const scopedSchoolName =
+    schools.length === 1
+      ? schools[0]?.name || "Your school"
+      : schools.length > 1
+        ? `${schools.length} schools`
+        : "Your school";
 
   useEffect(() => {
     if (!roleReady || !isTeacher || typeof window === "undefined") return;
@@ -554,14 +602,36 @@ export default function OwnerSchoolsClient() {
       <div style={card}>
         <div style={header}>
           <div style={{ display: "grid", gap: 4 }}>
-            <div style={title}>{isTeacher ? "My Classes" : "Manage Schools"}</div>
+            <div style={isSchoolAdmin ? scopedTitle : title}>
+              {!roleReady
+                ? "Loading your workspace..."
+                : isTeacher
+                  ? "My Classes"
+                  : isSchoolAdmin
+                    ? `${scopedSchoolName} | Manage Classes`
+                    : "Manage Schools"}
+            </div>
             <div style={subText}>
               {!roleReady
                 ? "Loading your class access..."
                 : isTeacher
                 ? "Open your assigned classes, review rosters, move students between your classes, and launch reports."
+                : isSchoolAdmin
+                ? "Open all classes in your school, review rosters, manage teacher coverage, and launch reports."
                 : "This lane is school-centered: open a school, then drill into its classes, codes, and reports."}
             </div>
+            {isSchoolAdmin ? (
+              <div style={statGrid}>
+                <div style={statCard}>
+                  <div style={statLabel}>Classes</div>
+                  <div style={statValue}>{classGroups.length}</div>
+                </div>
+                <div style={statCard}>
+                  <div style={statLabel}>Teachers</div>
+                  <div style={statValue}>{schoolTeachers.length}</div>
+                </div>
+              </div>
+            ) : null}
           </div>
           <Link href="/owner" style={buttonSecondary}>
             Control Center
@@ -798,7 +868,7 @@ export default function OwnerSchoolsClient() {
           <div style={{ display: "grid", gap: 14 }}>
             {schools.length ? (
               schools.map((school) => {
-                const schoolIsOpen = isTeacher ? true : openSchoolId === school.id;
+                const schoolIsOpen = isTeacher || isSchoolAdmin ? true : openSchoolId === school.id;
 
                 return (
                 <details
@@ -807,7 +877,8 @@ export default function OwnerSchoolsClient() {
                   style={listCard}
                   open={schoolIsOpen}
                 >
-                  {!isTeacher ? (
+                  {isTeacher || isSchoolAdmin ? <summary style={{ display: "none" }} aria-hidden="true" /> : null}
+                  {!isTeacher && !isSchoolAdmin ? (
                     <summary
                       style={{ cursor: "pointer", listStyle: "none" }}
                       onClick={(e) => {
@@ -831,7 +902,7 @@ export default function OwnerSchoolsClient() {
                   )}
 
                   <div style={{ display: "grid", gap: 10 }}>
-                    {!isTeacher ? (
+                    {!isTeacher && !isSchoolAdmin ? (
                       <>
                         <div style={listMeta}>School ID: {school.slug || "Not set"}</div>
                         <div style={listMeta}>
@@ -845,56 +916,66 @@ export default function OwnerSchoolsClient() {
                         <div style={listMeta}>Teachers: {(schoolTeachersBySchool[school.id] || []).length}</div>
                       </>
                     ) : null}
-                    <div style={listMeta}>
-                      {(classGroupsBySchool[school.id] || []).length} class
-                      {(classGroupsBySchool[school.id] || []).length === 1 ? "" : "es"}
-                    </div>
+                    {!isTeacher && !isSchoolAdmin ? (
+                      <div style={listMeta}>
+                        {(classGroupsBySchool[school.id] || []).length} class
+                        {(classGroupsBySchool[school.id] || []).length === 1 ? "" : "es"}
+                      </div>
+                    ) : null}
                     <div style={actionsRow}>
                       {!isTeacher ? (
                         <>
-                          <Link
-                            href={`/owner/reports?scope=school&school_id=${encodeURIComponent(
-                              school.id
-                            )}&school_name=${encodeURIComponent(school.name || "")}&lang=en&from=schools`}
-                            style={buttonSecondary}
-                          >
-                            School report
-                          </Link>
-                          <button
-                            style={openTeacherPanels[school.id] ? buttonSecondaryActive : buttonSecondary}
-                            onClick={() =>
-                              setOpenTeacherPanels((prev) => ({
-                                ...prev,
-                                [school.id]: !prev[school.id],
-                              }))
-                            }
-                          >
-                            {openTeacherPanels[school.id] ? "Close teachers" : "Teachers"}
-                          </button>
-                          <button
-                            style={buttonSecondary}
-                            disabled={busy}
-                            onClick={() =>
-                              setSchoolForm({
-                                id: school.id,
-                                name: school.name || "",
-                                slug: school.slug || "",
-                              })
-                            }
-                          >
-                            Edit school
-                          </button>
-                          <button
-                            style={buttonSecondary}
-                            disabled={busy}
-                            onClick={() =>
-                              runAction(async () => {
-                                await deleteOwnerSchool(school.id);
-                              }, "School deleted.")
-                            }
-                          >
-                            Delete school
-                          </button>
+                          {!isSchoolAdmin ? (
+                            <Link
+                              href={`/owner/reports?scope=school&school_id=${encodeURIComponent(
+                                school.id
+                              )}&school_name=${encodeURIComponent(school.name || "")}&lang=en&from=schools`}
+                              style={buttonSecondary}
+                            >
+                              School report
+                            </Link>
+                          ) : null}
+                          {!isSchoolAdmin ? (
+                            <button
+                              style={openTeacherPanels[school.id] ? buttonSecondaryActive : buttonSecondary}
+                              onClick={() =>
+                                setOpenTeacherPanels((prev) => ({
+                                  ...prev,
+                                  [school.id]: !prev[school.id],
+                                }))
+                              }
+                            >
+                              {openTeacherPanels[school.id] ? "Close teachers" : "Teachers"}
+                            </button>
+                          ) : null}
+                          {isOwner ? (
+                            <>
+                              <button
+                                style={buttonSecondary}
+                                disabled={busy}
+                                onClick={() =>
+                                  setSchoolForm({
+                                    id: school.id,
+                                    name: school.name || "",
+                                    slug: school.slug || "",
+                                  })
+                                }
+                              >
+                                Edit school
+                              </button>
+                              <button
+                                style={buttonSecondary}
+                                disabled={busy}
+                                onClick={() =>
+                                  runAction(async () => {
+                                    await deleteOwnerSchool(school.id);
+                                  }, "School deleted.")
+                                }
+                              >
+                                Delete school
+                              </button>
+                            </>
+                          ) : null}
                         </>
                       ) : null}
                     </div>

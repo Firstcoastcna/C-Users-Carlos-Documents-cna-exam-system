@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import {
   deleteAccessCodeRecord,
+  loadAccessCodeRecord,
+  loadClassGroupRecord,
   updateAccessCodeStatus,
   upsertAccessCode,
 } from "@/app/lib/backend/db/client";
@@ -17,10 +19,13 @@ function slugify(value) {
 
 export async function POST(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
     const body = await request.json().catch(() => ({}));
     const code = String(body?.code || "").trim().toUpperCase();
     const codeType = String(body?.codeType || "").trim();
+    const schoolId = String(body?.schoolId || "").trim() || null;
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!code) {
       return NextResponse.json(
@@ -44,6 +49,19 @@ export async function POST(request) {
       );
     }
 
+    if (viewerRole === "school_admin") {
+      const targetSchoolId =
+        classGroupId
+          ? String((await loadClassGroupRecord(classGroupId))?.school_id || "")
+          : String(schoolId || "");
+      if (!targetSchoolId || !allowedSchoolIds.has(targetSchoolId)) {
+        return NextResponse.json(
+          { ok: false, service: "admin-access-codes", error: "School admins can only create codes inside their own school." },
+          { status: 403 }
+        );
+      }
+    }
+
     const maxRedemptions =
       body?.maxRedemptions === "" || body?.maxRedemptions == null
         ? null
@@ -55,7 +73,7 @@ export async function POST(request) {
       codeType,
       label: String(body?.label || "").trim() || null,
       status: String(body?.status || "active").trim() || "active",
-      schoolId: String(body?.schoolId || "").trim() || null,
+      schoolId,
       classGroupId,
       grantsAccess: body?.grantsAccess !== false,
       maxRedemptions: Number.isFinite(maxRedemptions) ? maxRedemptions : null,
@@ -81,16 +99,31 @@ export async function POST(request) {
 
 export async function PATCH(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
     const body = await request.json().catch(() => ({}));
     const accessCodeId = String(body?.id || "").trim();
     const status = String(body?.status || "").trim();
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!accessCodeId || !status) {
       return NextResponse.json(
         { ok: false, service: "admin-access-codes", error: "Code id and status are required." },
         { status: 400 }
       );
+    }
+
+    if (viewerRole === "school_admin") {
+      const accessCode = await loadAccessCodeRecord(accessCodeId);
+      const targetSchoolId =
+        accessCode?.school_id ||
+        (accessCode?.class_group_id ? String((await loadClassGroupRecord(accessCode.class_group_id))?.school_id || "") : "");
+      if (!targetSchoolId || !allowedSchoolIds.has(String(targetSchoolId))) {
+        return NextResponse.json(
+          { ok: false, service: "admin-access-codes", error: "School admins can only update codes inside their own school." },
+          { status: 403 }
+        );
+      }
     }
 
     const accessCode = await updateAccessCodeStatus(accessCodeId, status);
@@ -112,14 +145,29 @@ export async function PATCH(request) {
 
 export async function DELETE(request) {
   try {
-    await requireOwnerRequestUser(request);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
     const accessCodeId = new URL(request.url).searchParams.get("id") || "";
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!accessCodeId) {
       return NextResponse.json(
         { ok: false, service: "admin-access-codes", error: "Code id is required." },
         { status: 400 }
       );
+    }
+
+    if (viewerRole === "school_admin") {
+      const accessCode = await loadAccessCodeRecord(accessCodeId);
+      const targetSchoolId =
+        accessCode?.school_id ||
+        (accessCode?.class_group_id ? String((await loadClassGroupRecord(accessCode.class_group_id))?.school_id || "") : "");
+      if (!targetSchoolId || !allowedSchoolIds.has(String(targetSchoolId))) {
+        return NextResponse.json(
+          { ok: false, service: "admin-access-codes", error: "School admins can only delete codes inside their own school." },
+          { status: 403 }
+        );
+      }
     }
 
     const result = await deleteAccessCodeRecord(accessCodeId);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwnerRequestUser } from "@/app/lib/backend/auth/owner";
+import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import {
   deleteClassGroupEnrollmentsForUser,
   deleteClassGroupStaffRecordsForUser,
@@ -9,12 +9,6 @@ import {
   upsertAppUser,
   upsertSchoolStaff,
 } from "@/app/lib/backend/db/client";
-
-function assertPrimaryOwner(owner) {
-  if (owner?.appUser?.account_role !== "owner") {
-    throw new Error("Only the owner can reassign roles.");
-  }
-}
 
 function normalizeTargetRole(value) {
   const normalized = String(value || "").trim().toLowerCase();
@@ -26,13 +20,14 @@ function normalizeTargetRole(value) {
 
 export async function PATCH(request) {
   try {
-    const owner = await requireOwnerRequestUser(request);
-    assertPrimaryOwner(owner);
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
 
     const body = await request.json().catch(() => ({}));
     const userId = String(body?.userId || "").trim();
     const targetRole = normalizeTargetRole(body?.targetRole);
     const schoolId = String(body?.schoolId || "").trim();
+    const viewerRole = String(viewer?.role || "").toLowerCase();
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!userId) {
       return NextResponse.json(
@@ -75,6 +70,26 @@ export async function PATCH(request) {
     }
 
     const existingStaff = await loadSchoolStaffForUser(userId);
+    if (viewerRole === "school_admin") {
+      const existingSchoolIds = new Set(existingStaff.map((row) => String(row.school_id || "")).filter(Boolean));
+      const canAccessExisting = existingSchoolIds.size
+        ? Array.from(existingSchoolIds).some((id) => allowedSchoolIds.has(id))
+        : false;
+
+      if (!canAccessExisting) {
+        return NextResponse.json(
+          { ok: false, service: "admin-user-roles", error: "School admins can only manage staff inside their own school." },
+          { status: 403 }
+        );
+      }
+
+      if ((targetRole === "teacher" || targetRole === "school_admin") && !allowedSchoolIds.has(schoolId)) {
+        return NextResponse.json(
+          { ok: false, service: "admin-user-roles", error: "School admins can only assign staff inside their own school." },
+          { status: 403 }
+        );
+      }
+    }
 
     await upsertAppUser({
       id: existingUser.id,
