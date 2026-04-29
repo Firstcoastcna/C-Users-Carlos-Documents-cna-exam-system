@@ -534,7 +534,7 @@ export default function OwnerSchoolsClient() {
   }
 
   function toggleClassPanel(classId) {
-    setOpenClassPanels((prev) => ({ ...prev, [classId]: !prev[classId] }));
+    setOpenClassPanels((prev) => (prev[classId] ? {} : { [classId]: true }));
   }
 
   return (
@@ -1155,7 +1155,8 @@ export default function OwnerSchoolsClient() {
                                           {Number.isFinite(row.studentSummary?.exams?.averageScore)
                                             ? `${row.studentSummary.exams.averageScore}%`
                                             : "No data yet"}{" "}
-                                          | Practice: {row.studentSummary?.practice?.totalSessions ?? 0} | Remediation:{" "}
+                                          | Exams complete: {row.studentSummary?.exams?.completedAttempts ?? 0} | Exams live:{" "}
+                                          {row.studentSummary?.liveExam ? 1 : 0} | Practice: {row.studentSummary?.practice?.totalSessions ?? 0} | Remediation:{" "}
                                           {row.studentSummary?.remediation?.totalSessions ?? 0}
                                         </div>
                                         <div style={listMeta}>

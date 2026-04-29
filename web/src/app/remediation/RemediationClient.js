@@ -2030,7 +2030,12 @@ const sigSupport = rationaleSupport?.prometric_signal || null;
   <button
   onClick={() => setView("complete")}
   disabled={countUnanswered(session) > 0}
-  style={{ ...btnPrimary, ...actionButtonStyle }}
+  style={{
+    ...btnPrimary,
+    ...actionButtonStyle,
+    opacity: countUnanswered(session) > 0 ? 0.6 : 1,
+    cursor: countUnanswered(session) > 0 ? "not-allowed" : "pointer",
+  }}
 >
   {T.btnFinish}
 </button>

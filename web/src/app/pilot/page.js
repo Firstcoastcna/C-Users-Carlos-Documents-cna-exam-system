@@ -346,8 +346,8 @@ function PilotInner() {
         language: "Language",
         returnToStart: "Back to main menu",
         studyTitle: "Chapter Review",
-        refreshTitle: "Refresh Your Knowledge",
-        refreshText: "Use these quick review tools before testing to refresh core ideas and decision-making patterns.",
+        refreshTitle: "Review Chapters and Categories",
+        refreshText: "Open these quick review tools before testing to remind yourself what each chapter covers and what the 9 decision categories mean.",
         studyText:
           "Before you begin, you can open a short study-chapters guide with the main ideas from each chapter.",
         studyHint:
@@ -400,8 +400,8 @@ function PilotInner() {
           "Cada tarjeta de abajo abre un examen completo de practica de 60 preguntas. Puede volver a un examen sin terminar en este dispositivo, revisar examenes completados y reiniciar el conjunto cuando termine los cuatro.",
         returnToStart: "Volver al menu principal",
         studyTitle: "Repaso por capitulos",
-        refreshTitle: "Refresque sus conocimientos",
-        refreshText: "Use estas herramientas de repaso rapido antes del examen para refrescar las ideas principales y los patrones de toma de decisiones.",
+        refreshTitle: "Revise capitulos y categorias",
+        refreshText: "Abra estas herramientas de repaso rapido antes del examen para recordar que cubre cada capitulo y que significan las 9 categorias de decision.",
         studyText:
           "Antes de comenzar, puede abrir una guia corta de capitulos de estudio con las ideas principales de cada capitulo.",
         studyHint:
@@ -454,8 +454,8 @@ function PilotInner() {
           "Chaque carte ci-dessous ouvre un examen de pratique complet de 60 questions. Vous pouvez reprendre un test non termine sur cet appareil, revoir les tests termines et reinitialiser l'ensemble une fois les quatre termines.",
         returnToStart: "Retour au menu principal",
         studyTitle: "Revision des chapitres",
-        refreshTitle: "Rafraichissez vos connaissances",
-        refreshText: "Utilisez ces outils de revision rapide avant le test pour rafraichir les idees essentielles et les habitudes de raisonnement.",
+        refreshTitle: "Revoir les chapitres et les categories",
+        refreshText: "Ouvrez ces outils de revision rapide avant le test pour vous rappeler ce que couvre chaque chapitre et ce que signifient les 9 categories de decision.",
         studyText:
           "Avant de commencer, vous pouvez ouvrir un court guide des chapitres d'etude avec les idees principales de chaque chapitre.",
         studyHint:
@@ -508,8 +508,8 @@ function PilotInner() {
           "Chak kat ki anba a louvri yon egzamen pratik konple ak 60 kestyon. Ou ka retounen nan yon tes ou poko fini sou menm aparey la, revize tes ou fin fe yo, epi rafrechi tout ansanm apre ou fin fe kat la.",
         returnToStart: "Retounen nan meni prensipal la",
         studyTitle: "Revizyon chapit yo",
-        refreshTitle: "Rafrechi konesans ou",
-        refreshText: "Svi ak zouti revizyon rapid sa yo anvan tes la pou rafrechi ide prensipal yo ak fason pou pran bon desizyon.",
+        refreshTitle: "Revize chapit ak kategori",
+        refreshText: "Louvri zouti revizyon rapid sa yo anvan tès la pou sonje sa chak chapit kouvri ak sa 9 kategori desizyon yo vle di.",
         studyText:
           "Anvan ou komanse, ou ka louvri yon gid kout sou chapit etid yo ak ide prensipal chak chapit.",
         studyHint:

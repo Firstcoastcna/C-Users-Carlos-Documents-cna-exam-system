@@ -255,7 +255,7 @@ async function enrichRosterMember(member, bankById) {
   const latestExamAnalytics = getExamAnalyticsPayload(latestAnalyticsExam);
   const latestLiveExam = examAttempts.find((attempt) => isLiveExamAttempt(attempt)) || null;
   const derivedOverallStatus =
-    deriveOverallStatusFromScore(Number(examSummary?.averageScore)) ||
+    deriveOverallStatusFromScore(examSummary?.averageScore) ||
     latestExamAnalytics?.overall_status ||
     null;
 

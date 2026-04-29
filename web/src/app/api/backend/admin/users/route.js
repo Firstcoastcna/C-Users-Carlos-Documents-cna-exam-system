@@ -20,6 +20,12 @@ function normalizeRole(value) {
   return "";
 }
 
+function getInviteRoleLabel(role) {
+  if (role === "school_admin") return "School Admin";
+  if (role === "teacher") return "Teacher";
+  return "Student";
+}
+
 export async function POST(request) {
   try {
     await requireOwnerRequestUser(request);
@@ -72,6 +78,7 @@ export async function POST(request) {
         ? "/reset-password?next=/owner-access"
         : "/reset-password?next=/signin";
     const redirectTo = `${publicUrl}${redirectPath}`;
+    const roleLabel = getInviteRoleLabel(role);
 
     let authUser;
     let appUser;
@@ -79,7 +86,11 @@ export async function POST(request) {
     if (role === "school_admin" || role === "teacher" || role === "student") {
       const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
         redirectTo,
-        data: fullName ? { full_name: fullName } : {},
+        data: {
+          ...(fullName ? { full_name: fullName } : {}),
+          role,
+          role_label: roleLabel,
+        },
       });
 
       if (inviteError) {
