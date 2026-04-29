@@ -291,11 +291,17 @@ export default function OwnerAdminsClient() {
     () =>
       [...schoolAdmins, ...schoolTeachers]
         .slice()
-        .sort((a, b) =>
-          (a.user?.full_name || a.user?.email || "").localeCompare(b.user?.full_name || b.user?.email || "", undefined, {
+        .sort((a, b) => {
+          const roleA = toUiRole(a.role);
+          const roleB = toUiRole(b.role);
+          const rankA = roleA === "school_admin" ? 0 : 1;
+          const rankB = roleB === "school_admin" ? 0 : 1;
+          if (rankA !== rankB) return rankA - rankB;
+
+          return (a.user?.full_name || a.user?.email || "").localeCompare(b.user?.full_name || b.user?.email || "", undefined, {
             sensitivity: "base",
-          })
-        ),
+          });
+        }),
     [schoolAdmins, schoolTeachers]
   );
   const unassignedStaffAssignments = useMemo(
