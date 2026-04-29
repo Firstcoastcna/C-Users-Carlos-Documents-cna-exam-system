@@ -130,6 +130,29 @@ export function redirectToSignIn(pathname = "/signin") {
   window.location.replace(pathname);
 }
 
+export function getAuthHashParams() {
+  if (typeof window === "undefined") return {};
+  const hash = window.location.hash || "";
+  const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
+  return Object.fromEntries(params.entries());
+}
+
+export function redirectRecoveryFlowIfPresent() {
+  if (typeof window === "undefined") return false;
+  if (window.location.pathname === "/reset-password") return false;
+
+  const params = getAuthHashParams();
+  const normalizedType = String(params.type || "").trim().toLowerCase();
+  if (normalizedType !== "recovery" && normalizedType !== "invite") {
+    return false;
+  }
+
+  const next = `${window.location.pathname}${window.location.search}`;
+  const target = `/reset-password?next=${encodeURIComponent(next)}${window.location.hash || ""}`;
+  window.location.replace(target);
+  return true;
+}
+
 export async function getStudentSessionSnapshot() {
   const supabase = getClient();
   const {

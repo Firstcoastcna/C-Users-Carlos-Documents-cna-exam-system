@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   fetchUserPreferences,
   getStudentSessionSnapshot,
+  redirectRecoveryFlowIfPresent,
   updateUserPreferences,
 } from "./lib/backend/auth/browserAuth";
 import { useDisableBrowserNavigation } from "./lib/backend/auth/useDisableBrowserNavigation";
@@ -41,7 +42,12 @@ export default function HomePage() {
   useEffect(() => {
     let cancelled = false;
 
+    if (redirectRecoveryFlowIfPresent()) {
+      return;
+    }
+
     void (async () => {
+      if (redirectRecoveryFlowIfPresent()) return;
       const session = await getStudentSessionSnapshot().catch(() => null);
       if (!session?.access_token) {
         if (!cancelled) {

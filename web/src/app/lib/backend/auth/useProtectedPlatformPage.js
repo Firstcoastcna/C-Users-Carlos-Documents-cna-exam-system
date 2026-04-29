@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
-import { getStudentSessionSnapshot, redirectToSignIn } from "./browserAuth";
+import { getStudentSessionSnapshot, redirectRecoveryFlowIfPresent, redirectToSignIn } from "./browserAuth";
 
 export function useProtectedPlatformPage() {
   useEffect(() => {
     let cancelled = false;
 
+    if (redirectRecoveryFlowIfPresent()) {
+      return;
+    }
+
     async function verifySession() {
+      if (redirectRecoveryFlowIfPresent()) return;
       const session = await getStudentSessionSnapshot().catch(() => null);
       if (!session?.access_token && !cancelled) {
         redirectToSignIn();

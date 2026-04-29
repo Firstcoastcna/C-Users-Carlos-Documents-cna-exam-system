@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   fetchUserPreferences,
   getStudentSessionSnapshot,
+  redirectRecoveryFlowIfPresent,
   requestPasswordReset,
   signInStudent,
   signUpStudent,
@@ -117,8 +118,13 @@ export default function SignInPage() {
   useEffect(() => {
     let cancelled = false;
 
+    if (redirectRecoveryFlowIfPresent()) {
+      return;
+    }
+
     void (async () => {
       try {
+        if (redirectRecoveryFlowIfPresent()) return;
         const session = await getStudentSessionSnapshot().catch(() => null);
         if (!session?.access_token || cancelled) return;
 
