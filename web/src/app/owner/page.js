@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
   assignOwnerStudentToClass,
   checkOwnerAccessCodeAvailability,
@@ -345,7 +344,6 @@ function OpenHint({ isOpen }) {
 }
 
 export default function OwnerPage() {
-  const searchParams = useSearchParams();
   const [isNarrow, setIsNarrow] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoadingNotice, setShowLoadingNotice] = useState(false);
@@ -456,9 +454,11 @@ export default function OwnerPage() {
 
   useEffect(() => {
     if (!roleReady || !isTeacher) return;
+    if (typeof window === "undefined") return;
 
-    const classGroupId = String(searchParams.get("class_group_id") || "").trim();
-    const openPanel = String(searchParams.get("open") || "").trim();
+    const params = new URLSearchParams(window.location.search || "");
+    const classGroupId = String(params.get("class_group_id") || "").trim();
+    const openPanel = String(params.get("open") || "").trim();
     if (!classGroupId) return;
 
     setOpenTeacherClassPanels((prev) => ({
@@ -471,7 +471,7 @@ export default function OwnerPage() {
     }, 50);
 
     return () => window.clearTimeout(timer);
-  }, [searchParams, roleReady, isTeacher]);
+  }, [roleReady, isTeacher]);
   const scopedSchoolId = schools.length === 1 ? String(schools[0]?.id || "") : "";
   const schoolAdminClassGroups = isSchoolAdmin
     ? classGroups.filter((item) => item.school_id === scopedSchoolId)
