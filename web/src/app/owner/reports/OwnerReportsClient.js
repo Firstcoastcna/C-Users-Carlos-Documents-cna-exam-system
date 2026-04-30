@@ -303,7 +303,7 @@ function deriveClassStatus(summary) {
   if (onTrack > 0) {
     return "Stable";
   }
-  return "Early signals only";
+  return "Not enough exam information yet";
 }
 
 function getClassStatusTone(status) {
@@ -780,7 +780,7 @@ function deriveSchoolStatus(summary) {
   if (onTrack > 0) {
     return "Stable";
   }
-  return "Early signals only";
+  return "Not enough exam information yet";
 }
 
 function buildSchoolNextActions(summary, classes) {
@@ -842,6 +842,7 @@ export default function OwnerReportsClient() {
   const from = searchParams.get("from") || "";
   const studentId = searchParams.get("student_id") || "";
   const className = searchParams.get("class_name") || "";
+  const open = searchParams.get("open") || "";
   const hasTarget = scope === "student" ? !!userId : scope === "school" ? !!schoolId : !!classGroupId;
   const schoolBackQuery = new URLSearchParams(
     Object.fromEntries(
@@ -866,6 +867,17 @@ export default function OwnerReportsClient() {
         ? `/owner/schools${schoolBackQuery ? `?${schoolBackQuery}` : ""}`
         : from === "schools-roster"
           ? `/owner/schools${schoolBackQuery ? `?${schoolBackQuery}` : ""}`
+          : from === "owner-home"
+            ? `/owner?${
+                new URLSearchParams(
+                  Object.fromEntries(
+                    [
+                      ["class_group_id", classGroupId],
+                      ["open", open],
+                    ].filter(([, value]) => value)
+                  )
+                ).toString()
+              }`
         : "/owner";
   const backLabel =
     from === "independent"

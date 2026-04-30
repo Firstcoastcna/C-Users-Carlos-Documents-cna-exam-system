@@ -241,6 +241,7 @@ export default function OwnerAdminsClient() {
   const [overview, setOverview] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [openOwnerSchoolId, setOpenOwnerSchoolId] = useState("");
   const [openSection, setOpenSection] = useState("assigned");
   const [openStaffId, setOpenStaffId] = useState("");
   const [busyStaffId, setBusyStaffId] = useState("");
@@ -331,6 +332,367 @@ export default function OwnerAdminsClient() {
       }, {}),
     [teacherClassAssignments]
   );
+  const staffAssignmentsBySchool = useMemo(
+    () =>
+      staffAssignments.reduce((acc, item) => {
+        if (!acc[item.school_id]) acc[item.school_id] = [];
+        acc[item.school_id].push(item);
+        return acc;
+      }, {}),
+    [staffAssignments]
+  );
+  const unassignedStaffBySchool = useMemo(
+    () =>
+      unassignedStaffAssignments.reduce((acc, item) => {
+        if (!acc[item.school_id]) acc[item.school_id] = [];
+        acc[item.school_id].push(item);
+        return acc;
+      }, {}),
+    [unassignedStaffAssignments]
+  );
+
+  function renderStaffCard(staff, { unassigned = false } = {}) {
+    const isOpen = openStaffId === staff.id;
+    const currentForm = editForms[staff.id] || {
+      schoolId: staff.school_id,
+      targetRole: toUiRole(staff.role),
+    };
+    const currentTeacherClassForm = teacherClassForms[staff.id] || { classGroupId: "" };
+    const canEdit = ownerRole === "owner" || isSchoolAdmin;
+    const currentRole = toUiRole(staff.role);
+    const teacherAssignments = teacherAssignmentsByUserId[staff.user_id] || [];
+    const availableTeacherClasses = classGroups.filter((item) => item.school_id === staff.school_id);
+
+    return (
+      <details key={staff.id} style={listCard} open={isOpen}>
+        <summary
+          style={detailsSummary}
+          onClick={(e) => {
+            e.preventDefault();
+            setOpenStaffId((prev) => (prev === staff.id ? "" : staff.id));
+            setRemoveConfirmId("");
+            setEditForms((prev) => ({
+              ...prev,
+              [staff.id]:
+                prev[staff.id] || {
+                  schoolId: staff.school_id,
+                  targetRole: currentRole,
+                },
+            }));
+          }}
+        >
+          <div style={summaryRow}>
+            <div style={{ display: "grid", gap: 2 }}>
+              <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                {staff.user?.full_name || staff.user?.email || "Staff user"}
+              </div>
+              <div style={metaText}>
+                {toRoleLabel(currentRole)}
+                {unassigned ? " (unassigned)" : ""} | {staff.school?.name || "School not found"}
+              </div>
+            </div>
+            <OpenHint isOpen={isOpen} />
+          </div>
+        </summary>
+
+        <div style={detailsBody}>
+          <div style={metaText}>{staff.user?.email || "No email on record"}</div>
+          <div style={metaText}>
+            {unassigned ? "Last school" : "Current school"}: {staff.school?.name || "School not found"} |{" "}
+            {unassigned ? "Unassigned" : `Current role: ${toRoleLabel(currentRole)}`}{" "}
+            {staff.updated_at || staff.created_at
+              ? `| ${unassigned ? "Updated" : "Added"} ${new Date(staff.updated_at || staff.created_at).toLocaleDateString()}`
+              : ""}
+          </div>
+          {currentRole === "teacher" ? (
+            <div style={metaText}>
+              Assigned classes:{" "}
+              {teacherAssignments.length
+                ? teacherAssignments.map((item) => item.classGroup?.name || item.class_group_id).join(", ")
+                : "No classes assigned yet"}
+            </div>
+          ) : null}
+
+          <div style={actionsRow}>
+            {canEdit ? (
+              <>
+                {currentRole === "teacher" ? (
+                  <button
+                    style={showClassAssignmentForms[staff.id] ? buttonPrimary : buttonSecondary}
+                    onClick={() => {
+                      setShowClassAssignmentForms((prev) => ({
+                        ...prev,
+                        [staff.id]: !prev[staff.id],
+                      }));
+                      setRemoveConfirmId("");
+                    }}
+                  >
+                    {showClassAssignmentForms[staff.id] ? "Close class assignments" : "Class assignments"}
+                  </button>
+                ) : null}
+                <button
+                  style={buttonPrimary}
+                  onClick={() => {
+                    setShowManageForms((prev) => ({
+                      ...prev,
+                      [staff.id]: !prev[staff.id],
+                    }));
+                    setRemoveConfirmId("");
+                  }}
+                >
+                  {showManageForms[staff.id] ? "Close role management" : "Manage role"}
+                </button>
+              </>
+            ) : null}
+          </div>
+
+          {canEdit && currentRole === "teacher" && showClassAssignmentForms[staff.id] ? (
+            <div
+              style={{
+                border: "1px solid var(--chrome-border)",
+                borderRadius: 12,
+                background: "white",
+                padding: 12,
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Class assignments</div>
+              {teacherAssignments.length ? (
+                <div style={actionsRow}>
+                  {teacherAssignments.map((assignment) => (
+                    <button
+                      key={assignment.id}
+                      style={buttonDangerOutline}
+                      disabled={busyStaffId === staff.id}
+                      onClick={async () => {
+                        try {
+                          setBusyStaffId(staff.id);
+                          setError("");
+                          setSuccess("");
+                          await deleteOwnerTeacherAssignment(assignment.id);
+                          setSuccess("Teacher class assignment removed.");
+                          await loadOverview();
+                        } catch (nextError) {
+                          setError(nextError instanceof Error ? nextError.message : "Unable to remove class assignment.");
+                        } finally {
+                          setBusyStaffId("");
+                        }
+                      }}
+                    >
+                      Remove {assignment.classGroup?.name || "class"}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div style={metaText}>No classes assigned yet.</div>
+              )}
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={statLabel}>Assign class</span>
+                <select
+                  style={input}
+                  value={currentTeacherClassForm.classGroupId || ""}
+                  onChange={(e) =>
+                    setTeacherClassForms((prev) => ({
+                      ...prev,
+                      [staff.id]: { classGroupId: e.target.value },
+                    }))
+                  }
+                >
+                  <option value="">Select class</option>
+                  {availableTeacherClasses.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div style={actionsRow}>
+                <button
+                  style={buttonSecondary}
+                  disabled={!currentTeacherClassForm.classGroupId || busyStaffId === staff.id}
+                  onClick={async () => {
+                    try {
+                      setBusyStaffId(staff.id);
+                      setError("");
+                      setSuccess("");
+                      await assignOwnerTeacherToClass({
+                        teacherId: staff.user_id,
+                        classGroupId: currentTeacherClassForm.classGroupId,
+                      });
+                      setTeacherClassForms((prev) => ({
+                        ...prev,
+                        [staff.id]: { classGroupId: "" },
+                      }));
+                      setSuccess("Teacher assigned to class.");
+                      await loadOverview();
+                    } catch (nextError) {
+                      setError(nextError instanceof Error ? nextError.message : "Unable to assign class.");
+                    } finally {
+                      setBusyStaffId("");
+                    }
+                  }}
+                >
+                  Assign class
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {canEdit && showManageForms[staff.id] ? (
+            <div
+              style={{
+                border: "1px solid var(--chrome-border)",
+                borderRadius: 12,
+                background: "white",
+                padding: 12,
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Role management</div>
+              <div style={metaText}>
+                {unassigned
+                  ? "Reassign this unassigned staff member back into a school role, or convert the account into a student if needed."
+                  : "Use this for rare cases where an existing login needs to become a student, teacher, or school admin without creating a second account."}
+              </div>
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={statLabel}>Role</span>
+                <select
+                  style={input}
+                  value={currentForm.targetRole || ""}
+                  onChange={(e) =>
+                    setEditForms((prev) => ({
+                      ...prev,
+                      [staff.id]: {
+                        ...currentForm,
+                        targetRole: e.target.value,
+                        schoolId: e.target.value === "student" ? "" : currentForm.schoolId || staff.school_id,
+                      },
+                    }))
+                  }
+                >
+                  <option value="school_admin">School admin</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="student">Student</option>
+                </select>
+              </label>
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={statLabel}>School</span>
+                {isSchoolAdmin && currentForm.targetRole !== "student" ? (
+                  <input style={{ ...input, background: "#f7fafc", color: "#445565" }} value={staff.school?.name || scopedSchoolName} readOnly />
+                ) : (
+                  <select
+                    style={input}
+                    value={currentForm.schoolId || ""}
+                    disabled={currentForm.targetRole === "student"}
+                    onChange={(e) =>
+                      setEditForms((prev) => ({
+                        ...prev,
+                        [staff.id]: {
+                          ...currentForm,
+                          schoolId: e.target.value,
+                        },
+                      }))
+                    }
+                  >
+                    <option value="">{currentForm.targetRole === "student" ? "Not needed for student" : "Select school"}</option>
+                    {schools.map((school) => (
+                      <option key={school.id} value={school.id}>
+                        {school.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </label>
+
+              <div style={actionsRow}>
+                <button
+                  style={buttonSecondary}
+                  disabled={
+                    busyStaffId === staff.id ||
+                    !currentForm.targetRole ||
+                    ((currentForm.targetRole === "teacher" || currentForm.targetRole === "school_admin") &&
+                      !currentForm.schoolId) ||
+                    (!unassigned &&
+                      currentForm.targetRole === currentRole &&
+                      (currentForm.targetRole === "student" || currentForm.schoolId === staff.school_id))
+                  }
+                  onClick={async () => {
+                    try {
+                      setBusyStaffId(staff.id);
+                      setError("");
+                      setSuccess("");
+                      await updateOwnerUserRole({
+                        userId: staff.user_id,
+                        targetRole: currentForm.targetRole,
+                        schoolId: currentForm.targetRole === "student" ? "" : currentForm.schoolId,
+                      });
+                      setSuccess("User role updated.");
+                      setShowManageForms((prev) => ({
+                        ...prev,
+                        [staff.id]: false,
+                      }));
+                      setOpenStaffId("");
+                      await loadOverview();
+                    } catch (nextError) {
+                      setError(nextError instanceof Error ? nextError.message : "Unable to update role.");
+                    } finally {
+                      setBusyStaffId("");
+                    }
+                  }}
+                >
+                  Save role change
+                </button>
+
+                {!unassigned ? (
+                  removeConfirmId === staff.id ? (
+                    <>
+                      <button
+                        style={buttonDanger}
+                        disabled={busyStaffId === staff.id}
+                        onClick={async () => {
+                          try {
+                            setBusyStaffId(staff.id);
+                            setError("");
+                            setSuccess("");
+                            await deleteOwnerSchoolAdmin(staff.id);
+                            setSuccess("School staff assignment removed.");
+                            setRemoveConfirmId("");
+                            setOpenStaffId("");
+                            await loadOverview();
+                          } catch (nextError) {
+                            setError(nextError instanceof Error ? nextError.message : "Unable to remove assignment.");
+                          } finally {
+                            setBusyStaffId("");
+                          }
+                        }}
+                      >
+                        Confirm remove assignment
+                      </button>
+                      <button style={buttonSecondary} onClick={() => setRemoveConfirmId("")}>
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      style={buttonDangerOutline}
+                      disabled={busyStaffId === staff.id}
+                      onClick={() => setRemoveConfirmId(staff.id)}
+                    >
+                      Remove school assignment
+                    </button>
+                  )
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </details>
+    );
+  }
 
   return (
     <main style={shell}>
@@ -396,677 +758,95 @@ export default function OwnerAdminsClient() {
           {showLoadingNotice ? <InlineMessage>Loading staff assignments...</InlineMessage> : null}
 
           <div style={{ display: "grid", gap: 10 }}>
-            <details style={listCard} open={openSection === "assigned"}>
-              <summary
-                style={detailsSummary}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenSection((prev) => (prev === "assigned" ? "" : "assigned"));
-                }}
-              >
-                <div style={summaryRow}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>School staff assignments</div>
-                  <OpenHint isOpen={openSection === "assigned"} />
-                </div>
-              </summary>
-              <div style={detailsBody}>
-            {staffAssignments.length ? (
-              <div style={listGrid}>
-                {staffAssignments.map((staff) => {
-                  const isOpen = openStaffId === staff.id;
-                  const currentForm = editForms[staff.id] || {
-                    schoolId: staff.school_id,
-                    targetRole: toUiRole(staff.role),
-                  };
-                  const currentTeacherClassForm = teacherClassForms[staff.id] || { classGroupId: "" };
-                  const canEdit = ownerRole === "owner" || isSchoolAdmin;
-                  const currentRole = toUiRole(staff.role);
-                  const teacherAssignments = teacherAssignmentsByUserId[staff.user_id] || [];
-                  const availableTeacherClasses = classGroups.filter((item) => item.school_id === staff.school_id);
+            {isSchoolAdmin ? (
+              <>
+                <details style={listCard} open={openSection === "assigned"}>
+                  <summary
+                    style={detailsSummary}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenSection((prev) => (prev === "assigned" ? "" : "assigned"));
+                    }}
+                  >
+                    <div style={summaryRow}>
+                      <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>School staff assignments</div>
+                      <OpenHint isOpen={openSection === "assigned"} />
+                    </div>
+                  </summary>
+                  <div style={detailsBody}>
+                    {staffAssignments.length ? (
+                      <div style={listGrid}>{staffAssignments.map((staff) => renderStaffCard(staff))}</div>
+                    ) : (
+                      <div style={subText}>No school staff have been created yet.</div>
+                    )}
+                  </div>
+                </details>
 
-                  return (
-                    <details key={staff.id} style={listCard} open={isOpen}>
-                      <summary
-                        style={detailsSummary}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setOpenStaffId((prev) => (prev === staff.id ? "" : staff.id));
-                          setRemoveConfirmId("");
-                          setEditForms((prev) => ({
-                            ...prev,
-                            [staff.id]:
-                              prev[staff.id] || {
-                                schoolId: staff.school_id,
-                                targetRole: currentRole,
-                              },
-                          }));
-                        }}
-                      >
-                        <div style={summaryRow}>
-                          <div style={{ display: "grid", gap: 2 }}>
-                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                              {staff.user?.full_name || staff.user?.email || "Staff user"}
-                            </div>
-                            <div style={metaText}>
-                              {toRoleLabel(currentRole)} | {staff.school?.name || "School not found"}
-                            </div>
-                          </div>
-                          <OpenHint isOpen={isOpen} />
-                        </div>
-                      </summary>
-
-                      <div style={detailsBody}>
-                        <div style={metaText}>{staff.user?.email || "No email on record"}</div>
-                        <div style={metaText}>
-                          Current role: {toRoleLabel(currentRole)} | Current school: {staff.school?.name || "School not found"} | Added{" "}
-                          {staff.created_at ? new Date(staff.created_at).toLocaleDateString() : "Unknown date"}
-                        </div>
-                        {currentRole === "teacher" ? (
-                          <div style={metaText}>
-                            Assigned classes:{" "}
-                            {teacherAssignments.length
-                              ? teacherAssignments.map((item) => item.classGroup?.name || item.class_group_id).join(", ")
-                              : "No classes assigned yet"}
-                          </div>
-                        ) : null}
-
-                        <div style={actionsRow}>
-                          {canEdit ? (
-                            <>
-                              {currentRole === "teacher" ? (
-                                <button
-                                  style={showClassAssignmentForms[staff.id] ? buttonPrimary : buttonSecondary}
-                                  onClick={() => {
-                                    setShowClassAssignmentForms((prev) => ({
-                                      ...prev,
-                                      [staff.id]: !prev[staff.id],
-                                    }));
-                                    setRemoveConfirmId("");
-                                  }}
-                                >
-                                  {showClassAssignmentForms[staff.id] ? "Close class assignments" : "Class assignments"}
-                                </button>
-                              ) : null}
-                              <button
-                                style={buttonPrimary}
-                                onClick={() => {
-                                  setShowManageForms((prev) => ({
-                                    ...prev,
-                                    [staff.id]: !prev[staff.id],
-                                  }));
-                                  setRemoveConfirmId("");
-                                }}
-                              >
-                                {showManageForms[staff.id] ? "Close role management" : "Manage role"}
-                              </button>
-                            </>
-                          ) : null}
-                        </div>
-
-                        {canEdit && currentRole === "teacher" && showClassAssignmentForms[staff.id] ? (
-                          <div
-                            style={{
-                              border: "1px solid var(--chrome-border)",
-                              borderRadius: 12,
-                              background: "white",
-                              padding: 12,
-                              display: "grid",
-                              gap: 8,
-                            }}
-                          >
-                            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Class assignments</div>
-                            {teacherAssignments.length ? (
-                              <div style={actionsRow}>
-                                {teacherAssignments.map((assignment) => (
-                                  <button
-                                    key={assignment.id}
-                                    style={buttonDangerOutline}
-                                    disabled={busyStaffId === staff.id}
-                                    onClick={async () => {
-                                      try {
-                                        setBusyStaffId(staff.id);
-                                        setError("");
-                                        setSuccess("");
-                                        await deleteOwnerTeacherAssignment(assignment.id);
-                                        setSuccess("Teacher class assignment removed.");
-                                        await loadOverview();
-                                      } catch (nextError) {
-                                        setError(nextError instanceof Error ? nextError.message : "Unable to remove class assignment.");
-                                      } finally {
-                                        setBusyStaffId("");
-                                      }
-                                    }}
-                                  >
-                                    Remove {assignment.classGroup?.name || "class"}
-                                  </button>
-                                ))}
-                              </div>
-                            ) : (
-                              <div style={metaText}>No classes assigned yet.</div>
-                            )}
-                            <label style={{ display: "grid", gap: 6 }}>
-                              <span style={statLabel}>Assign class</span>
-                              <select
-                                style={input}
-                                value={currentTeacherClassForm.classGroupId || ""}
-                                onChange={(e) =>
-                                  setTeacherClassForms((prev) => ({
-                                    ...prev,
-                                    [staff.id]: { classGroupId: e.target.value },
-                                  }))
-                                }
-                              >
-                                <option value="">Select class</option>
-                                {availableTeacherClasses.map((item) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <div style={actionsRow}>
-                              <button
-                                style={buttonSecondary}
-                                disabled={!currentTeacherClassForm.classGroupId || busyStaffId === staff.id}
-                                onClick={async () => {
-                                  try {
-                                    setBusyStaffId(staff.id);
-                                    setError("");
-                                    setSuccess("");
-                                    await assignOwnerTeacherToClass({
-                                      teacherId: staff.user_id,
-                                      classGroupId: currentTeacherClassForm.classGroupId,
-                                    });
-                                    setTeacherClassForms((prev) => ({
-                                      ...prev,
-                                      [staff.id]: { classGroupId: "" },
-                                    }));
-                                    setSuccess("Teacher assigned to class.");
-                                    await loadOverview();
-                                  } catch (nextError) {
-                                    setError(nextError instanceof Error ? nextError.message : "Unable to assign class.");
-                                  } finally {
-                                    setBusyStaffId("");
-                                  }
-                                }}
-                              >
-                                Assign class
-                              </button>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {canEdit && showManageForms[staff.id] ? (
-                          <div
-                            style={{
-                              border: "1px solid var(--chrome-border)",
-                              borderRadius: 12,
-                              background: "white",
-                              padding: 12,
-                              display: "grid",
-                              gap: 8,
-                            }}
-                          >
-                            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Role management</div>
-                            <div style={metaText}>
-                              Use this for rare cases where an existing login needs to become a student, teacher, or school admin without creating a second account.
-                            </div>
-
-                            <label style={{ display: "grid", gap: 6 }}>
-                              <span style={statLabel}>Role</span>
-                              <select
-                                style={input}
-                                value={currentForm.targetRole || ""}
-                                onChange={(e) =>
-                                  setEditForms((prev) => ({
-                                    ...prev,
-                                    [staff.id]: {
-                                      ...currentForm,
-                                      targetRole: e.target.value,
-                                      schoolId: e.target.value === "student" ? "" : currentForm.schoolId || staff.school_id,
-                                    },
-                                  }))
-                                }
-                              >
-                                <option value="school_admin">School admin</option>
-                                <option value="teacher">Teacher</option>
-                                <option value="student">Student</option>
-                              </select>
-                            </label>
-
-                            <label style={{ display: "grid", gap: 6 }}>
-                              <span style={statLabel}>School</span>
-                              {isSchoolAdmin && currentForm.targetRole !== "student" ? (
-                                <input style={{ ...input, background: "#f7fafc", color: "#445565" }} value={staff.school?.name || scopedSchoolName} readOnly />
-                              ) : (
-                                <select
-                                  style={input}
-                                  value={currentForm.schoolId || ""}
-                                  disabled={currentForm.targetRole === "student"}
-                                  onChange={(e) =>
-                                    setEditForms((prev) => ({
-                                      ...prev,
-                                      [staff.id]: {
-                                        ...currentForm,
-                                        schoolId: e.target.value,
-                                      },
-                                    }))
-                                  }
-                                >
-                                  <option value="">{currentForm.targetRole === "student" ? "Not needed for student" : "Select school"}</option>
-                                  {schools.map((school) => (
-                                    <option key={school.id} value={school.id}>
-                                      {school.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
-                            </label>
-
-                            <div style={actionsRow}>
-                              <button
-                                style={buttonSecondary}
-                                disabled={
-                                  busyStaffId === staff.id ||
-                                  !currentForm.targetRole ||
-                                  ((currentForm.targetRole === "teacher" || currentForm.targetRole === "school_admin") &&
-                                    !currentForm.schoolId) ||
-                                  (currentForm.targetRole === currentRole &&
-                                    (currentForm.targetRole === "student" || currentForm.schoolId === staff.school_id))
-                                }
-                                onClick={async () => {
-                                  try {
-                                    setBusyStaffId(staff.id);
-                                    setError("");
-                                    setSuccess("");
-                                    await updateOwnerUserRole({
-                                      userId: staff.user_id,
-                                      targetRole: currentForm.targetRole,
-                                      schoolId: currentForm.targetRole === "student" ? "" : currentForm.schoolId,
-                                    });
-                                    setSuccess("User role updated.");
-                                    setShowManageForms((prev) => ({
-                                      ...prev,
-                                      [staff.id]: false,
-                                    }));
-                                    setOpenStaffId("");
-                                    await loadOverview();
-                                  } catch (nextError) {
-                                    setError(nextError instanceof Error ? nextError.message : "Unable to update role.");
-                                  } finally {
-                                    setBusyStaffId("");
-                                  }
-                                }}
-                              >
-                                Save role change
-                              </button>
-
-                              {removeConfirmId === staff.id ? (
-                                <>
-                                  <button
-                                    style={buttonDanger}
-                                    disabled={busyStaffId === staff.id}
-                                    onClick={async () => {
-                                      try {
-                                        setBusyStaffId(staff.id);
-                                        setError("");
-                                        setSuccess("");
-                                        await deleteOwnerSchoolAdmin(staff.id);
-                                        setSuccess("School staff assignment removed.");
-                                        setRemoveConfirmId("");
-                                        setOpenStaffId("");
-                                        await loadOverview();
-                                      } catch (nextError) {
-                                        setError(nextError instanceof Error ? nextError.message : "Unable to remove assignment.");
-                                      } finally {
-                                        setBusyStaffId("");
-                                      }
-                                    }}
-                                  >
-                                    Confirm remove assignment
-                                  </button>
-                                  <button style={buttonSecondary} onClick={() => setRemoveConfirmId("")}>
-                                    Cancel
-                                  </button>
-                                </>
-                              ) : (
-                                <button
-                                  style={buttonDangerOutline}
-                                  disabled={busyStaffId === staff.id}
-                                  onClick={() => setRemoveConfirmId(staff.id)}
-                                >
-                                  Remove school assignment
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    </details>
-                  );
-                })}
-              </div>
+                <details style={listCard} open={openSection === "unassigned"}>
+                  <summary
+                    style={detailsSummary}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setOpenSection((prev) => (prev === "unassigned" ? "" : "unassigned"));
+                    }}
+                  >
+                    <div style={summaryRow}>
+                      <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>Unassigned staff</div>
+                      <OpenHint isOpen={openSection === "unassigned"} />
+                    </div>
+                  </summary>
+                  <div style={detailsBody}>
+                    {unassignedStaffAssignments.length ? (
+                      <div style={listGrid}>{unassignedStaffAssignments.map((staff) => renderStaffCard(staff, { unassigned: true }))}</div>
+                    ) : (
+                      <div style={subText}>No unassigned staff right now.</div>
+                    )}
+                  </div>
+                </details>
+              </>
             ) : (
-              <div style={subText}>No school staff have been created yet.</div>
-            )}
-              </div>
-            </details>
-
-            <details style={listCard} open={openSection === "unassigned"}>
-              <summary
-                style={detailsSummary}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setOpenSection((prev) => (prev === "unassigned" ? "" : "unassigned"));
-                }}
-              >
-                <div style={summaryRow}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>Unassigned staff</div>
-                  <OpenHint isOpen={openSection === "unassigned"} />
-                </div>
-              </summary>
-              <div style={detailsBody}>
-            {unassignedStaffAssignments.length ? (
-              <div style={listGrid}>
-                {unassignedStaffAssignments.map((staff) => {
-                  const isOpen = openStaffId === staff.id;
-                  const currentForm = editForms[staff.id] || {
-                    schoolId: staff.school_id,
-                    targetRole: toUiRole(staff.role),
-                  };
-                  const currentTeacherClassForm = teacherClassForms[staff.id] || { classGroupId: "" };
-                  const canEdit = ownerRole === "owner" || isSchoolAdmin;
-                  const currentRole = toUiRole(staff.role);
-                  const teacherAssignments = teacherAssignmentsByUserId[staff.user_id] || [];
-                  const availableTeacherClasses = classGroups.filter((item) => item.school_id === staff.school_id);
-
-                  return (
-                    <details key={staff.id} style={listCard} open={isOpen}>
-                      <summary
-                        style={detailsSummary}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setOpenStaffId((prev) => (prev === staff.id ? "" : staff.id));
-                          setRemoveConfirmId("");
-                          setEditForms((prev) => ({
-                            ...prev,
-                            [staff.id]:
-                              prev[staff.id] || {
-                                schoolId: staff.school_id,
-                                targetRole: currentRole,
-                              },
-                          }));
-                        }}
-                      >
-                        <div style={summaryRow}>
-                          <div style={{ display: "grid", gap: 2 }}>
-                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                              {staff.user?.full_name || staff.user?.email || "Staff user"}
-                            </div>
-                            <div style={metaText}>
-                              {toRoleLabel(currentRole)} (unassigned) | {staff.school?.name || "School not found"}
-                            </div>
-                          </div>
-                          <OpenHint isOpen={isOpen} />
-                        </div>
-                      </summary>
-
-                      <div style={detailsBody}>
-                        <div style={metaText}>{staff.user?.email || "No email on record"}</div>
-                        <div style={metaText}>
-                          Last school: {staff.school?.name || "School not found"} | Unassigned{" "}
-                          {staff.updated_at ? new Date(staff.updated_at).toLocaleDateString() : "Unknown date"}
-                        </div>
-                        {currentRole === "teacher" ? (
+              schools.map((school) => {
+                const isOpen = openOwnerSchoolId === school.id;
+                const assigned = staffAssignmentsBySchool[school.id] || [];
+                const unassigned = unassignedStaffBySchool[school.id] || [];
+                return (
+                  <details key={school.id} style={listCard} open={isOpen}>
+                    <summary
+                      style={detailsSummary}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setOpenOwnerSchoolId((prev) => (prev === school.id ? "" : school.id));
+                      }}
+                    >
+                      <div style={summaryRow}>
+                        <div style={{ display: "grid", gap: 2 }}>
+                          <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>{school.name}</div>
                           <div style={metaText}>
-                            Assigned classes:{" "}
-                            {teacherAssignments.length
-                              ? teacherAssignments.map((item) => item.classGroup?.name || item.class_group_id).join(", ")
-                              : "No classes assigned yet"}
+                            {assigned.length} assigned | {unassigned.length} unassigned
                           </div>
-                        ) : null}
-
-                        <div style={actionsRow}>
-                          {canEdit ? (
-                            <>
-                              {currentRole === "teacher" ? (
-                                <button
-                                  style={showClassAssignmentForms[staff.id] ? buttonPrimary : buttonSecondary}
-                                  onClick={() => {
-                                    setShowClassAssignmentForms((prev) => ({
-                                      ...prev,
-                                      [staff.id]: !prev[staff.id],
-                                    }));
-                                    setRemoveConfirmId("");
-                                  }}
-                                >
-                                  {showClassAssignmentForms[staff.id] ? "Close class assignments" : "Class assignments"}
-                                </button>
-                              ) : null}
-                              <button
-                                style={buttonPrimary}
-                                onClick={() => {
-                                  setShowManageForms((prev) => ({
-                                    ...prev,
-                                    [staff.id]: !prev[staff.id],
-                                  }));
-                                  setRemoveConfirmId("");
-                                }}
-                              >
-                                {showManageForms[staff.id] ? "Close role management" : "Manage role"}
-                              </button>
-                            </>
-                          ) : null}
                         </div>
-
-                        {canEdit && currentRole === "teacher" && showClassAssignmentForms[staff.id] ? (
-                          <div
-                            style={{
-                              border: "1px solid var(--chrome-border)",
-                              borderRadius: 12,
-                              background: "white",
-                              padding: 12,
-                              display: "grid",
-                              gap: 8,
-                            }}
-                          >
-                            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Class assignments</div>
-                            {teacherAssignments.length ? (
-                              <div style={actionsRow}>
-                                {teacherAssignments.map((assignment) => (
-                                  <button
-                                    key={assignment.id}
-                                    style={buttonDangerOutline}
-                                    disabled={busyStaffId === staff.id}
-                                    onClick={async () => {
-                                      try {
-                                        setBusyStaffId(staff.id);
-                                        setError("");
-                                        setSuccess("");
-                                        await deleteOwnerTeacherAssignment(assignment.id);
-                                        setSuccess("Teacher class assignment removed.");
-                                        await loadOverview();
-                                      } catch (nextError) {
-                                        setError(nextError instanceof Error ? nextError.message : "Unable to remove class assignment.");
-                                      } finally {
-                                        setBusyStaffId("");
-                                      }
-                                    }}
-                                  >
-                                    Remove {assignment.classGroup?.name || "class"}
-                                  </button>
-                                ))}
-                              </div>
-                            ) : (
-                              <div style={metaText}>No classes assigned yet.</div>
-                            )}
-                            <label style={{ display: "grid", gap: 6 }}>
-                              <span style={statLabel}>Assign class</span>
-                              <select
-                                style={input}
-                                value={currentTeacherClassForm.classGroupId || ""}
-                                onChange={(e) =>
-                                  setTeacherClassForms((prev) => ({
-                                    ...prev,
-                                    [staff.id]: { classGroupId: e.target.value },
-                                  }))
-                                }
-                              >
-                                <option value="">Select class</option>
-                                {availableTeacherClasses.map((item) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <div style={actionsRow}>
-                              <button
-                                style={buttonSecondary}
-                                disabled={!currentTeacherClassForm.classGroupId || busyStaffId === staff.id}
-                                onClick={async () => {
-                                  try {
-                                    setBusyStaffId(staff.id);
-                                    setError("");
-                                    setSuccess("");
-                                    await assignOwnerTeacherToClass({
-                                      teacherId: staff.user_id,
-                                      classGroupId: currentTeacherClassForm.classGroupId,
-                                    });
-                                    setTeacherClassForms((prev) => ({
-                                      ...prev,
-                                      [staff.id]: { classGroupId: "" },
-                                    }));
-                                    setSuccess("Teacher assigned to class.");
-                                    await loadOverview();
-                                  } catch (nextError) {
-                                    setError(nextError instanceof Error ? nextError.message : "Unable to assign class.");
-                                  } finally {
-                                    setBusyStaffId("");
-                                  }
-                                }}
-                              >
-                                Assign class
-                              </button>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {canEdit && showManageForms[staff.id] ? (
-                          <div
-                            style={{
-                              border: "1px solid var(--chrome-border)",
-                              borderRadius: 12,
-                              background: "white",
-                              padding: 12,
-                              display: "grid",
-                              gap: 8,
-                            }}
-                          >
-                            <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 14 }}>Role management</div>
-                            <div style={metaText}>
-                              Reassign this unassigned staff member back into a school role, or convert the account into a student if needed.
-                            </div>
-
-                            <label style={{ display: "grid", gap: 6 }}>
-                              <span style={statLabel}>Role</span>
-                              <select
-                                style={input}
-                                value={currentForm.targetRole || ""}
-                                onChange={(e) =>
-                                  setEditForms((prev) => ({
-                                    ...prev,
-                                    [staff.id]: {
-                                      ...currentForm,
-                                      targetRole: e.target.value,
-                                      schoolId: e.target.value === "student" ? "" : currentForm.schoolId || staff.school_id,
-                                    },
-                                  }))
-                                }
-                              >
-                                <option value="school_admin">School admin</option>
-                                <option value="teacher">Teacher</option>
-                                <option value="student">Student</option>
-                              </select>
-                            </label>
-
-                            <label style={{ display: "grid", gap: 6 }}>
-                              <span style={statLabel}>School</span>
-                              {isSchoolAdmin && currentForm.targetRole !== "student" ? (
-                                <input style={{ ...input, background: "#f7fafc", color: "#445565" }} value={staff.school?.name || scopedSchoolName} readOnly />
-                              ) : (
-                                <select
-                                  style={input}
-                                  value={currentForm.schoolId || ""}
-                                  disabled={currentForm.targetRole === "student"}
-                                  onChange={(e) =>
-                                    setEditForms((prev) => ({
-                                      ...prev,
-                                      [staff.id]: {
-                                        ...currentForm,
-                                        schoolId: e.target.value,
-                                      },
-                                    }))
-                                  }
-                                >
-                                  <option value="">{currentForm.targetRole === "student" ? "Not needed for student" : "Select school"}</option>
-                                  {schools.map((school) => (
-                                    <option key={school.id} value={school.id}>
-                                      {school.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
-                            </label>
-
-                            <div style={actionsRow}>
-                              <button
-                                style={buttonSecondary}
-                                disabled={
-                                  busyStaffId === staff.id ||
-                                  !currentForm.targetRole ||
-                                  ((currentForm.targetRole === "teacher" || currentForm.targetRole === "school_admin") &&
-                                    !currentForm.schoolId)
-                                }
-                                onClick={async () => {
-                                  try {
-                                    setBusyStaffId(staff.id);
-                                    setError("");
-                                    setSuccess("");
-                                    await updateOwnerUserRole({
-                                      userId: staff.user_id,
-                                      targetRole: currentForm.targetRole,
-                                      schoolId: currentForm.targetRole === "student" ? "" : currentForm.schoolId,
-                                    });
-                                    setSuccess("User role updated.");
-                                    setShowManageForms((prev) => ({
-                                      ...prev,
-                                      [staff.id]: false,
-                                    }));
-                                    setOpenStaffId("");
-                                    await loadOverview();
-                                  } catch (nextError) {
-                                    setError(nextError instanceof Error ? nextError.message : "Unable to update role.");
-                                  } finally {
-                                    setBusyStaffId("");
-                                  }
-                                }}
-                              >
-                                Save role change
-                              </button>
-                            </div>
-                          </div>
-                        ) : null}
+                        <OpenHint isOpen={isOpen} />
                       </div>
-                    </details>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={subText}>No unassigned staff right now.</div>
+                    </summary>
+                    <div style={detailsBody}>
+                      <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 16 }}>Assigned staff</div>
+                      {assigned.length ? (
+                        <div style={listGrid}>{assigned.map((staff) => renderStaffCard(staff))}</div>
+                      ) : (
+                        <div style={subText}>No assigned staff in this school.</div>
+                      )}
+
+                      <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 16, marginTop: 8 }}>Unassigned staff</div>
+                      {unassigned.length ? (
+                        <div style={listGrid}>{unassigned.map((staff) => renderStaffCard(staff, { unassigned: true }))}</div>
+                      ) : (
+                        <div style={subText}>No unassigned staff in this school.</div>
+                      )}
+                    </div>
+                  </details>
+                );
+              })
             )}
-              </div>
-            </details>
           </div>
         </div>
       </div>

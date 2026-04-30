@@ -284,7 +284,7 @@ function buildStudentSummary({ member, examAttempts, practiceSessions, remediati
   const latestAnalyticsExam = getLatestAttemptWithAnalytics(examAttempts);
   const latestExamAnalytics = getExamAnalyticsPayload(latestAnalyticsExam);
   const derivedOverallStatus =
-    deriveOverallStatusFromScore(Number(examSummary?.averageScore)) ||
+    deriveOverallStatusFromScore(examSummary?.averageScore) ||
     latestExamAnalytics?.overall_status ||
     null;
 

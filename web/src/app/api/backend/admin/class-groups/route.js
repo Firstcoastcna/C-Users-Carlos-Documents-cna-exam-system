@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireControlCenterRequestUser } from "@/app/lib/backend/auth/owner";
 import {
+  createAccessCodeRedemption,
   deleteSingleClassGroupEnrollment,
   deleteClassGroupEnrollments,
   loadClassGroupRecord,
   loadClassGroupEnrollmentRecord,
+  loadClassGroupRoster,
+  loadUserPreferences,
   deleteClassGroupRecord,
+  upsertClassGroupStaff,
+  upsertAccessCode,
   upsertClassGroup,
+  upsertUserPreferences,
 } from "@/app/lib/backend/db/client";
 
 function slugify(value) {
@@ -18,9 +24,60 @@ function slugify(value) {
     .slice(0, 60);
 }
 
+function codeToken(value) {
+  return String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "")
+    .slice(0, 18);
+}
+
+async function moveUserToIndependentHolding({ userId, schoolId, scope = "school" }) {
+  const existingPrefs = await loadUserPreferences(userId);
+
+  await upsertUserPreferences({
+    userId,
+    preferredLanguage: existingPrefs?.preferred_language || null,
+    accessGranted: true,
+    skipPracticeWelcome: !!existingPrefs?.skip_practice_welcome,
+    skipExamWelcome: !!existingPrefs?.skip_exam_welcome,
+    hasSeenFoundation: !!existingPrefs?.has_seen_foundation,
+    hasSeenCategoryIntro: !!existingPrefs?.has_seen_category_intro,
+  });
+
+  if (scope !== "school" || !schoolId) {
+    return { ok: true, scope: "owner", schoolId: null, accessCodeId: null };
+  }
+
+  const schoolToken = codeToken(schoolId) || "SCHOOL";
+  const holdingCode = await upsertAccessCode({
+    id: `accesscode_independent_hold_${String(schoolId).toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
+    code: `HOLD-${schoolToken}`,
+    codeType: "independent",
+    label: "System independent holding",
+    status: "active",
+    schoolId,
+    classGroupId: null,
+    grantsAccess: true,
+    maxRedemptions: null,
+    metadata: {
+      system_generated: true,
+      purpose: "holding",
+      visibility: "internal",
+    },
+  });
+
+  await createAccessCodeRedemption({
+    id: `redemption:${holdingCode.id}:${userId}`,
+    accessCodeId: holdingCode.id,
+    userId,
+  });
+
+  return { ok: true, scope: "school", schoolId, accessCodeId: holdingCode.id };
+}
+
 export async function POST(request) {
   try {
-    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: false });
+    const viewer = await requireControlCenterRequestUser(request, { allowTeacher: true });
     const body = await request.json().catch(() => ({}));
     const schoolId = String(body?.schoolId || "").trim();
     const name = String(body?.name || "").trim();
@@ -49,7 +106,18 @@ export async function POST(request) {
       );
     }
 
-    const id = String(body?.id || `classgroup_${slugify(name)}`).trim();
+    if (viewerRole === "teacher" && !allowedSchoolIds.has(schoolId)) {
+      return NextResponse.json(
+        { ok: false, service: "admin-class-groups", error: "Teachers can only create classes inside their own school." },
+        { status: 403 }
+      );
+    }
+
+    const generatedId =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? `classgroup_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`
+        : `classgroup_${slugify(name)}_${Date.now().toString(36)}`;
+    const id = String(body?.id || generatedId).trim();
     const classGroup = await upsertClassGroup({
       id,
       schoolId,
@@ -59,6 +127,15 @@ export async function POST(request) {
       startsOn: body?.startsOn || null,
       endsOn: body?.endsOn || null,
     });
+
+    if (viewerRole === "teacher") {
+      await upsertClassGroupStaff({
+        id: `classstaff:${classGroup.id}:${viewer.userId}`,
+        classGroupId: classGroup.id,
+        userId: viewer.userId,
+        role: "teacher",
+      });
+    }
 
     return NextResponse.json({
       ok: true,
@@ -131,6 +208,7 @@ export async function PATCH(request) {
     const enrollmentId = String(body?.enrollmentId || "").trim();
     const viewerRole = String(viewer?.role || "").toLowerCase();
     const allowedClassGroupIds = new Set(viewer?.allowedClassGroupIds || []);
+    const allowedSchoolIds = new Set(viewer?.allowedSchoolIds || []);
 
     if (!action) {
       return NextResponse.json(
@@ -154,10 +232,36 @@ export async function PATCH(request) {
         );
       }
 
+      const classGroup = await loadClassGroupRecord(classGroupId);
+      if (!classGroup) {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "That class could not be found." },
+          { status: 404 }
+        );
+      }
+
+      if (viewerRole === "school_admin" && !allowedSchoolIds.has(String(classGroup.school_id || ""))) {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "School admins can only manage classes inside their own school." },
+          { status: 403 }
+        );
+      }
+
+      const roster = await loadClassGroupRoster(classGroupId);
+      const userIds = Array.from(new Set((roster || []).map((row) => row.user_id).filter(Boolean)));
+      for (const userId of userIds) {
+        await moveUserToIndependentHolding({
+          userId,
+          schoolId: String(classGroup.school_id || ""),
+          scope: viewerRole === "owner" ? "owner" : "school",
+        });
+      }
+
       const result = await deleteClassGroupEnrollments(classGroupId);
       return NextResponse.json({
         ok: true,
         service: "admin-class-groups",
+        moved_to_independent: userIds.length,
         ...result,
       });
     }
@@ -180,10 +284,40 @@ export async function PATCH(request) {
         }
       }
 
+      const enrollment = await loadClassGroupEnrollmentRecord(enrollmentId);
+      if (!enrollment) {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "That class enrollment could not be found." },
+          { status: 404 }
+        );
+      }
+
+      const classGroup = await loadClassGroupRecord(String(enrollment.class_group_id || ""));
+      if (!classGroup) {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "That class could not be found." },
+          { status: 404 }
+        );
+      }
+
+      if (viewerRole === "school_admin" && !allowedSchoolIds.has(String(classGroup.school_id || ""))) {
+        return NextResponse.json(
+          { ok: false, service: "admin-class-groups", error: "School admins can only manage classes inside their own school." },
+          { status: 403 }
+        );
+      }
+
+      await moveUserToIndependentHolding({
+        userId: String(enrollment.user_id || ""),
+        schoolId: String(classGroup.school_id || ""),
+        scope: viewerRole === "owner" ? "owner" : "school",
+      });
+
       const result = await deleteSingleClassGroupEnrollment(enrollmentId);
       return NextResponse.json({
         ok: true,
         service: "admin-class-groups",
+        moved_to_independent: 1,
         ...result,
       });
     }

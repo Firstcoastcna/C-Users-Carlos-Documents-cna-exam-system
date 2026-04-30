@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   assignOwnerStudentToClass,
+  checkOwnerAccessCodeAvailability,
   createOwnerAccessCode,
   createOwnerClassGroup,
   createOwnerSchool,
@@ -343,6 +345,7 @@ function OpenHint({ isOpen }) {
 }
 
 export default function OwnerPage() {
+  const searchParams = useSearchParams();
   const [isNarrow, setIsNarrow] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoadingNotice, setShowLoadingNotice] = useState(false);
@@ -364,6 +367,15 @@ export default function OwnerPage() {
     accessCode: "",
     maxRedemptions: "",
   });
+  const [teacherCreateForm, setTeacherCreateForm] = useState({
+    name: "",
+    accessCode: "",
+    maxRedemptions: "",
+  });
+  const [teacherCreateOpen, setTeacherCreateOpen] = useState(false);
+  const [classCodeAvailability, setClassCodeAvailability] = useState({ status: "idle", message: "" });
+  const [manualCodeAvailability, setManualCodeAvailability] = useState({ status: "idle", message: "" });
+  const [teacherCodeAvailability, setTeacherCodeAvailability] = useState({ status: "idle", message: "" });
   const [codeForm, setCodeForm] = useState({
     code: "",
     codeType: "independent",
@@ -441,6 +453,25 @@ export default function OwnerPage() {
       : schools.length > 1
         ? `${schools.length} schools`
         : "Your school";
+
+  useEffect(() => {
+    if (!roleReady || !isTeacher) return;
+
+    const classGroupId = String(searchParams.get("class_group_id") || "").trim();
+    const openPanel = String(searchParams.get("open") || "").trim();
+    if (!classGroupId) return;
+
+    setOpenTeacherClassPanels((prev) => ({
+      ...prev,
+      [classGroupId]: openPanel || "roster",
+    }));
+
+    const timer = window.setTimeout(() => {
+      document.getElementById(`teacher-class-${classGroupId}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, 50);
+
+    return () => window.clearTimeout(timer);
+  }, [searchParams, roleReady, isTeacher]);
   const scopedSchoolId = schools.length === 1 ? String(schools[0]?.id || "") : "";
   const schoolAdminClassGroups = isSchoolAdmin
     ? classGroups.filter((item) => item.school_id === scopedSchoolId)
@@ -463,6 +494,96 @@ export default function OwnerPage() {
       setSetupTab("class");
     }
   }, [isOwner, roleReady, setupTab]);
+
+  useEffect(() => {
+    const nextCode = String(classForm.accessCode || "").trim().toUpperCase();
+    if (!classForm.createCode || !nextCode) {
+      setClassCodeAvailability({ status: "idle", message: "" });
+      return undefined;
+    }
+
+    let cancelled = false;
+    setClassCodeAvailability({ status: "checking", message: "Checking code..." });
+    const timer = window.setTimeout(async () => {
+      try {
+        const payload = await checkOwnerAccessCodeAvailability(nextCode);
+        if (cancelled) return;
+        setClassCodeAvailability(
+          payload?.exists
+            ? { status: "taken", message: "That code is already in use. Choose a different one." }
+            : { status: "available", message: "Code available." }
+        );
+      } catch {
+        if (cancelled) return;
+        setClassCodeAvailability({ status: "idle", message: "" });
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [classForm.accessCode, classForm.createCode]);
+
+  useEffect(() => {
+    const nextCode = String(codeForm.code || "").trim().toUpperCase();
+    if (!nextCode) {
+      setManualCodeAvailability({ status: "idle", message: "" });
+      return undefined;
+    }
+
+    let cancelled = false;
+    setManualCodeAvailability({ status: "checking", message: "Checking code..." });
+    const timer = window.setTimeout(async () => {
+      try {
+        const payload = await checkOwnerAccessCodeAvailability(nextCode);
+        if (cancelled) return;
+        setManualCodeAvailability(
+          payload?.exists
+            ? { status: "taken", message: "That code is already in use. Choose a different one." }
+            : { status: "available", message: "Code available." }
+        );
+      } catch {
+        if (cancelled) return;
+        setManualCodeAvailability({ status: "idle", message: "" });
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [codeForm.code]);
+
+  useEffect(() => {
+    const nextCode = String(teacherCreateForm.accessCode || "").trim().toUpperCase();
+    if (!nextCode) {
+      setTeacherCodeAvailability({ status: "idle", message: "" });
+      return undefined;
+    }
+
+    let cancelled = false;
+    setTeacherCodeAvailability({ status: "checking", message: "Checking code..." });
+    const timer = window.setTimeout(async () => {
+      try {
+        const payload = await checkOwnerAccessCodeAvailability(nextCode);
+        if (cancelled) return;
+        setTeacherCodeAvailability(
+          payload?.exists
+            ? { status: "taken", message: "That code is already in use. Choose a different one." }
+            : { status: "available", message: "Code available." }
+        );
+      } catch {
+        if (cancelled) return;
+        setTeacherCodeAvailability({ status: "idle", message: "" });
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [teacherCreateForm.accessCode]);
 
   async function runTeacherClassAction(action, okMessage) {
     setBusy(true);
@@ -570,6 +691,20 @@ export default function OwnerPage() {
                       <div style={summaryLabel}>Teachers</div>
                       <div style={summaryValue}>{schoolTeachers.length}</div>
                     </div>
+                    <Link
+                      href={`/owner/reports?scope=school&school_id=${encodeURIComponent(
+                        scopedSchoolId
+                      )}&school_name=${encodeURIComponent(viewerSchoolName)}&lang=en&from=owner`}
+                      style={{
+                        ...buttonSecondary,
+                        borderColor: "var(--brand-red)",
+                        color: "var(--brand-red)",
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      School report
+                    </Link>
                   </>
                 ) : roleReady ? (
                   <>
@@ -775,6 +910,13 @@ export default function OwnerPage() {
                           placeholder="SPRING-01"
                         />
                       </LabeledField>
+                      {classCodeAvailability.message ? (
+                        <HelperText>
+                          <span style={{ color: classCodeAvailability.status === "taken" ? "var(--brand-red)" : classCodeAvailability.status === "available" ? "#1f6f3d" : "#6b7c89" }}>
+                            {classCodeAvailability.message}
+                          </span>
+                        </HelperText>
+                      ) : null}
                       <LabeledField label="Max redemptions">
                         <input
                           style={input}
@@ -794,13 +936,27 @@ export default function OwnerPage() {
                   ) : null}
                   <div style={actionsRow}>
                     <button
-                      style={buttonPrimary}
-                      disabled={busy}
+                      style={
+                        busy || (classForm.createCode && ["checking", "taken"].includes(classCodeAvailability.status))
+                          ? {
+                              ...buttonPrimary,
+                              opacity: 0.55,
+                              cursor: "not-allowed",
+                            }
+                          : buttonPrimary
+                      }
+                      disabled={busy || (classForm.createCode && ["checking", "taken"].includes(classCodeAvailability.status))}
                       onClick={() =>
                         runAction(async () => {
                           const targetSchoolId = isSchoolAdmin ? scopedSchoolId : classForm.schoolId;
                           if (classForm.createCode && !classForm.accessCode.trim()) {
                             throw new Error("Enter an access code, or turn off code creation for now.");
+                          }
+                          if (classForm.createCode) {
+                            const availability = await checkOwnerAccessCodeAvailability(classForm.accessCode);
+                            if (availability?.exists) {
+                              throw new Error("That code is already in use. Choose a different one.");
+                            }
                           }
 
                           const classResult = await createOwnerClassGroup({
@@ -916,6 +1072,13 @@ export default function OwnerPage() {
                       placeholder={codeForm.codeType === "independent" ? "FCCNA-SOLO-001" : "SPRING-01"}
                     />
                   </LabeledField>
+                  {manualCodeAvailability.message ? (
+                    <HelperText>
+                      <span style={{ color: manualCodeAvailability.status === "taken" ? "var(--brand-red)" : manualCodeAvailability.status === "available" ? "#1f6f3d" : "#6b7c89" }}>
+                        {manualCodeAvailability.message}
+                      </span>
+                    </HelperText>
+                  ) : null}
                   <LabeledField label="Max redemptions">
                     <input
                       style={input}
@@ -933,8 +1096,16 @@ export default function OwnerPage() {
                   </HelperText>
                   <div style={actionsRow}>
                     <button
-                      style={buttonPrimary}
-                      disabled={busy}
+                      style={
+                        busy || ["checking", "taken"].includes(manualCodeAvailability.status)
+                          ? {
+                              ...buttonPrimary,
+                              opacity: 0.55,
+                              cursor: "not-allowed",
+                            }
+                          : buttonPrimary
+                      }
+                      disabled={busy || ["checking", "taken"].includes(manualCodeAvailability.status)}
                       onClick={() =>
                         runAction(async () => {
                           const nextCodeForm = isSchoolAdmin
@@ -1251,10 +1422,123 @@ export default function OwnerPage() {
             </div>
           ) : isTeacher ? (
             <div style={teacherClassGrid}>
+              <details style={teacherClassCard} open={teacherCreateOpen}>
+                <summary
+                  style={{ cursor: "pointer", listStyle: "none" }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setTeacherCreateOpen((prev) => !prev);
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>Create a class</div>
+                      <div style={subText}>
+                        Create a new class inside your school and have it assigned to you automatically.
+                      </div>
+                    </div>
+                    <OpenHint isOpen={teacherCreateOpen} />
+                  </div>
+                </summary>
+                {teacherCreateOpen ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <LabeledField label="Class name">
+                      <input
+                        style={input}
+                        value={teacherCreateForm.name}
+                        onChange={(e) => setTeacherCreateForm((prev) => ({ ...prev, name: e.target.value }))}
+                        placeholder="Morning Class"
+                      />
+                    </LabeledField>
+                    <LabeledField label="Class code">
+                      <input
+                        style={input}
+                        value={teacherCreateForm.accessCode}
+                        onChange={(e) =>
+                          setTeacherCreateForm((prev) => ({ ...prev, accessCode: e.target.value.toUpperCase() }))
+                        }
+                        placeholder="SPRING-01"
+                      />
+                    </LabeledField>
+                    {teacherCodeAvailability.message ? (
+                      <HelperText>
+                        <span style={{ color: teacherCodeAvailability.status === "taken" ? "var(--brand-red)" : teacherCodeAvailability.status === "available" ? "#1f6f3d" : "#6b7c89" }}>
+                          {teacherCodeAvailability.message}
+                        </span>
+                      </HelperText>
+                    ) : null}
+                    <LabeledField label="Max redemptions">
+                      <input
+                        style={input}
+                        type="number"
+                        min="1"
+                        value={teacherCreateForm.maxRedemptions}
+                        onChange={(e) =>
+                          setTeacherCreateForm((prev) => ({ ...prev, maxRedemptions: e.target.value }))
+                        }
+                        placeholder="Leave blank for unlimited"
+                      />
+                    </LabeledField>
+                    <HelperText>
+                      This code will be tied only to the class you are creating.
+                    </HelperText>
+                    <div style={actionsRow}>
+                      <button
+                        style={
+                          busy || ["checking", "taken"].includes(teacherCodeAvailability.status)
+                            ? {
+                                ...buttonPrimary,
+                                opacity: 0.55,
+                                cursor: "not-allowed",
+                              }
+                            : buttonPrimary
+                        }
+                        disabled={busy || ["checking", "taken"].includes(teacherCodeAvailability.status)}
+                        onClick={() =>
+                          runTeacherClassAction(async () => {
+                            if (!scopedSchoolId) {
+                              throw new Error("Your school could not be resolved yet.");
+                            }
+                            if (!teacherCreateForm.accessCode.trim()) {
+                              throw new Error("Enter the class code for this new class.");
+                            }
+                            const availability = await checkOwnerAccessCodeAvailability(teacherCreateForm.accessCode);
+                            if (availability?.exists) {
+                              throw new Error("That code is already in use. Choose a different one.");
+                            }
+
+                            const classResult = await createOwnerClassGroup({
+                              schoolId: scopedSchoolId,
+                              name: teacherCreateForm.name,
+                            });
+
+                            await createOwnerAccessCode({
+                              code: teacherCreateForm.accessCode,
+                              codeType: "class",
+                              schoolId: scopedSchoolId,
+                              classGroupId: classResult?.classGroup?.id,
+                              maxRedemptions: teacherCreateForm.maxRedemptions,
+                            });
+
+                            setTeacherCreateForm({
+                              name: "",
+                              accessCode: "",
+                              maxRedemptions: "",
+                            });
+                            setTeacherCreateOpen(false);
+                          }, "Class and code saved.")
+                        }
+                      >
+                        Save class and code
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </details>
               <div style={sectionTitle}>My classes</div>
               {teacherClasses.length ? (
                 teacherClasses.map((item) => (
-                  <div key={item.id} style={teacherClassCard}>
+                  <div key={item.id} id={`teacher-class-${item.id}`} style={teacherClassCard}>
                     {(() => {
                       const liveExamRows = (item.roster || []).filter((row) => row.studentSummary?.liveExam);
                       const activePanel = openTeacherClassPanels[item.id] || "";
@@ -1288,7 +1572,7 @@ export default function OwnerPage() {
                           item.id
                         )}&school_id=${encodeURIComponent(item.school_id || "")}&class_name=${encodeURIComponent(
                           item.name || ""
-                        )}&lang=en&from=owner-home`}
+                        )}&lang=en&from=owner-home&open=${encodeURIComponent(activePanel || "class")}`}
                         style={buttonSecondary}
                       >
                         Class report
@@ -1416,7 +1700,7 @@ export default function OwnerPage() {
                                       row.user_id
                                     )}&school_id=${encodeURIComponent(item.school_id || "")}&class_group_id=${encodeURIComponent(
                                       item.id
-                                    )}&class_name=${encodeURIComponent(item.name || "")}&lang=en&from=owner-home`}
+                                    )}&class_name=${encodeURIComponent(item.name || "")}&lang=en&from=owner-home&open=roster`}
                                     style={buttonSecondary}
                                   >
                                     Student report
@@ -1451,7 +1735,7 @@ export default function OwnerPage() {
                                         void runTeacherClassAction(async () => {
                                           await removeOwnerClassEnrollment(row.id);
                                           setConfirmRemoveEnrollmentId("");
-                                        }, "Student removed from class.");
+                                        }, "Student moved to independent access.");
                                         return;
                                       }
                                       setConfirmRemoveEnrollmentId(row.id);

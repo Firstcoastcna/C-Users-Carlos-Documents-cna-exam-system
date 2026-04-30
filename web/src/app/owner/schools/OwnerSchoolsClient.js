@@ -643,7 +643,7 @@ export default function OwnerSchoolsClient() {
           {success ? <InlineMessage tone="success">{success}</InlineMessage> : null}
           {showLoadingNotice ? <InlineMessage>Loading schools...</InlineMessage> : null}
 
-          {roleReady && !isTeacher && (schoolForm.id || classForm.id) && !loading ? (
+          {roleReady && !isTeacher && schoolForm.id && !loading ? (
             <div style={editGrid}>
               {schoolForm.id ? (
                 <div style={editCard}>
@@ -681,185 +681,6 @@ export default function OwnerSchoolsClient() {
                   </div>
                 </div>
               ) : null}
-
-              {classForm.id ? (
-                <div style={editCard}>
-                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>Edit class</div>
-                  <LabeledField label="School">
-                    <select
-                      style={input}
-                      value={classForm.schoolId}
-                      onChange={(e) => setClassForm((prev) => ({ ...prev, schoolId: e.target.value }))}
-                    >
-                      <option value="">Select school</option>
-                      {schools.map((school) => (
-                        <option key={school.id} value={school.id}>
-                          {school.name}
-                        </option>
-                      ))}
-                    </select>
-                  </LabeledField>
-                  <LabeledField label="Class name">
-                    <input
-                      style={input}
-                      value={classForm.name}
-                      onChange={(e) => setClassForm((prev) => ({ ...prev, name: e.target.value }))}
-                    />
-                  </LabeledField>
-                  <HelperText>Use the full class name students and staff recognize.</HelperText>
-                  <div
-                    style={{
-                      borderTop: "1px solid var(--chrome-border)",
-                      paddingTop: 12,
-                      display: "grid",
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 15 }}>Assigned teacher</div>
-                    <div style={listMeta}>
-                      {(teacherAssignmentsByClassId[classForm.id] || []).length
-                        ? (teacherAssignmentsByClassId[classForm.id] || [])
-                            .map((item) => item.user?.full_name || item.user?.email || item.user_id)
-                            .join(", ")
-                        : "No teacher assigned yet"}
-                    </div>
-                    {(teacherAssignmentsByClassId[classForm.id] || []).length ? (
-                      <div style={actionsRow}>
-                        {(teacherAssignmentsByClassId[classForm.id] || []).map((assignment) => (
-                          <button
-                            key={assignment.id}
-                            style={buttonTinyWarning}
-                            disabled={busy}
-                            onClick={() =>
-                              runAction(async () => {
-                                await deleteOwnerTeacherAssignment(assignment.id);
-                              }, "Teacher removed from class.")
-                            }
-                          >
-                            Remove {assignment.user?.full_name || assignment.user?.email || "teacher"}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                    <LabeledField label="Assign or change teacher">
-                      <select
-                        style={input}
-                        value={classTeacherForms[classForm.id]?.teacherId || ""}
-                        onChange={(e) =>
-                          setClassTeacherForms((prev) => ({
-                            ...prev,
-                            [classForm.id]: {
-                              teacherId: e.target.value,
-                            },
-                          }))
-                        }
-                      >
-                        <option value="">Select teacher</option>
-                        {(schoolTeachersBySchool[classForm.schoolId] || []).map((teacher) => (
-                          <option key={teacher.user_id} value={teacher.user_id}>
-                            {teacher.user?.full_name || teacher.user?.email || teacher.user_id}
-                          </option>
-                        ))}
-                      </select>
-                    </LabeledField>
-                    <div style={actionsRow}>
-                      <button
-                        style={buttonSecondary}
-                        disabled={!classTeacherForms[classForm.id]?.teacherId || busy}
-                        onClick={() =>
-                          runAction(async () => {
-                            await assignOwnerTeacherToClass({
-                              teacherId: classTeacherForms[classForm.id]?.teacherId,
-                              classGroupId: classForm.id,
-                            });
-                            setClassTeacherForms((prev) => ({
-                              ...prev,
-                              [classForm.id]: { teacherId: "" },
-                            }));
-                          }, "Teacher assigned to class.")
-                        }
-                      >
-                        Save teacher assignment
-                      </button>
-                    </div>
-                  </div>
-                  <div style={actionsRow}>
-                    <button
-                      style={buttonPrimary}
-                      disabled={busy}
-                      onClick={() =>
-                        runAction(async () => {
-                          await createOwnerClassGroup(classForm);
-                          resetClassForm();
-                        }, "Class updated.")
-                      }
-                    >
-                      Update class
-                    </button>
-                    <button style={buttonSecondary} disabled={busy} onClick={resetClassForm}>
-                      Cancel
-                    </button>
-                  </div>
-                  <div
-                    style={{
-                      borderTop: "1px solid var(--chrome-border)",
-                      paddingTop: 12,
-                      display: "grid",
-                      gap: 10,
-                    }}
-                  >
-                    <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 15 }}>Class management</div>
-                    <HelperText>
-                      Use these actions when you need to empty the roster or remove the class after it is no longer in use.
-                    </HelperText>
-                    {confirmClearClassId === classForm.id ? (
-                      <InlineMessage tone="error">
-                        <strong>Warning:</strong> `Clear enrollments` removes every student from this class at once. This is a serious bulk action, and putting those students back in the right place later may be difficult and time-consuming.
-                      </InlineMessage>
-                    ) : null}
-                    <div style={actionsRow}>
-                      <button
-                        style={buttonSecondary}
-                        disabled={busy}
-                        onClick={() => {
-                          if (confirmClearClassId === classForm.id) {
-                            void runClassAction(async () => {
-                              await clearOwnerClassEnrollments(classForm.id);
-                              setConfirmClearClassId("");
-                            }, "Class enrollments cleared.");
-                            return;
-                          }
-
-                          setConfirmClearClassId(classForm.id);
-                        }}
-                      >
-                        {confirmClearClassId === classForm.id ? "Confirm clear enrollments" : "Clear enrollments"}
-                      </button>
-                      {confirmClearClassId === classForm.id ? (
-                        <button
-                          style={buttonSecondary}
-                          disabled={busy}
-                          onClick={() => setConfirmClearClassId("")}
-                        >
-                          Cancel
-                        </button>
-                      ) : null}
-                      <button
-                        style={buttonSecondary}
-                        disabled={busy}
-                        onClick={() =>
-                          runClassAction(async () => {
-                            await deleteOwnerClassGroup(classForm.id);
-                            resetClassForm();
-                          }, "Class deleted.")
-                        }
-                      >
-                        Delete class
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -891,7 +712,7 @@ export default function OwnerSchoolsClient() {
                         <HintText isOpen={schoolIsOpen} />
                       </div>
                     </summary>
-                  ) : (
+                  ) : isTeacher ? (
                     <div style={{ display: "grid", gap: 4 }}>
                       <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 17 }}>{school.name}</div>
                       <div style={listMeta}>
@@ -899,7 +720,7 @@ export default function OwnerSchoolsClient() {
                         {(classGroupsBySchool[school.id] || []).length === 1 ? "" : "es"}
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   <div style={{ display: "grid", gap: 10 }}>
                     {!isTeacher && !isSchoolAdmin ? (
@@ -1194,21 +1015,227 @@ export default function OwnerSchoolsClient() {
                                     {openCodePanels[item.id] ? "Close access code" : "Access code"}
                                   </button>
                                   <button
-                                    style={buttonSecondary}
+                                    style={classForm.id === item.id ? buttonSecondaryActive : buttonSecondary}
                                     disabled={busy}
-                                    onClick={() =>
+                                    onClick={() => {
+                                      if (classForm.id === item.id) {
+                                        resetClassForm();
+                                        return;
+                                      }
+
                                       setClassForm({
                                         id: item.id,
                                         schoolId: item.school_id || "",
                                         name: item.name || "",
-                                      })
-                                    }
+                                      });
+                                    }}
                                   >
-                                    Edit class
+                                    {classForm.id === item.id ? "Close editor" : "Edit class"}
                                   </button>
                                 </>
                               ) : null}
                             </div>
+
+                            {classForm.id === item.id ? (
+                              <div style={{ ...editCard, background: "#fffdf8", borderColor: "#eadba6" }}>
+                                {(() => {
+                                  const hasStudents = Number(item.enrollment_count || 0) > 0;
+                                  const hasCodes = Number((accessCodesByClassId[item.id] || []).length) > 0;
+                                  const deleteBlocked = hasStudents || hasCodes;
+
+                                  return (
+                                  <>
+                                <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 18 }}>Edit class</div>
+                                {!isSchoolAdmin ? (
+                                  <LabeledField label="School">
+                                    <select
+                                      style={input}
+                                      value={classForm.schoolId}
+                                      onChange={(e) => setClassForm((prev) => ({ ...prev, schoolId: e.target.value }))}
+                                    >
+                                      <option value="">Select school</option>
+                                      {schools.map((schoolOption) => (
+                                        <option key={schoolOption.id} value={schoolOption.id}>
+                                          {schoolOption.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </LabeledField>
+                                ) : null}
+                                <LabeledField label="Class name">
+                                  <input
+                                    style={input}
+                                    value={classForm.name}
+                                    onChange={(e) => setClassForm((prev) => ({ ...prev, name: e.target.value }))}
+                                  />
+                                </LabeledField>
+                                <HelperText>Use the full class name students and staff recognize.</HelperText>
+                                <div
+                                  style={{
+                                    borderTop: "1px solid var(--chrome-border)",
+                                    paddingTop: 12,
+                                    display: "grid",
+                                    gap: 10,
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 15 }}>Assigned teacher</div>
+                                  <div style={listMeta}>
+                                    {(teacherAssignmentsByClassId[classForm.id] || []).length
+                                      ? (teacherAssignmentsByClassId[classForm.id] || [])
+                                          .map((assignmentItem) => assignmentItem.user?.full_name || assignmentItem.user?.email || assignmentItem.user_id)
+                                          .join(", ")
+                                      : "No teacher assigned yet"}
+                                  </div>
+                                  {(teacherAssignmentsByClassId[classForm.id] || []).length ? (
+                                    <div style={actionsRow}>
+                                      {(teacherAssignmentsByClassId[classForm.id] || []).map((assignment) => (
+                                        <button
+                                          key={assignment.id}
+                                          style={buttonTinyWarning}
+                                          disabled={busy}
+                                          onClick={() =>
+                                            runAction(async () => {
+                                              await deleteOwnerTeacherAssignment(assignment.id);
+                                            }, "Teacher removed from class.")
+                                          }
+                                        >
+                                          Remove {assignment.user?.full_name || assignment.user?.email || "teacher"}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : null}
+                                  <LabeledField label="Assign or change teacher">
+                                    <select
+                                      style={input}
+                                      value={classTeacherForms[classForm.id]?.teacherId || ""}
+                                      onChange={(e) =>
+                                        setClassTeacherForms((prev) => ({
+                                          ...prev,
+                                          [classForm.id]: {
+                                            teacherId: e.target.value,
+                                          },
+                                        }))
+                                      }
+                                    >
+                                      <option value="">Select teacher</option>
+                                      {(schoolTeachersBySchool[classForm.schoolId] || []).map((teacher) => (
+                                        <option key={teacher.user_id} value={teacher.user_id}>
+                                          {teacher.user?.full_name || teacher.user?.email || teacher.user_id}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </LabeledField>
+                                  <div style={actionsRow}>
+                                    <button
+                                      style={buttonSecondary}
+                                      disabled={!classTeacherForms[classForm.id]?.teacherId || busy}
+                                      onClick={() =>
+                                        runAction(async () => {
+                                          await assignOwnerTeacherToClass({
+                                            teacherId: classTeacherForms[classForm.id]?.teacherId,
+                                            classGroupId: classForm.id,
+                                          });
+                                          setClassTeacherForms((prev) => ({
+                                            ...prev,
+                                            [classForm.id]: { teacherId: "" },
+                                          }));
+                                        }, "Teacher assigned to class.")
+                                      }
+                                    >
+                                      Save teacher assignment
+                                    </button>
+                                  </div>
+                                </div>
+                                <div style={actionsRow}>
+                                  <button
+                                    style={buttonPrimary}
+                                    disabled={busy}
+                                    onClick={() =>
+                                      runAction(async () => {
+                                        await createOwnerClassGroup(classForm);
+                                        resetClassForm();
+                                      }, "Class updated.")
+                                    }
+                                  >
+                                    Update class
+                                  </button>
+                                </div>
+                                <div
+                                  style={{
+                                    borderTop: "1px solid var(--chrome-border)",
+                                    paddingTop: 12,
+                                    display: "grid",
+                                    gap: 10,
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 15 }}>Class management</div>
+                                  <HelperText>
+                                    Use these actions when you need to move students out of this class safely or remove the class after it is no longer in use.
+                                  </HelperText>
+                                  {confirmClearClassId === classForm.id ? (
+                                    <InlineMessage tone="error">
+                                      <strong>Confirm:</strong> All students in this class will be placed in the independent student list. Their accounts will stay active. Continue?
+                                    </InlineMessage>
+                                  ) : null}
+                                  <div style={actionsRow}>
+                                    <button
+                                      style={buttonSecondary}
+                                      disabled={busy}
+                                      onClick={() => {
+                                        if (confirmClearClassId === classForm.id) {
+                                          void runClassAction(async () => {
+                                            await clearOwnerClassEnrollments(classForm.id);
+                                            setConfirmClearClassId("");
+                                          }, "Students moved to independent access.");
+                                          return;
+                                        }
+
+                                        setConfirmClearClassId(classForm.id);
+                                      }}
+                                    >
+                                      {confirmClearClassId === classForm.id ? "Confirm clear enrollments" : "Clear enrollments"}
+                                    </button>
+                                    {confirmClearClassId === classForm.id ? (
+                                      <button
+                                        style={buttonSecondary}
+                                        disabled={busy}
+                                        onClick={() => setConfirmClearClassId("")}
+                                      >
+                                        Cancel
+                                      </button>
+                                    ) : null}
+                                    <button
+                                      style={
+                                        deleteBlocked
+                                          ? {
+                                              ...buttonSecondary,
+                                              opacity: 0.5,
+                                              cursor: "not-allowed",
+                                            }
+                                          : buttonSecondary
+                                      }
+                                      disabled={busy || deleteBlocked}
+                                      onClick={() =>
+                                        runClassAction(async () => {
+                                          await deleteOwnerClassGroup(classForm.id);
+                                          resetClassForm();
+                                        }, "Class deleted.")
+                                      }
+                                    >
+                                      Delete class
+                                    </button>
+                                  </div>
+                                  {deleteBlocked ? (
+                                    <HelperText>
+                                      Delete class becomes available after the class roster is empty and any class codes are deactivated or deleted.
+                                    </HelperText>
+                                  ) : null}
+                                </div>
+                                  </>
+                                  );
+                                })()}
+                              </div>
+                            ) : null}
 
                             {openLiveExamPanels[item.id] ? (
                               liveExamRows.length ? (
@@ -1361,7 +1388,7 @@ export default function OwnerSchoolsClient() {
                                                 void runClassAction(async () => {
                                                   await removeOwnerClassEnrollment(row.id);
                                                   setConfirmRemoveEnrollmentId("");
-                                                }, "Student removed from class.");
+                                                }, "Student moved to independent access.");
                                                 return;
                                               }
 

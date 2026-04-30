@@ -537,7 +537,7 @@ function summarizePracticeLearningSignals(practiceSessions) {
 
 function summarizeLearningSignals(examAttempts, practiceSessions) {
   const examSummary = summarizeExamAttempts(examAttempts);
-  const overallExamStatus = deriveOverallStatusFromScore(Number(examSummary?.averageScore));
+  const overallExamStatus = deriveOverallStatusFromScore(examSummary?.averageScore);
   const latestCompletedAttempt = getCompletedAttemptsSorted(examAttempts)[0] || null;
   const analytics = getExamAnalyticsPayload(latestCompletedAttempt);
   if (!analytics) {

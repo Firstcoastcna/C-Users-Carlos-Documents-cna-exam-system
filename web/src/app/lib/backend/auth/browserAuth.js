@@ -489,6 +489,12 @@ export async function createOwnerAccessCode(input) {
   return postAuthenticatedJson("/api/backend/admin/access-codes", input);
 }
 
+export async function checkOwnerAccessCodeAvailability(code) {
+  return fetchAuthenticatedJson(
+    `/api/backend/admin/access-codes?check_code=${encodeURIComponent(String(code || "").trim().toUpperCase())}`
+  );
+}
+
 export async function createOwnerUser(input) {
   return postAuthenticatedJson("/api/backend/admin/users", input);
 }

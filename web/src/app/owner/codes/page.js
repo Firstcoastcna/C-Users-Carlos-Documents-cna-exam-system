@@ -525,8 +525,8 @@ export default function OwnerCodesPage() {
           <div style={rowList}>
             {filteredCodes.length ? (
               filteredCodes.map((item) => {
-                const school = schoolById[item.school_id];
                 const classGroup = classById[item.class_group_id];
+                const school = schoolById[classGroup?.school_id || item.school_id];
                 const lane = item.class_group_id ? "Class code" : "Independent";
                 const scopeText = item.class_group_id
                   ? `${school?.name || "Unknown school"} | ${classGroup?.name || "Unknown class"}`
@@ -569,7 +569,7 @@ export default function OwnerCodesPage() {
                               id: item.id,
                               code: item.code || "",
                               codeType: item.class_group_id ? "class" : "independent",
-                              schoolId: item.school_id || "",
+                              schoolId: classGroup?.school_id || item.school_id || "",
                               classGroupId: item.class_group_id || "",
                               maxRedemptions: item.max_redemptions == null ? "" : String(item.max_redemptions),
                             })
