@@ -218,7 +218,7 @@ function OpenHint({ isOpen }) {
 
   return (
     <span style={hintText}>
-      {isNarrow ? (isOpen ? "Tap here to close" : "Tap here to open") : isOpen ? "Click here to close" : "Click here to open"}
+      {isNarrow ? (isOpen ? "Tap to close" : "Tap to open") : isOpen ? "Click to close" : "Click to open"}
     </span>
   );
 }

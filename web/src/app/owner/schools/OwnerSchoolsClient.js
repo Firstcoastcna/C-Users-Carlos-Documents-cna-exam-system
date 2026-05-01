@@ -267,7 +267,7 @@ function HintText({ isOpen }) {
 
   return (
     <span style={{ color: "#607282", fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
-      {isNarrow ? (isOpen ? "Tap here to close" : "Tap here to open") : isOpen ? "Click here to close" : "Click here to open"}
+      {isNarrow ? (isOpen ? "Tap to close" : "Tap to open") : isOpen ? "Click to close" : "Click to open"}
     </span>
   );
 }

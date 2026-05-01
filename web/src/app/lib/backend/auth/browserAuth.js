@@ -100,6 +100,20 @@ export async function signInStudent({ email, password }) {
     throw new Error(normalizeAuthError("Sign in", error));
   }
 
+  if (data?.session?.access_token && typeof window !== "undefined") {
+    const entryPath = window.location?.pathname || "/signin";
+    const entryLabel = entryPath.includes("/owner-access") || entryPath.includes("/owner") ? "Control Center" : "Student App";
+    await fetch("/api/backend/auth/activity", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${data.session.access_token}`,
+      },
+      body: JSON.stringify({ entryPath, entryLabel }),
+      cache: "no-store",
+    }).catch(() => null);
+  }
+
   return data;
 }
 
@@ -403,6 +417,10 @@ export async function fetchClassOverviewReport(lang = "en") {
 
 export async function fetchOwnerOverview() {
   return fetchAuthenticatedJson("/api/backend/admin/overview");
+}
+
+export async function fetchOwnerActivity() {
+  return fetchAuthenticatedJson("/api/backend/admin/activity");
 }
 
 export async function fetchOwnerStudentOverviewReport(userId, lang = "en") {

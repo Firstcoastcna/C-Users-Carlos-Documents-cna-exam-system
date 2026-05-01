@@ -338,7 +338,7 @@ function OpenHint({ isOpen }) {
 
   return (
     <span style={{ color: "#607282", fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
-      {isNarrow ? (isOpen ? "Tap here to close" : "Tap here to open") : isOpen ? "Click here to close" : "Click here to open"}
+      {isNarrow ? (isOpen ? "Tap to close" : "Tap to open") : isOpen ? "Click to close" : "Click to open"}
     </span>
   );
 }
@@ -1887,6 +1887,18 @@ export default function OwnerPage() {
               </div>
               <Link href="/owner/independent" style={buttonSecondary}>
                 Open independent students
+              </Link>
+            </div>
+            ) : null}
+
+            {roleReady && isOwner ? (
+            <div style={navCard}>
+              <div style={sectionTitle}>User activity</div>
+              <div style={subText}>
+                See who is logging in, when they last connected, and how many times they have signed in so far.
+              </div>
+              <Link href="/owner/activity" style={buttonSecondary}>
+                Open activity
               </Link>
             </div>
             ) : null}

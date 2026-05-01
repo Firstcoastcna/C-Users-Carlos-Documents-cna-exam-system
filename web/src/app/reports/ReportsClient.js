@@ -257,6 +257,77 @@ function buildStudentProgress(summary) {
   };
 }
 
+function buildExamHistoryBreakdownSummary(examHistory, categoryOrder = []) {
+  const chapterMap = new Map();
+  const categoryMap = new Map();
+
+  (Array.isArray(examHistory) ? examHistory : []).forEach((attempt) => {
+    (Array.isArray(attempt?.chapterBreakdown) ? attempt.chapterBreakdown : []).forEach((chapter) => {
+      const chapterId = Number(chapter?.chapterId);
+      const percent = Number(chapter?.percent);
+      if (!Number.isFinite(chapterId) || !Number.isFinite(percent)) return;
+      if (!chapterMap.has(chapterId)) chapterMap.set(chapterId, []);
+      chapterMap.get(chapterId).push(percent);
+    });
+
+    (Array.isArray(attempt?.categoryBreakdown) ? attempt.categoryBreakdown : []).forEach((category) => {
+      const categoryName = category?.category;
+      const percent = Number(category?.percent);
+      if (!categoryName || !Number.isFinite(percent)) return;
+      if (!categoryMap.has(categoryName)) categoryMap.set(categoryName, []);
+      categoryMap.get(categoryName).push(percent);
+    });
+  });
+
+  const summarize = (values) => {
+    const valid = values.filter(Number.isFinite);
+    if (!valid.length) return { average: null, best: null, worst: null };
+    const average = Math.round(valid.reduce((sum, value) => sum + value, 0) / valid.length);
+    return {
+      average,
+      best: Math.max(...valid),
+      worst: Math.min(...valid),
+    };
+  };
+
+  const compareSummaryRows = (a, b, tieBreaker) => {
+    const averageA = Number.isFinite(a?.average) ? a.average : Number.MAX_SAFE_INTEGER;
+    const averageB = Number.isFinite(b?.average) ? b.average : Number.MAX_SAFE_INTEGER;
+    if (averageA !== averageB) return averageA - averageB;
+    const worstA = Number.isFinite(a?.worst) ? a.worst : Number.MAX_SAFE_INTEGER;
+    const worstB = Number.isFinite(b?.worst) ? b.worst : Number.MAX_SAFE_INTEGER;
+    if (worstA !== worstB) return worstA - worstB;
+    const bestA = Number.isFinite(a?.best) ? a.best : -1;
+    const bestB = Number.isFinite(b?.best) ? b.best : -1;
+    if (bestA !== bestB) return bestA - bestB;
+    return tieBreaker(a, b);
+  };
+
+  const chapters = Array.from(chapterMap.entries())
+    .map(([chapterId, values]) => ({
+      chapterId,
+      ...summarize(values),
+    }))
+    .sort((a, b) => compareSummaryRows(a, b, (left, right) => left.chapterId - right.chapterId));
+
+  const orderIndex = new Map(categoryOrder.map((name, index) => [name, index]));
+  const categories = Array.from(categoryMap.entries())
+    .map(([category, values]) => ({
+      category,
+      ...summarize(values),
+    }))
+    .sort((a, b) =>
+      compareSummaryRows(a, b, (left, right) => {
+        const indexA = orderIndex.has(left.category) ? orderIndex.get(left.category) : Number.MAX_SAFE_INTEGER;
+        const indexB = orderIndex.has(right.category) ? orderIndex.get(right.category) : Number.MAX_SAFE_INTEGER;
+        if (indexA !== indexB) return indexA - indexB;
+        return String(left.category).localeCompare(String(right.category), undefined, { sensitivity: "base" });
+      })
+    );
+
+  return { chapters, categories };
+}
+
 function getStatusTone(status) {
   if (status === "On Track") {
     return {
@@ -317,22 +388,22 @@ function getScoreTone(score) {
 
 function getBandTone(percent) {
   if (Number(percent) < 60) {
-    return { bg: "#fff8f8", border: "#efc2c2" };
+    return { bg: "#fff8f8", border: "#efc2c2", color: "var(--brand-red)" };
   }
   if (Number(percent) < 80) {
-    return { bg: "#fffdf5", border: "#eadba6" };
+    return { bg: "#fffdf5", border: "#eadba6", color: "#7a5a00" };
   }
-  return { bg: "#f7fff9", border: "#bddfc6" };
+  return { bg: "#f7fff9", border: "#bddfc6", color: "#1f6f3d" };
 }
 
 function getCategoryBandTone(percent) {
   if (Number(percent) < 70) {
-    return { bg: "#fff8f8", border: "#efc2c2" };
+    return { bg: "#fff8f8", border: "#efc2c2", color: "var(--brand-red)" };
   }
   if (Number(percent) < 80) {
-    return { bg: "#fffdf5", border: "#eadba6" };
+    return { bg: "#fffdf5", border: "#eadba6", color: "#7a5a00" };
   }
-  return { bg: "#f7fff9", border: "#bddfc6" };
+  return { bg: "#f7fff9", border: "#bddfc6", color: "#1f6f3d" };
 }
 
 function OpenHint({ isOpen, lang }) {
@@ -359,11 +430,11 @@ function OpenHint({ isOpen, lang }) {
     <span style={{ color: "#607282", fontSize: 12.5, fontWeight: 700 }}>
       {isNarrow
         ? isOpen
-          ? t("Tap here to close", "Toque aqui para cerrar", "Touchez ici pour fermer", "Peze la a pou femen")
-          : t("Tap here to open", "Toque aqui para abrir", "Touchez ici pour ouvrir", "Peze la a pou louvri")
+          ? t("Tap to close", "Toque para cerrar", "Touchez pour fermer", "Peze pou femen")
+          : t("Tap to open", "Toque para abrir", "Touchez pour ouvrir", "Peze pou louvri")
         : isOpen
-          ? t("Click here to close", "Haga clic aqui para cerrar", "Cliquez ici pour fermer", "Klike la a pou femen")
-          : t("Click here to open", "Haga clic aqui para abrir", "Cliquez ici pour ouvrir", "Klike la a pou louvri")}
+          ? t("Click to close", "Haga clic para cerrar", "Cliquez pour fermer", "Klike pou femen")
+          : t("Click to open", "Haga clic para abrir", "Cliquez pour ouvrir", "Klike pou louvri")}
     </span>
   );
 }
@@ -634,6 +705,10 @@ export default function ReportsClient() {
   const nextActions = buildStudentNextActions(summary);
   const progress = buildStudentProgress(summary);
   const examHistory = Array.isArray(summary?.examHistory) ? summary.examHistory : [];
+  const progressBreakdown = buildExamHistoryBreakdownSummary(examHistory, Object.keys(CATEGORY_TO_CHAPTERS));
+  const progressAverageTone = getBandTone(progress.examAverage);
+  const progressBestTone = getBandTone(progress.bestScore);
+  const progressWorstTone = getBandTone(progress.worstScore);
   const latestExamResults = summary?.latestExamResults || null;
   const examQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.exam || 0);
   const practiceQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.practice || 0);
@@ -1341,7 +1416,7 @@ export default function ReportsClient() {
                     </div>
                     <div style={{ ...subText, color: "#476252" }}>
                       {topStrength?.level
-                        ? `${topStrength.level} | `
+                        ? `${formatLevelLabel(topStrength.level)} | `
                         : ""}
                       {t("Main chapter", "Capitulo principal", "Chapitre principal", "Chapit prensipal")}:{" "}
                       {topStrengthMainChapter
@@ -1459,24 +1534,142 @@ export default function ReportsClient() {
                     "Sèvi ak seksyon sa a pou swiv nòt egzamen ou fini yo ak zòn ki kontinye repete."
                   )}
                 </div>
-                <div style={{ ...compactCard, padding: 12 }}>
-                  <div style={subText}>
-                    {t("Completed exams", "Examenes completados", "Examens termines", "Egzamen fini")}: {progress.completedAttempts}
-                    {" | "}
-                    {t("Average exam", "Promedio de examen", "Moyenne d'examen", "Mwayen egzamen")}: {formatPercent(progress.examAverage) || noDataLabel()}
-                    {" | "}
-                    {t("Best", "Mejor", "Meilleur", "Pi bon")}: {formatPercent(progress.bestScore) || noDataLabel()}
-                    {" | "}
-                    {t("Worst", "Mas bajo", "Le plus bas", "Pi ba")}: {formatPercent(progress.worstScore) || noDataLabel()}
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ ...compactCard, padding: 12 }}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                      {t("Exam summary", "Resumen de examenes", "Resume des examens", "Rezime egzamen")}
+                    </div>
+                    <div style={subText}>
+                      {t("Completed exams", "Examenes completados", "Examens termines", "Egzamen fini")}: {progress.completedAttempts}
+                      {" | "}
+                      {t("Average exam", "Promedio de examen", "Moyenne d'examen", "Mwayen egzamen")}:{" "}
+                      <span style={{ color: progressAverageTone.color, fontWeight: 800 }}>
+                        {formatPercent(progress.examAverage) || noDataLabel()}
+                      </span>
+                      {" | "}
+                      {t("Best", "Mejor", "Meilleur", "Pi bon")}:{" "}
+                      <span style={{ color: progressBestTone.color, fontWeight: 800 }}>
+                        {formatPercent(progress.bestScore) || noDataLabel()}
+                      </span>
+                      {" | "}
+                      {t("Worst", "Mas bajo", "Le plus bas", "Pi ba")}:{" "}
+                      <span style={{ color: progressWorstTone.color, fontWeight: 800 }}>
+                        {formatPercent(progress.worstScore) || noDataLabel()}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ ...compactCard, padding: 12 }}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                      {t("Chapter averages", "Promedios por capitulo", "Moyennes par chapitre", "Mwayen pa chapit")}
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      {progressBreakdown.chapters.map((chapter) => {
+                        const averageTone = getBandTone(chapter.average);
+                        const bestTone = getBandTone(chapter.best);
+                        const worstTone = getBandTone(chapter.worst);
+                        return (
+                          <div key={`student-progress-summary-chapter-${chapter.chapterId}`} style={subText}>
+                            {t("Chapter", "Capitulo", "Chapitre", "Chapit")} {chapter.chapterId}:{" "}
+                            {t("Avg", "Prom", "Moy", "Mway")}:{" "}
+                            <span style={{ color: averageTone.color, fontWeight: 800 }}>
+                              {formatPercent(chapter.average) || noDataLabel()}
+                            </span>
+                            {" | "}
+                            {t("Best", "Mejor", "Meilleur", "Pi bon")}:{" "}
+                            <span style={{ color: bestTone.color, fontWeight: 800 }}>
+                              {formatPercent(chapter.best) || noDataLabel()}
+                            </span>
+                            {" | "}
+                            {t("Worst", "Mas bajo", "Le plus bas", "Pi ba")}:{" "}
+                            <span style={{ color: worstTone.color, fontWeight: 800 }}>
+                              {formatPercent(chapter.worst) || noDataLabel()}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ ...compactCard, padding: 12 }}>
+                    <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                      {t("Category averages", "Promedios por categoria", "Moyennes par categorie", "Mwayen pa kategori")}
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      {progressBreakdown.categories.map((category) => {
+                        const averageTone = getCategoryBandTone(category.average);
+                        const bestTone = getCategoryBandTone(category.best);
+                        const worstTone = getCategoryBandTone(category.worst);
+                        return isNarrow ? (
+                          <div
+                            key={`student-progress-summary-category-${category.category}`}
+                            style={{ ...subText, display: "grid", gap: 2 }}
+                          >
+                            <div>{formatCategoryLabel(category.category)}:</div>
+                            <div>
+                              {t("Avg", "Prom", "Moy", "Mway")}:{" "}
+                              <span style={{ color: averageTone.color, fontWeight: 800 }}>
+                                {formatPercent(category.average) || noDataLabel()}
+                              </span>
+                              {" | "}
+                              {t("Best", "Mejor", "Meilleur", "Pi bon")}:{" "}
+                              <span style={{ color: bestTone.color, fontWeight: 800 }}>
+                                {formatPercent(category.best) || noDataLabel()}
+                              </span>
+                              {" | "}
+                              {t("Worst", "Mas bajo", "Le plus bas", "Pi ba")}:{" "}
+                              <span style={{ color: worstTone.color, fontWeight: 800 }}>
+                                {formatPercent(category.worst) || noDataLabel()}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div key={`student-progress-summary-category-${category.category}`} style={subText}>
+                            {formatCategoryLabel(category.category)}:{" "}
+                            {t("Avg", "Prom", "Moy", "Mway")}:{" "}
+                            <span style={{ color: averageTone.color, fontWeight: 800 }}>
+                              {formatPercent(category.average) || noDataLabel()}
+                            </span>
+                            {" | "}
+                            {t("Best", "Mejor", "Meilleur", "Pi bon")}:{" "}
+                            <span style={{ color: bestTone.color, fontWeight: 800 }}>
+                              {formatPercent(category.best) || noDataLabel()}
+                            </span>
+                            {" | "}
+                            {t("Worst", "Mas bajo", "Le plus bas", "Pi ba")}:{" "}
+                            <span style={{ color: worstTone.color, fontWeight: 800 }}>
+                              {formatPercent(category.worst) || noDataLabel()}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display: "grid", gap: 10 }}>
+                  {examHistory.length ? (
+                    <div
+                      style={{
+                        ...subText,
+                        fontWeight: 800,
+                        color: "var(--heading)",
+                        background: "#f3f8fb",
+                        border: "1px solid #d6e1e8",
+                        borderRadius: 10,
+                        padding: "8px 10px",
+                      }}
+                    >
+                      {t(
+                        "Select an exam card to open its full chapter and category breakdown.",
+                        "Seleccione una tarjeta de examen para abrir su desglose completo por capitulo y categoria.",
+                        "Selectionnez une carte d'examen pour ouvrir son detail complet par chapitre et categorie.",
+                        "Chwazi yon kat egzamen pou louvri dekonpozisyon konplè li pa chapit ak kategori."
+                      )}
+                    </div>
+                  ) : null}
                   {examHistory.length ? (
                     examHistory.map((attempt, index) => (
                       <details
                         key={`student-history-${attempt?.attemptId || index}`}
                         style={{ ...compactCard, padding: 12 }}
-                        open={index === 0}
                       >
                         <summary style={detailsSummary}>
                           <div style={{ display: "grid", gap: 6 }}>

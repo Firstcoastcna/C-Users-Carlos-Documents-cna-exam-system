@@ -1788,3 +1788,126 @@ export async function deletePracticeSessionsForUser(userId) {
 
   return { ok: true, userId };
 }
+
+export async function recordUserSignInActivity({
+  userId,
+  email,
+  fullName = "",
+  entryPath = "/signin",
+  entryLabel = null,
+}) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedUserId = String(userId || "").trim();
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedEntryPath = String(entryPath || "/signin").trim() || "/signin";
+  const resolvedEntryLabel =
+    entryLabel ||
+    (normalizedEntryPath.includes("/owner-access") || normalizedEntryPath.includes("/owner")
+      ? "Control Center"
+      : "Student App");
+
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  if (!normalizedEmail) {
+    throw new Error("User email is required.");
+  }
+
+  await upsertAppUser({
+    id: normalizedUserId,
+    email: normalizedEmail,
+    fullName,
+  });
+
+  const { data: existing, error: loadError } = await supabase
+    .from("app_users")
+    .select("id, sign_in_count, first_sign_in_at")
+    .eq("id", normalizedUserId)
+    .maybeSingle();
+
+  if (loadError) {
+    if (String(loadError.message || "").toLowerCase().includes("column")) {
+      return loadAppUser(normalizedUserId);
+    }
+    throw new Error(`Supabase load sign-in activity failed: ${loadError.message}`);
+  }
+
+  const now = new Date().toISOString();
+  const nextCount = Number(existing?.sign_in_count || 0) + 1;
+  const payload = {
+    id: normalizedUserId,
+    email: normalizedEmail,
+    full_name: fullName || null,
+    sign_in_count: nextCount,
+    first_sign_in_at: existing?.first_sign_in_at || now,
+    last_sign_in_at: now,
+    last_seen_at: now,
+    last_entry_path: normalizedEntryPath,
+    last_entry_label: resolvedEntryLabel,
+    updated_at: now,
+  };
+
+  const { data, error } = await supabase
+    .from("app_users")
+    .upsert(payload, { onConflict: "id" })
+    .select(
+      "id, email, full_name, account_role, sign_in_count, first_sign_in_at, last_sign_in_at, last_seen_at, last_entry_path, last_entry_label, created_at, updated_at"
+    )
+    .single();
+
+  if (error) {
+    if (String(error.message || "").toLowerCase().includes("column")) {
+      return loadAppUser(normalizedUserId);
+    }
+    throw new Error(`Supabase record sign-in activity failed: ${error.message}`);
+  }
+
+  return data;
+}
+
+export async function listUserSignInActivityRecords() {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const { data, error } = await supabase
+    .from("app_users")
+    .select(
+      "id, email, full_name, account_role, sign_in_count, first_sign_in_at, last_sign_in_at, last_seen_at, last_entry_path, last_entry_label, created_at, updated_at"
+    )
+    .order("last_sign_in_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (String(error.message || "").toLowerCase().includes("column")) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from("app_users")
+        .select("id, email, full_name, account_role, created_at, updated_at")
+        .order("created_at", { ascending: false });
+
+      if (fallbackError) {
+        throw new Error(`Supabase list user sign-in activity failed: ${fallbackError.message}`);
+      }
+
+      return (Array.isArray(fallbackData) ? fallbackData : []).map((row) => ({
+        ...row,
+        sign_in_count: 0,
+        first_sign_in_at: null,
+        last_sign_in_at: null,
+        last_seen_at: null,
+        last_entry_path: null,
+        last_entry_label: null,
+      }));
+    }
+
+    throw new Error(`Supabase list user sign-in activity failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}

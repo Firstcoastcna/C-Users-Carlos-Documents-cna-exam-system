@@ -207,7 +207,7 @@ function OpenHint({ isOpen }) {
 
   return (
     <span style={{ color: "#607282", fontSize: 11.5, fontWeight: 700 }}>
-      {isNarrow ? (isOpen ? "Tap here to close" : "Tap here to open") : isOpen ? "Click here to close" : "Click here to open"}
+      {isNarrow ? (isOpen ? "Tap to close" : "Tap to open") : isOpen ? "Click to close" : "Click to open"}
     </span>
   );
 }
@@ -259,22 +259,22 @@ function getScoreTone(score) {
 
 function getBandTone(percent) {
   if (Number(percent) < 60) {
-    return { bg: "#fff8f8", border: "#efc2c2" };
+    return { bg: "#fff8f8", border: "#efc2c2", color: "var(--brand-red)" };
   }
   if (Number(percent) < 80) {
-    return { bg: "#fffdf5", border: "#eadba6" };
+    return { bg: "#fffdf5", border: "#eadba6", color: "#7a5a00" };
   }
-  return { bg: "#f7fff9", border: "#bddfc6" };
+  return { bg: "#f7fff9", border: "#bddfc6", color: "#1f6f3d" };
 }
 
 function getCategoryBandTone(percent) {
   if (Number(percent) < 70) {
-    return { bg: "#fff8f8", border: "#efc2c2" };
+    return { bg: "#fff8f8", border: "#efc2c2", color: "var(--brand-red)" };
   }
   if (Number(percent) < 80) {
-    return { bg: "#fffdf5", border: "#eadba6" };
+    return { bg: "#fffdf5", border: "#eadba6", color: "#7a5a00" };
   }
-  return { bg: "#f7fff9", border: "#bddfc6" };
+  return { bg: "#f7fff9", border: "#bddfc6", color: "#1f6f3d" };
 }
 
 function getStatusTone(status) {
@@ -306,6 +306,77 @@ function rankCounts(mapLike, limit = 3) {
   return Object.entries(mapLike || {})
     .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
     .slice(0, limit);
+}
+
+function buildExamHistoryBreakdownSummary(examHistory, categoryOrder = []) {
+  const chapterMap = new Map();
+  const categoryMap = new Map();
+
+  (Array.isArray(examHistory) ? examHistory : []).forEach((attempt) => {
+    (Array.isArray(attempt?.chapterBreakdown) ? attempt.chapterBreakdown : []).forEach((chapter) => {
+      const chapterId = Number(chapter?.chapterId);
+      const percent = Number(chapter?.percent);
+      if (!Number.isFinite(chapterId) || !Number.isFinite(percent)) return;
+      if (!chapterMap.has(chapterId)) chapterMap.set(chapterId, []);
+      chapterMap.get(chapterId).push(percent);
+    });
+
+    (Array.isArray(attempt?.categoryBreakdown) ? attempt.categoryBreakdown : []).forEach((category) => {
+      const categoryName = category?.category;
+      const percent = Number(category?.percent);
+      if (!categoryName || !Number.isFinite(percent)) return;
+      if (!categoryMap.has(categoryName)) categoryMap.set(categoryName, []);
+      categoryMap.get(categoryName).push(percent);
+    });
+  });
+
+  const summarize = (values) => {
+    const valid = values.filter(Number.isFinite);
+    if (!valid.length) return { average: null, best: null, worst: null };
+    const average = Math.round(valid.reduce((sum, value) => sum + value, 0) / valid.length);
+    return {
+      average,
+      best: Math.max(...valid),
+      worst: Math.min(...valid),
+    };
+  };
+
+  const compareSummaryRows = (a, b, tieBreaker) => {
+    const averageA = Number.isFinite(a?.average) ? a.average : Number.MAX_SAFE_INTEGER;
+    const averageB = Number.isFinite(b?.average) ? b.average : Number.MAX_SAFE_INTEGER;
+    if (averageA !== averageB) return averageA - averageB;
+    const worstA = Number.isFinite(a?.worst) ? a.worst : Number.MAX_SAFE_INTEGER;
+    const worstB = Number.isFinite(b?.worst) ? b.worst : Number.MAX_SAFE_INTEGER;
+    if (worstA !== worstB) return worstA - worstB;
+    const bestA = Number.isFinite(a?.best) ? a.best : -1;
+    const bestB = Number.isFinite(b?.best) ? b.best : -1;
+    if (bestA !== bestB) return bestA - bestB;
+    return tieBreaker(a, b);
+  };
+
+  const chapters = Array.from(chapterMap.entries())
+    .map(([chapterId, values]) => ({
+      chapterId,
+      ...summarize(values),
+    }))
+    .sort((a, b) => compareSummaryRows(a, b, (left, right) => left.chapterId - right.chapterId));
+
+  const orderIndex = new Map(categoryOrder.map((name, index) => [name, index]));
+  const categories = Array.from(categoryMap.entries())
+    .map(([category, values]) => ({
+      category,
+      ...summarize(values),
+    }))
+    .sort((a, b) =>
+      compareSummaryRows(a, b, (left, right) => {
+        const indexA = orderIndex.has(left.category) ? orderIndex.get(left.category) : Number.MAX_SAFE_INTEGER;
+        const indexB = orderIndex.has(right.category) ? orderIndex.get(right.category) : Number.MAX_SAFE_INTEGER;
+        if (indexA !== indexB) return indexA - indexB;
+        return String(left.category).localeCompare(String(right.category), undefined, { sensitivity: "base" });
+      })
+    );
+
+  return { chapters, categories };
 }
 
 function deriveClassStatus(summary) {
@@ -991,8 +1062,7 @@ export default function OwnerReportsClient() {
   }, [loading]);
 
   useEffect(() => {
-    const history = Array.isArray(report?.summary?.examHistory) ? report.summary.examHistory : [];
-    setSelectedExamAttemptId(history[0]?.attemptId || null);
+    setSelectedExamAttemptId(null);
   }, [report]);
 
   const classSummary = report?.summary?.aggregate || null;
@@ -1063,6 +1133,10 @@ export default function OwnerReportsClient() {
   const studentExamQuestionsSeen = Number(studentSummary?.questionHistory?.bySourceType?.exam || 0);
   const studentPracticeQuestionsSeen = Number(studentSummary?.questionHistory?.bySourceType?.practice || 0);
   const studentExamHistory = Array.isArray(studentSummary?.examHistory) ? studentSummary.examHistory : [];
+  const studentProgressBreakdown = buildExamHistoryBreakdownSummary(studentExamHistory, Object.keys(CATEGORY_TO_CHAPTERS));
+  const studentProgressAverageTone = getBandTone(studentProgress.examAverage);
+  const studentProgressBestTone = getBandTone(studentProgress.bestScore);
+  const studentProgressWorstTone = getBandTone(studentProgress.worstScore);
   const studentLatestExamResults = studentSummary?.latestExamResults || null;
   const studentLatestExamBestChapter =
     [...(studentLatestExamResults?.chapterBreakdown || [])].sort((a, b) => {
@@ -1099,7 +1173,6 @@ export default function OwnerReportsClient() {
         : [];
   const selectedExamResults =
     studentExamHistory.find((attempt) => String(attempt?.attemptId) === String(selectedExamAttemptId)) ||
-    studentLatestExamResults ||
     null;
   const studentExamStatusTone = studentHasCompletedExam
     ? getStatusTone(studentOverallStatus)
@@ -1620,7 +1693,7 @@ export default function OwnerReportsClient() {
                       <div style={{ fontWeight: 800, color: "var(--heading)" }}>Class patterns</div>
                       <div style={subText}>Open to see the categories and chapters that repeat most across the class (student count).</div>
                     </div>
-                    <div style={{ ...subText, fontSize: 12 }}>Click here to open</div>
+                    <div style={{ ...subText, fontSize: 12 }}>Click to open</div>
                   </div>
                 </summary>
 
@@ -1713,7 +1786,7 @@ export default function OwnerReportsClient() {
                         <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>Overall class areas that need support</div>
                         <div style={subText}>Open to see the detailed class-wide support counts.</div>
                       </div>
-                      <div style={{ ...subText, fontSize: 12 }}>Click here to open</div>
+                      <div style={{ ...subText, fontSize: 12 }}>Click to open</div>
                     </div>
                   </summary>
                   <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
@@ -1763,7 +1836,7 @@ export default function OwnerReportsClient() {
                         Open to see exam activity, question exposure, practice focus, and remediation focus for this class.
                       </div>
                     </div>
-                    <div style={{ ...subText, fontSize: 12 }}>Click here to open</div>
+                    <div style={{ ...subText, fontSize: 12 }}>Click to open</div>
                   </div>
                 </summary>
                 <div
@@ -2264,53 +2337,167 @@ export default function OwnerReportsClient() {
                         </div>
                       </div>
 
-                      {selectedExamResults ? (
-                        <div style={listCard}>
-                          <div style={{ fontWeight: 800, color: "var(--heading)" }}>Progress over time</div>
-                          <div style={subText}>Use this section to track completed exam scores and the areas that keep repeating.</div>
-                          <div style={subText}>
-                            Completed exams: {studentProgress.completedAttempts} | Average exam: {formatPercent(studentProgress.examAverage)} |
-                            {" "}Best score: {formatPercent(studentProgress.bestScore)} | Worst score: {formatPercent(studentProgress.worstScore)}
+                      <div style={listCard}>
+                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>Progress over time</div>
+                        <div style={subText}>Use this section to track completed exam scores and the areas that keep repeating.</div>
+                        <div style={{ display: "grid", gap: 10 }}>
+                          <div style={{ ...listCard, padding: 12 }}>
+                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>Exam summary</div>
+                            <div style={subText}>
+                              Completed exams: {studentProgress.completedAttempts} | Average exam:{" "}
+                              <span style={{ color: studentProgressAverageTone.color, fontWeight: 800 }}>
+                                {formatPercent(studentProgress.examAverage)}
+                              </span>
+                              {" | "}Best score:{" "}
+                              <span style={{ color: studentProgressBestTone.color, fontWeight: 800 }}>
+                                {formatPercent(studentProgress.bestScore)}
+                              </span>
+                              {" | "}Worst score:{" "}
+                              <span style={{ color: studentProgressWorstTone.color, fontWeight: 800 }}>
+                                {formatPercent(studentProgress.worstScore)}
+                              </span>
+                            </div>
                           </div>
-                          {studentExamHistory.length > 1 ? (
-                            <div style={{ display: "grid", gap: 8 }}>
-                              <div style={subText}>The first exam in this list is the latest one. Open any completed exam to review that point in the student&apos;s progression.</div>
-                              <div
-                                style={{
-                                  display: "grid",
-                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))",
-                                  gap: 8,
-                                }}
-                              >
-                                {studentExamHistory.map((attempt, index) => {
-                                  const isSelected = String(attempt?.attemptId) === String(selectedExamResults?.attemptId);
-                                  const scoreTone = getScoreTone(Number(attempt?.score));
-                                  return (
-                                    <button
-                                      key={`owner-exam-history-${attempt?.attemptId || index}`}
-                                      type="button"
-                                      onClick={() => setSelectedExamAttemptId(attempt?.attemptId || null)}
-                                      style={{
-                                        textAlign: "left",
-                                        borderRadius: 12,
-                                        border: isSelected ? "1px solid #7aa7c7" : "1px solid #d6e1e8",
-                                        background: isSelected ? "#eef6fb" : "white",
-                                        padding: "10px 12px",
-                                        cursor: "pointer",
-                                        display: "grid",
-                                        gap: 4,
-                                      }}
-                                    >
+                          <div style={{ ...listCard, padding: 12 }}>
+                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter averages</div>
+                            <div style={{ display: "grid", gap: 4 }}>
+                              {studentProgressBreakdown.chapters.map((chapter) => {
+                                const averageTone = getBandTone(chapter.average);
+                                const bestTone = getBandTone(chapter.best);
+                                const worstTone = getBandTone(chapter.worst);
+                                return (
+                                  <div key={`owner-progress-summary-chapter-${chapter.chapterId}`} style={subText}>
+                                    Chapter {chapter.chapterId}: Avg{" "}
+                                    <span style={{ color: averageTone.color, fontWeight: 800 }}>
+                                      {formatPercent(chapter.average)}
+                                    </span>
+                                    {" | "}Best{" "}
+                                    <span style={{ color: bestTone.color, fontWeight: 800 }}>
+                                      {formatPercent(chapter.best)}
+                                    </span>
+                                    {" | "}Worst{" "}
+                                    <span style={{ color: worstTone.color, fontWeight: 800 }}>
+                                      {formatPercent(chapter.worst)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div style={{ ...listCard, padding: 12 }}>
+                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>Category averages</div>
+                            <div style={{ display: "grid", gap: 4 }}>
+                              {studentProgressBreakdown.categories.map((category) => {
+                                const averageTone = getCategoryBandTone(category.average);
+                                const bestTone = getCategoryBandTone(category.best);
+                                const worstTone = getCategoryBandTone(category.worst);
+                                return isNarrow ? (
+                                  <div
+                                    key={`owner-progress-summary-category-${category.category}`}
+                                    style={{ ...subText, display: "grid", gap: 2 }}
+                                  >
+                                    <div>{formatCategoryLabel(category.category)}:</div>
+                                    <div>
+                                      Avg{" "}
+                                      <span style={{ color: averageTone.color, fontWeight: 800 }}>
+                                        {formatPercent(category.average)}
+                                      </span>
+                                      {" | "}Best{" "}
+                                      <span style={{ color: bestTone.color, fontWeight: 800 }}>
+                                        {formatPercent(category.best)}
+                                      </span>
+                                      {" | "}Worst{" "}
+                                      <span style={{ color: worstTone.color, fontWeight: 800 }}>
+                                        {formatPercent(category.worst)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div key={`owner-progress-summary-category-${category.category}`} style={subText}>
+                                    {formatCategoryLabel(category.category)}: Avg{" "}
+                                    <span style={{ color: averageTone.color, fontWeight: 800 }}>
+                                      {formatPercent(category.average)}
+                                    </span>
+                                    {" | "}Best{" "}
+                                    <span style={{ color: bestTone.color, fontWeight: 800 }}>
+                                      {formatPercent(category.best)}
+                                    </span>
+                                    {" | "}Worst{" "}
+                                    <span style={{ color: worstTone.color, fontWeight: 800 }}>
+                                      {formatPercent(category.worst)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                        {studentExamHistory.length ? (
+                          <div style={{ display: "grid", gap: 8 }}>
+                            <div
+                              style={{
+                                ...subText,
+                                fontWeight: 800,
+                                color: "var(--heading)",
+                                background: "#f3f8fb",
+                                border: "1px solid #d6e1e8",
+                                borderRadius: 10,
+                                padding: "8px 10px",
+                              }}
+                            >
+                              Select an exam card to open its full chapter and category breakdown.
+                            </div>
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(180px, 1fr))",
+                                gap: 8,
+                              }}
+                            >
+                              {studentExamHistory.map((attempt, index) => {
+                                const isSelected = String(attempt?.attemptId) === String(selectedExamResults?.attemptId);
+                                const scoreTone = getScoreTone(Number(attempt?.score));
+                                return (
+                                  <button
+                                    key={`owner-exam-history-${attempt?.attemptId || index}`}
+                                    type="button"
+                                    onClick={() =>
+                                      setSelectedExamAttemptId((current) =>
+                                        String(current) === String(attempt?.attemptId) ? null : attempt?.attemptId || null
+                                      )
+                                    }
+                                    style={{
+                                      textAlign: "left",
+                                      borderRadius: 12,
+                                      border: isSelected ? "1px solid #7aa7c7" : "1px solid #d6e1e8",
+                                      background: isSelected ? "#eef6fb" : "white",
+                                      padding: "10px 12px",
+                                      cursor: "pointer",
+                                      display: "grid",
+                                      gap: 4,
+                                    }}
+                                  >
+                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
                                       <div style={{ fontWeight: 800, color: "var(--heading)", fontSize: 13 }}>
                                         {`Exam • ${formatDateTime(attempt?.completedAt)}`}
                                       </div>
-                                      <div style={subText}>
-                                        Score:{" "}
-                                        <span
-                                          style={{
-                                            color: scoreTone.color,
-                                            fontWeight: 800,
-                                          }}
+                                      <div style={{ ...subText, fontSize: 12, whiteSpace: "nowrap" }}>
+                                        {isNarrow
+                                          ? isSelected
+                                            ? "Tap to close"
+                                            : "Tap to open"
+                                          : isSelected
+                                            ? "Click to close"
+                                            : "Click to open"}
+                                      </div>
+                                    </div>
+                                    <div style={subText}>
+                                      Score:{" "}
+                                      <span
+                                        style={{
+                                          color: scoreTone.color,
+                                          fontWeight: 800,
+                                        }}
                                         >
                                           {formatPercent(attempt?.score)}
                                         </span>
@@ -2318,9 +2505,11 @@ export default function OwnerReportsClient() {
                                     </button>
                                   );
                                 })}
-                              </div>
                             </div>
-                          ) : null}
+                          </div>
+                        ) : null}
+                        {selectedExamResults ? (
+                          <>
                           <div style={subText}>
                             Completed: {formatDateTime(selectedExamResults.completedAt)} | Score:{" "}
                             <span
@@ -2413,8 +2602,9 @@ export default function OwnerReportsClient() {
                               </div>
                             </div>
                           ) : null}
-                        </div>
-                      ) : null}
+                          </>
+                        ) : null}
+                      </div>
                     </>
                   ) : (
                     <>

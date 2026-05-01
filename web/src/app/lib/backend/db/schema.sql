@@ -6,9 +6,22 @@ create table if not exists app_users (
   email text unique not null,
   full_name text,
   account_role text not null default 'student',
+  first_sign_in_at timestamptz,
+  last_sign_in_at timestamptz,
+  last_seen_at timestamptz,
+  sign_in_count integer not null default 0,
+  last_entry_path text,
+  last_entry_label text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists app_users add column if not exists first_sign_in_at timestamptz;
+alter table if exists app_users add column if not exists last_sign_in_at timestamptz;
+alter table if exists app_users add column if not exists last_seen_at timestamptz;
+alter table if exists app_users add column if not exists sign_in_count integer not null default 0;
+alter table if exists app_users add column if not exists last_entry_path text;
+alter table if exists app_users add column if not exists last_entry_label text;
 
 create table if not exists user_preferences (
   user_id text primary key references app_users(id) on delete cascade,
