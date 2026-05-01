@@ -2345,42 +2345,46 @@ export default function OwnerReportsClient() {
                               ? `Chapter ${selectedExamResults.weakestChapter.chapterId} (${selectedExamResults.weakestChapter.missedCount}/${selectedExamResults.weakestChapter.totalQuestions} missed)`
                               : "No chapter information yet"}
                           </div>
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(150px, 1fr))",
-                              gap: 10,
-                              marginTop: 4,
-                            }}
-                          >
-                            {(selectedExamResults.chapterBreakdown || []).map((chapter) => {
-                              const tone = getBandTone(chapter?.percent);
-                              return (
-                                <div
-                                  key={`owner-latest-exam-chapter-${chapter.chapterId}`}
-                                  style={{
-                                    ...listCard,
-                                    padding: 10,
-                                    gap: 4,
-                                    background: tone.bg,
-                                    borderColor: tone.border,
-                                  }}
-                                >
-                                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter {chapter.chapterId}</div>
-                                  <div style={{ ...subText, lineHeight: 1.45 }}>Correct: {chapter.correctCount}/{chapter.totalQuestions}</div>
-                                  <div style={{ ...subText, lineHeight: 1.45 }}>Missed: {chapter.missedCount}</div>
-                                  <div style={{ ...subText, lineHeight: 1.45 }}>Score: {formatPercent(chapter.percent)}</div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                          {(selectedExamResults.chapterBreakdown || []).length ? (
+                            <div style={{ display: "grid", gap: 8, marginTop: 4 }}>
+                              <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter breakdown</div>
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(150px, 1fr))",
+                                  gap: 10,
+                                }}
+                              >
+                                {(selectedExamResults.chapterBreakdown || []).map((chapter) => {
+                                  const tone = getBandTone(chapter?.percent);
+                                  return (
+                                    <div
+                                      key={`owner-latest-exam-chapter-${chapter.chapterId}`}
+                                      style={{
+                                        ...listCard,
+                                        padding: 10,
+                                        gap: 4,
+                                        background: tone.bg,
+                                        borderColor: tone.border,
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter {chapter.chapterId}</div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>Correct: {chapter.correctCount}/{chapter.totalQuestions}</div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>Missed: {chapter.missedCount}</div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>Score: {formatPercent(chapter.percent)}</div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
                           {(selectedExamResults.categoryBreakdown || []).length ? (
                             <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
                               <div style={{ fontWeight: 800, color: "var(--heading)" }}>Category breakdown</div>
                               <div
                                 style={{
                                   display: "grid",
-                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))",
+                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
                                   gap: 10,
                                 }}
                               >

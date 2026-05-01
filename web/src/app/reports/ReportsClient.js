@@ -1547,7 +1547,7 @@ export default function ReportsClient() {
                               <div
                                 style={{
                                   display: "grid",
-                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))",
+                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(3, minmax(0, 1fr))",
                                   gap: 10,
                                 }}
                               >
