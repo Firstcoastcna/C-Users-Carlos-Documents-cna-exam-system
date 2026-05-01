@@ -401,6 +401,13 @@ export default function ReportsClient() {
     return value || t("No current information", "Sin informacion actual", "Aucune information actuelle", "Pa gen enfomasyon aktyel");
   }
 
+  function formatLevelLabel(value) {
+    if (value === "Strong") return t("Strong", "Fuerte", "Fort", "Fo");
+    if (value === "Developing") return t("Developing", "En desarrollo", "En developpement", "An devlopman");
+    if (value === "Weak") return t("Weak", "Debil", "Faible", "Feb");
+    return value || noDataLabel();
+  }
+
   function formatDateTime(value) {
     if (!value) return noDataLabel();
     const date = new Date(value);
@@ -715,14 +722,14 @@ export default function ReportsClient() {
       key: "watch",
       title: t("Watch", "Observe", "A surveiller", "Siveye"),
       tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
-      items: weaknesses.categoriesNeedingWork.map((item) => `${formatCategoryLabel(item.category)} (${formatPracticePercentLabel(item.percent)})${item.level ? ` | ${item.level}` : ""}`),
+      items: weaknesses.categoriesNeedingWork.map((item) => `${formatCategoryLabel(item.category)} (${formatPracticePercentLabel(item.percent)})${item.level ? ` | ${formatLevelLabel(item.level)}` : ""}`),
       empty: t("Nothing repeating yet", "Nada repetido aun", "Rien de repete pour l'instant", "Pa gen anyen ki repete poko"),
     },
     {
       key: "risk",
       title: t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk"),
       tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
-      items: weaknesses.highRiskCategories.map((item) => `${formatCategoryLabel(item.category)} (${formatPracticePercentLabel(item.percent)})${item.level ? ` | ${item.level}` : ""}`),
+      items: weaknesses.highRiskCategories.map((item) => `${formatCategoryLabel(item.category)} (${formatPracticePercentLabel(item.percent)})${item.level ? ` | ${formatLevelLabel(item.level)}` : ""}`),
       empty: t("No high-risk information now", "Sin informacion de alto riesgo ahora", "Pas d'information a haut risque pour le moment", "Pa gen enfomasyon gwo risk kounye a"),
     },
   ];
@@ -1365,7 +1372,7 @@ export default function ReportsClient() {
                     </div>
                     <div style={{ ...subText, color: needsWorkTone.sub }}>
                       {topWeakEntry?.level
-                        ? `${topWeakEntry.level} | `
+                        ? `${formatLevelLabel(topWeakEntry.level)} | `
                         : ""}
                       {t("Study chapter", "Capitulo de estudio", "Chapitre a etudier", "Chapit pou etidye")}:{" "}
                       {topWeakMainChapter ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${topWeakMainChapter}` : noDataLabel()}
