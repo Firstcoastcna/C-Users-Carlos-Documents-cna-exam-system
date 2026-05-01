@@ -209,18 +209,25 @@ function buildStudentWeaknesses(summary) {
 function buildStudentNextActions(summary) {
   const actions = [];
   const overallStatus = summary?.learningSignals?.overallStatus || "";
-  const topWeak = summary?.learningSignals?.categoriesNeedingWork?.[0] || null;
-  const topHighRisk = summary?.learningSignals?.highRiskCategories?.[0] || null;
-  const topChapter = summary?.learningSignals?.chapterPriorities?.[0] || null;
+  const examRecommendation = summary?.learningSignals?.examRecommendation || null;
 
-  if (topWeak?.category) {
-    actions.push({ kind: "weak", value: topWeak.category });
-  } else if (topHighRisk?.category) {
-    actions.push({ kind: "highRisk", value: topHighRisk.category });
+  if (examRecommendation?.category) {
+    actions.push({
+      kind: "categoryRecommendation",
+      value: examRecommendation.category,
+      urgency: examRecommendation.urgency || "watch",
+      level: examRecommendation.categoryLevel || null,
+    });
   }
 
-  if (topChapter?.chapterId) {
-    actions.push({ kind: "chapter", value: topChapter.chapterId });
+  if (examRecommendation?.recommendedChapterId) {
+    actions.push({
+      kind: "chapterRecommendation",
+      value: examRecommendation.recommendedChapterId,
+      urgency: examRecommendation.urgency || "watch",
+      category: examRecommendation.category || null,
+      relation: examRecommendation.chapterRelation || "primary",
+    });
   }
 
   if (overallStatus === "High Risk") {
@@ -306,6 +313,26 @@ function getScoreTone(score) {
     accent: "#7a5a00",
     muted: "#6f6340",
   };
+}
+
+function getBandTone(percent) {
+  if (Number(percent) < 60) {
+    return { bg: "#fff8f8", border: "#efc2c2" };
+  }
+  if (Number(percent) < 80) {
+    return { bg: "#fffdf5", border: "#eadba6" };
+  }
+  return { bg: "#f7fff9", border: "#bddfc6" };
+}
+
+function getCategoryBandTone(percent) {
+  if (Number(percent) < 70) {
+    return { bg: "#fff8f8", border: "#efc2c2" };
+  }
+  if (Number(percent) < 80) {
+    return { bg: "#fffdf5", border: "#eadba6" };
+  }
+  return { bg: "#f7fff9", border: "#bddfc6" };
 }
 
 function OpenHint({ isOpen, lang }) {
@@ -410,28 +437,60 @@ export default function ReportsClient() {
   }
 
   function renderNextAction(item) {
-    if (item.kind === "highRisk") {
+    if (item.kind === "categoryRecommendation" && item.urgency === "urgent") {
       return t(
-        `Start with ${formatCategoryLabel(item.value)}. It is showing the clearest high-risk information right now.`,
-        `Empiece con ${formatCategoryLabel(item.value)}. Es la informacion de mayor riesgo en este momento.`,
-        `Commencez par ${formatCategoryLabel(item.value)}. C'est l'information a haut risque la plus claire pour le moment.`,
-        `Komanse ak ${formatCategoryLabel(item.value)}. Se li menm ki montre enfomasyon gwo risk ki pi kle kounye a.`
+        `Start with ${formatCategoryLabel(item.value)} now. It is the clearest high-priority review area right now.`,
+        `Empiece ahora con ${formatCategoryLabel(item.value)}. Es el area de repaso de mayor prioridad en este momento.`,
+        `Commencez maintenant par ${formatCategoryLabel(item.value)}. C'est le domaine de revision prioritaire le plus clair pour le moment.`,
+        `Komanse ak ${formatCategoryLabel(item.value)} kounye a. Se zòn revizyon ki gen plis priyorite kounye a.`
       );
     }
-    if (item.kind === "weak") {
+    if (item.kind === "categoryRecommendation" && item.urgency === "firm") {
       return t(
-        `Review ${formatCategoryLabel(item.value)} first before moving on to stronger areas.`,
-        `Revise primero ${formatCategoryLabel(item.value)} antes de pasar a areas mas fuertes.`,
-        `Revoyez d'abord ${formatCategoryLabel(item.value)} avant de passer aux domaines plus forts.`,
-        `Revize ${formatCategoryLabel(item.value)} an premye anvan ou pase nan zon ki pi fo yo.`
+        `Focus next on ${formatCategoryLabel(item.value)} before moving on to stronger areas.`,
+        `Enfoquese despues en ${formatCategoryLabel(item.value)} antes de pasar a areas mas fuertes.`,
+        `Concentrez-vous ensuite sur ${formatCategoryLabel(item.value)} avant de passer aux domaines plus forts.`,
+        `Konsantre apre sa sou ${formatCategoryLabel(item.value)} anvan ou pase nan zòn ki pi fò yo.`
       );
     }
-    if (item.kind === "chapter") {
+    if (item.kind === "categoryRecommendation") {
       return t(
-        `Give extra attention to Chapter ${item.value}. It is the clearest chapter-level priority.`,
-        `Ponga atencion extra al Capitulo ${item.value}. Es la prioridad mas clara a nivel de capitulo.`,
-        `Accordez plus d'attention au Chapitre ${item.value}. C'est la priorite la plus claire au niveau du chapitre.`,
-        `Bay Chapit ${item.value} plis atansyon. Se li menm ki pi kle kom priyorite nan nivo chapit la.`
+        `Keep an eye on ${formatCategoryLabel(item.value)} as you continue building consistency.`,
+        `Mantenga bajo observacion ${formatCategoryLabel(item.value)} mientras sigue construyendo consistencia.`,
+        `Gardez un oeil sur ${formatCategoryLabel(item.value)} pendant que vous continuez a gagner en regularite.`,
+        `Kenbe je sou ${formatCategoryLabel(item.value)} pandan w ap kontinye bati plis regilarite.`
+      );
+    }
+    if (item.kind === "chapterRecommendation" && item.relation === "primary" && item.urgency === "urgent") {
+      return t(
+        `Review Chapter ${item.value} first to strengthen ${formatCategoryLabel(item.category)}.`,
+        `Revise primero el Capitulo ${item.value} para fortalecer ${formatCategoryLabel(item.category)}.`,
+        `Revoyez d'abord le Chapitre ${item.value} pour renforcer ${formatCategoryLabel(item.category)}.`,
+        `Revize Chapit ${item.value} an premye pou ranfòse ${formatCategoryLabel(item.category)}.`
+      );
+    }
+    if (item.kind === "chapterRecommendation" && item.relation === "primary" && item.urgency === "firm") {
+      return t(
+        `Review Chapter ${item.value} next to strengthen ${formatCategoryLabel(item.category)}.`,
+        `Revise despues el Capitulo ${item.value} para fortalecer ${formatCategoryLabel(item.category)}.`,
+        `Revoyez ensuite le Chapitre ${item.value} pour renforcer ${formatCategoryLabel(item.category)}.`,
+        `Revize Chapit ${item.value} apre sa pou ranfòse ${formatCategoryLabel(item.category)}.`
+      );
+    }
+    if (item.kind === "chapterRecommendation" && item.relation === "primary") {
+      return t(
+        `Use Chapter ${item.value} to keep strengthening ${formatCategoryLabel(item.category)}.`,
+        `Use el Capitulo ${item.value} para seguir fortaleciendo ${formatCategoryLabel(item.category)}.`,
+        `Utilisez le Chapitre ${item.value} pour continuer a renforcer ${formatCategoryLabel(item.category)}.`,
+        `Sèvi ak Chapit ${item.value} pou kontinye ranfòse ${formatCategoryLabel(item.category)}.`
+      );
+    }
+    if (item.kind === "chapterRecommendation") {
+      return t(
+        `If you want extra support, also look at Chapter ${item.value}.`,
+        `Si desea apoyo extra, mire tambien el Capitulo ${item.value}.`,
+        `Si vous voulez un soutien supplementaire, regardez aussi le Chapitre ${item.value}.`,
+        `Si ou vle plis sipò, gade Chapit ${item.value} tou.`
       );
     }
     if (item.kind === "status" && item.value === "highRisk") {
@@ -598,12 +657,23 @@ export default function ReportsClient() {
       };
   const topStrength = strengths.strongestCategories[0] || null;
   const topHighRisk = weaknesses.highRiskCategories[0] || null;
-  const topWeakCategory = weaknesses.categoriesNeedingWork[0]?.category || topHighRisk?.category || null;
+  const examRecommendation = summary?.learningSignals?.examRecommendation || null;
+  const topWeakCategory = examRecommendation?.category || weaknesses.categoriesNeedingWork[0]?.category || topHighRisk?.category || null;
+  const topWeakEntry =
+    weaknesses.highRiskCategories.find((item) => item.category === topWeakCategory) ||
+    weaknesses.categoriesNeedingWork.find((item) => item.category === topWeakCategory) ||
+    null;
   const topWeakChapter = weaknesses.chapterPriorities[0]?.chapterId || null;
   const topWeakMapping = topWeakCategory ? CATEGORY_TO_CHAPTERS[topWeakCategory] || null : null;
-  const topWeakMainChapter = topWeakMapping?.primary?.[0] || topWeakChapter || null;
-  const topWeakSupportChapters = Array.isArray(topWeakMapping?.secondary) ? topWeakMapping.secondary.slice(0, 2) : [];
-  const topStrengthMapping = topStrength ? CATEGORY_TO_CHAPTERS[topStrength] || null : null;
+  const topWeakMainChapter = examRecommendation?.recommendedChapterId || topWeakMapping?.primary?.[0] || topWeakChapter || null;
+  const topWeakSupportChapters =
+    Array.isArray(examRecommendation?.supportChapterIds) && examRecommendation.supportChapterIds.length
+      ? examRecommendation.supportChapterIds
+      : Array.isArray(topWeakMapping?.secondary)
+        ? topWeakMapping.secondary.slice(0, 2)
+        : [];
+  const topStrengthCategory = topStrength?.category || null;
+  const topStrengthMapping = topStrengthCategory ? CATEGORY_TO_CHAPTERS[topStrengthCategory] || null : null;
   const topStrengthMainChapter = topStrengthMapping?.primary?.[0] || null;
   const topStrengthSupportChapters = Array.isArray(topStrengthMapping?.secondary) ? topStrengthMapping.secondary.slice(0, 2) : [];
   const strongestChapter = [...(weaknesses.chapterPriorities || [])]
@@ -617,26 +687,42 @@ export default function ReportsClient() {
   const latestExamWorstChapter = latestExamResults?.weakestChapter || null;
   const latestExamScoreTone = getScoreTone(latestExamResults?.score);
   const isPracticeLed = summary?.learningSignals?.source === "practice";
+  const needsWorkTone =
+    examRecommendation?.urgency === "urgent"
+      ? {
+          borderColor: "#efc2c2",
+          background: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
+          label: "#6f4747",
+          accent: "var(--brand-red)",
+          sub: "#6f4747",
+        }
+      : {
+          borderColor: "#eadba6",
+          background: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+          label: "#6f6340",
+          accent: "#7a5a00",
+          sub: "#6f6340",
+        };
   const categorySnapshotSections = [
     {
       key: "strong",
       title: t("Strong", "Fuerte", "Fort", "Fo"),
       tone: { border: "#bddfc6", bg: "#f7fff9", title: "#1f6f3d" },
-      items: strengths.strongestCategories.map((item) => formatCategoryLabel(item)),
+      items: strengths.strongestCategories.map((item) => `${formatCategoryLabel(item.category)} (${formatPracticePercentLabel(item.percent)})`),
       empty: t("No clear strength yet", "Aun no hay fortaleza clara", "Pas encore de force claire", "Poko gen fos kle"),
     },
     {
       key: "watch",
       title: t("Watch", "Observe", "A surveiller", "Siveye"),
       tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
-      items: weaknesses.categoriesNeedingWork.map((item) => `${formatCategoryLabel(item.category)}${item.level ? ` (${item.level})` : ""}`),
+      items: weaknesses.categoriesNeedingWork.map((item) => `${formatCategoryLabel(item.category)} (${formatPracticePercentLabel(item.percent)})${item.level ? ` | ${item.level}` : ""}`),
       empty: t("Nothing repeating yet", "Nada repetido aun", "Rien de repete pour l'instant", "Pa gen anyen ki repete poko"),
     },
     {
       key: "risk",
       title: t("High Risk", "Alto riesgo", "Haut risque", "Gwo risk"),
       tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
-      items: weaknesses.highRiskCategories.map((item) => `${formatCategoryLabel(item.category)}${item.level ? ` (${item.level})` : ""}`),
+      items: weaknesses.highRiskCategories.map((item) => `${formatCategoryLabel(item.category)} (${formatPracticePercentLabel(item.percent)})${item.level ? ` | ${item.level}` : ""}`),
       empty: t("No high-risk information now", "Sin informacion de alto riesgo ahora", "Pas d'information a haut risque pour le moment", "Pa gen enfomasyon gwo risk kounye a"),
     },
   ];
@@ -866,7 +952,7 @@ export default function ReportsClient() {
     <main style={shell}>
       <div style={card}>
         <div style={header}>
-          <div style={{ display: "grid", gap: 4 }}>
+          <div style={{ display: "grid", gap: 4, flex: "1 1 560px", minWidth: 0 }}>
             <div style={title}>{t("My Progress", "Mi progreso", "Mon progres", "Pwogre mwen")}</div>
             <div style={subjectTitle}>{studentName}</div>
             <div style={subText}>
@@ -877,8 +963,19 @@ export default function ReportsClient() {
                 "Gade nivo preparasyon ou, fos ou, febles ou, ak sa pou fe apre."
               )}
             </div>
+            <div style={{ ...subText, fontSize: 12.5 }}>
+              {t(
+                "Color guide: Exam chapters use 80-100% strong, 60-79% borderline, below 60% high risk. Categories use 80-100% strong, 70-79% developing, below 70% weak.",
+                "Guia de color: Los capitulos del examen usan 80-100% fuerte, 60-79% al limite, menos de 60% alto riesgo. Las categorias usan 80-100% fuerte, 70-79% en desarrollo, menos de 70% debil.",
+                "Guide des couleurs: Les chapitres d'examen utilisent 80-100 % fort, 60-79 % limite, moins de 60 % haut risque. Les categories utilisent 80-100 % fort, 70-79 % en developpement, moins de 70 % faible.",
+                "Gid koulè: Chapit egzamen yo sèvi ak 80-100% fò, 60-79% sou limit, anba 60% gwo risk. Kategori yo sèvi ak 80-100% fò, 70-79% an devlopman, anba 70% fèb."
+              )}
+            </div>
           </div>
-          <button style={btnSecondary} onClick={() => router.push(`/start?lang=${lang}`)}>
+          <button
+            style={{ ...btnSecondary, marginLeft: "auto", alignSelf: "flex-start", flexShrink: 0 }}
+            onClick={() => router.push(`/start?lang=${lang}`)}
+          >
             {t("Back to Main Menu", "Volver al menu principal", "Retour au menu principal", "Retounen nan meni prensipal la")}
           </button>
         </div>
@@ -1194,12 +1291,10 @@ export default function ReportsClient() {
                     </div>
                     <div style={{ ...metricValue, color: "#1f6f3d", fontSize: 20 }}>
                       {latestExamBestChapter?.chapterId
-                        ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${latestExamBestChapter.chapterId}`
+                        ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${latestExamBestChapter.chapterId}${latestExamBestChapter?.percent != null ? ` - ${formatPercent(latestExamBestChapter.percent)}` : ""}`
                         : noDataLabel()}
                     </div>
-                    <div style={{ ...subText, color: "#476252" }}>
-                      {formatPercent(latestExamBestChapter?.percent) || noDataLabel()}
-                    </div>
+                    <div style={{ ...subText, color: "#476252" }} />
                   </div>
 
                   <div
@@ -1214,12 +1309,10 @@ export default function ReportsClient() {
                     </div>
                     <div style={{ ...metricValue, color: "#7a5a00", fontSize: 20 }}>
                       {latestExamWorstChapter?.chapterId
-                        ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${latestExamWorstChapter.chapterId}`
+                        ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${latestExamWorstChapter.chapterId}${latestExamWorstChapter?.percent != null ? ` - ${formatPercent(latestExamWorstChapter.percent)}` : ""}`
                         : noDataLabel()}
                     </div>
-                    <div style={{ ...subText, color: "#6f6340" }}>
-                      {formatPercent(latestExamWorstChapter?.percent) || noDataLabel()}
-                    </div>
+                    <div style={{ ...subText, color: "#6f6340" }} />
                   </div>
                 </div>
 
@@ -1235,9 +1328,14 @@ export default function ReportsClient() {
                       {t("Strongest area", "Area mas fuerte", "Zone la plus forte", "Zon ki pi fo")}
                     </div>
                     <div style={{ ...metricValue, color: "#1f6f3d", fontSize: 20 }}>
-                      {topStrength ? formatCategoryLabel(topStrength) : t("Still forming", "Aun formandose", "Encore en formation", "Li poko byen klè")}
+                      {topStrengthCategory
+                        ? `${formatCategoryLabel(topStrengthCategory)}${topStrength?.percent != null ? ` - ${formatPracticePercentLabel(topStrength.percent)}` : ""}`
+                        : t("Still forming", "Aun formandose", "Encore en formation", "Li poko byen klè")}
                     </div>
                     <div style={{ ...subText, color: "#476252" }}>
+                      {topStrength?.level
+                        ? `${topStrength.level} | `
+                        : ""}
                       {t("Main chapter", "Capitulo principal", "Chapitre principal", "Chapit prensipal")}:{" "}
                       {topStrengthMainChapter
                         ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${topStrengthMainChapter}`
@@ -1253,20 +1351,23 @@ export default function ReportsClient() {
                   <div
                     style={{
                       ...compactCard,
-                      borderColor: topHighRisk ? "#efc2c2" : "#eadba6",
-                      background: topHighRisk
-                        ? "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)"
-                        : "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+                      borderColor: needsWorkTone.borderColor,
+                      background: needsWorkTone.background,
                     }}
                   >
-                    <div style={{ ...rowLabel, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
+                    <div style={{ ...rowLabel, color: needsWorkTone.label }}>
                       {t("Needs work now", "Necesita trabajo ahora", "A travailler maintenant", "Sa bezwen travay kounye a")}
                     </div>
-                    <div style={{ ...metricValue, color: topHighRisk ? "var(--brand-red)" : "#7a5a00", fontSize: 20 }}>
-                      {topWeakCategory ? formatCategoryLabel(topWeakCategory) : t("No clear weak area yet", "Aun no hay area debil clara", "Pas encore de faiblesse claire", "Poko gen febles ki byen klè")}
+                    <div style={{ ...metricValue, color: needsWorkTone.accent, fontSize: 20 }}>
+                      {topWeakCategory
+                        ? `${formatCategoryLabel(topWeakCategory)}${topWeakEntry?.percent != null ? ` - ${formatPracticePercentLabel(topWeakEntry.percent)}` : ""}`
+                        : t("No clear weak area yet", "Aun no hay area debil clara", "Pas encore de faiblesse claire", "Poko gen febles ki byen klè")}
                     </div>
-                    <div style={{ ...subText, color: topHighRisk ? "#6f4747" : "#6f6340" }}>
-                      {t("Main chapter", "Capitulo principal", "Chapitre principal", "Chapit prensipal")}:{" "}
+                    <div style={{ ...subText, color: needsWorkTone.sub }}>
+                      {topWeakEntry?.level
+                        ? `${topWeakEntry.level} | `
+                        : ""}
+                      {t("Study chapter", "Capitulo de estudio", "Chapitre a etudier", "Chapit pou etidye")}:{" "}
                       {topWeakMainChapter ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${topWeakMainChapter}` : noDataLabel()}
                       {topWeakSupportChapters.length
                         ? ` | ${t("Support chapters", "Capitulos de apoyo", "Chapitres de soutien", "Chapit sipò")}: ${topWeakSupportChapters
@@ -1365,26 +1466,124 @@ export default function ReportsClient() {
                 <div style={{ display: "grid", gap: 10 }}>
                   {examHistory.length ? (
                     examHistory.map((attempt, index) => (
-                      <div key={`student-history-${attempt?.attemptId || index}`} style={{ ...compactCard, padding: 12 }}>
-                        <div style={{ fontWeight: 800, color: "var(--heading)" }}>
-                          {t("Exam", "Examen", "Examen", "Egzamen")} {progress.completedAttempts - index}
+                      <details
+                        key={`student-history-${attempt?.attemptId || index}`}
+                        style={{ ...compactCard, padding: 12 }}
+                        open={index === 0}
+                      >
+                        <summary style={detailsSummary}>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                              {t("Exam", "Examen", "Examen", "Egzamen")} {progress.completedAttempts - index}
+                            </div>
+                            <div style={subText}>
+                              {t("Completed", "Completado", "Termine", "Fini")}: {formatDateTime(attempt?.completedAt)}
+                              {" | "}
+                              {t("Score", "Puntaje", "Score", "Not")}: {formatPercent(attempt?.score) || noDataLabel()}
+                            </div>
+                            <div style={subText}>
+                              {t("Weakest category", "Categoria mas debil", "Categorie la plus faible", "Kategori ki pi fèb")}:{" "}
+                              {attempt?.weakestCategory?.category ? formatCategoryLabel(attempt.weakestCategory.category) : noDataLabel()}
+                            </div>
+                            <div style={subText}>
+                              {t("Weakest chapter", "Capitulo mas debil", "Chapitre le plus faible", "Chapit ki pi fèb")}:{" "}
+                              {attempt?.weakestChapter?.chapterId
+                                ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${attempt.weakestChapter.chapterId}`
+                                : noDataLabel()}
+                            </div>
+                          </div>
+                        </summary>
+
+                        <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+                          {(attempt?.chapterBreakdown || []).length ? (
+                            <div style={{ display: "grid", gap: 8 }}>
+                              <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                {t("Chapter breakdown", "Desglose por capitulo", "Detail par chapitre", "Dekonpozisyon pa chapit")}
+                              </div>
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(150px, 1fr))",
+                                  gap: 10,
+                                }}
+                              >
+                                {(attempt?.chapterBreakdown || []).map((chapter) => {
+                                  const tone = getBandTone(chapter?.percent);
+                                  return (
+                                    <div
+                                      key={`student-history-chapter-${attempt?.attemptId || index}-${chapter.chapterId}`}
+                                      style={{
+                                        ...compactCard,
+                                        padding: 10,
+                                        gap: 4,
+                                        background: tone.bg,
+                                        borderColor: tone.border,
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                        {t("Chapter", "Capitulo", "Chapitre", "Chapit")} {chapter.chapterId}
+                                      </div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>
+                                        {t("Correct", "Correctas", "Bonnes", "Bon")}: {chapter.correctCount}/{chapter.totalQuestions}
+                                      </div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>
+                                        {t("Missed", "Falladas", "Manquees", "Rate")}: {chapter.missedCount}
+                                      </div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>
+                                        {t("Score", "Puntaje", "Score", "Not")}: {formatPercent(chapter.percent) || noDataLabel()}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {(attempt?.categoryBreakdown || []).length ? (
+                            <div style={{ display: "grid", gap: 8 }}>
+                              <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                {t("Category breakdown", "Desglose por categoria", "Detail par categorie", "Dekonpozisyon pa kategori")}
+                              </div>
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))",
+                                  gap: 10,
+                                }}
+                              >
+                                {(attempt?.categoryBreakdown || []).map((category) => {
+                                  const tone = getCategoryBandTone(category?.percent);
+                                  return (
+                                    <div
+                                      key={`student-history-category-${attempt?.attemptId || index}-${category.category}`}
+                                      style={{
+                                        ...compactCard,
+                                        padding: 10,
+                                        gap: 4,
+                                        background: tone.bg,
+                                        borderColor: tone.border,
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                        {formatCategoryLabel(category.category)}
+                                      </div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>
+                                        {t("Correct", "Correctas", "Bonnes", "Bon")}: {category.correctCount}/{category.totalQuestions}
+                                      </div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>
+                                        {t("Missed", "Falladas", "Manquees", "Rate")}: {category.missedCount}
+                                      </div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>
+                                        {t("Score", "Puntaje", "Score", "Not")}: {formatPercent(category.percent) || noDataLabel()}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
-                        <div style={subText}>
-                          {t("Completed", "Completado", "Termine", "Fini")}: {formatDateTime(attempt?.completedAt)}
-                          {" | "}
-                          {t("Score", "Puntaje", "Score", "Not")}: {formatPercent(attempt?.score) || noDataLabel()}
-                        </div>
-                        <div style={subText}>
-                          {t("Weakest category", "Categoria mas debil", "Categorie la plus faible", "Kategori ki pi fèb")}:{" "}
-                          {attempt?.weakestCategory?.category ? formatCategoryLabel(attempt.weakestCategory.category) : noDataLabel()}
-                        </div>
-                        <div style={subText}>
-                          {t("Weakest chapter", "Capitulo mas debil", "Chapitre le plus faible", "Chapit ki pi fèb")}:{" "}
-                          {attempt?.weakestChapter?.chapterId
-                            ? `${t("Chapter", "Capitulo", "Chapitre", "Chapit")} ${attempt.weakestChapter.chapterId}`
-                            : noDataLabel()}
-                        </div>
-                      </div>
+                      </details>
                     ))
                   ) : (
                     <div style={subText}>{noDataLabel()}</div>

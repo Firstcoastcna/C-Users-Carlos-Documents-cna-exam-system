@@ -14,6 +14,45 @@ import {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const CATEGORY_TO_CHAPTERS = {
+  "Scope of Practice & Reporting": {
+    primary: [1],
+    secondary: [4, 5],
+  },
+  "Change in Condition": {
+    primary: [4],
+    secondary: [3, 5],
+  },
+  "Observation & Safety": {
+    primary: [4],
+    secondary: [3, 2],
+  },
+  "Environment & Safety": {
+    primary: [2],
+    secondary: [3],
+  },
+  "Infection Control": {
+    primary: [2],
+    secondary: [3, 4],
+  },
+  "Personal Care & Comfort": {
+    primary: [3],
+    secondary: [4],
+  },
+  "Mobility & Positioning": {
+    primary: [3],
+    secondary: [4],
+  },
+  "Communication & Emotional Support": {
+    primary: [5],
+    secondary: [1, 3],
+  },
+  "Dignity & Resident Rights": {
+    primary: [1],
+    secondary: [3, 5],
+  },
+};
+
 function isCompletedExamAttempt(attempt) {
   if (!Number.isFinite(attempt?.score)) return false;
   if (attempt?.completed_at) return true;
@@ -80,6 +119,34 @@ function pickWeakestCategoryFromAnalytics(analytics) {
   );
 }
 
+function summarizeCategoryBreakdownFromAnalytics(analytics) {
+  const ranked = Array.isArray(analytics?.category_priority) ? analytics.category_priority : [];
+
+  return ranked
+    .map((item) => {
+      const totalQuestions = Number(item?.n_total || 0);
+      const missedCount = Number(item?.n_wrong || 0);
+      const accuracy = Number(item?.accuracy);
+      const percent = Number.isFinite(accuracy) ? Math.round(accuracy * 100) : null;
+      const correctCount = Math.max(0, totalQuestions - missedCount);
+
+      return {
+        category: item?.category_id || item?.category || null,
+        level: item?.level || null,
+        totalQuestions,
+        correctCount,
+        missedCount,
+        percent,
+      };
+    })
+    .filter((item) => item.category && item.totalQuestions > 0)
+    .sort((a, b) => {
+      if ((a.percent || 0) !== (b.percent || 0)) return (a.percent || 0) - (b.percent || 0);
+      if ((b.totalQuestions || 0) !== (a.totalQuestions || 0)) return (b.totalQuestions || 0) - (a.totalQuestions || 0);
+      return String(a.category).localeCompare(String(b.category), undefined, { sensitivity: "base" });
+    });
+}
+
 function summarizeExamResult(attempt, bankById) {
   if (!attempt || !Number.isFinite(attempt?.score)) return null;
 
@@ -140,6 +207,7 @@ function summarizeExamResult(attempt, bankById) {
 
   const analytics = getExamAnalyticsPayload(attempt);
   const weakestCategory = pickWeakestCategoryFromAnalytics(analytics);
+  const categoryBreakdown = summarizeCategoryBreakdownFromAnalytics(analytics);
 
   return {
     attemptId: attempt.id,
@@ -152,6 +220,11 @@ function summarizeExamResult(attempt, bankById) {
       ? {
           category: weakestCategory.category_id || weakestCategory.category || null,
           level: weakestCategory.level || null,
+          missedCount: Number(weakestCategory?.n_wrong || 0),
+          totalQuestions: Number(weakestCategory?.n_total || 0),
+          percent: Number.isFinite(Number(weakestCategory?.accuracy))
+            ? Math.round(Number(weakestCategory.accuracy) * 100)
+            : null,
         }
       : null,
     weakestChapter: weakestChapter
@@ -163,6 +236,7 @@ function summarizeExamResult(attempt, bankById) {
         }
       : null,
     chapterBreakdown,
+    categoryBreakdown,
   };
 }
 
@@ -187,6 +261,49 @@ function deriveOverallStatusFromScore(score) {
   if (score >= 80) return "On Track";
   if (score < 70) return "High Risk";
   return "Borderline";
+}
+
+function buildExamRecommendation({
+  overallStatus,
+  categoriesNeedingWork,
+  highRiskCategories,
+}) {
+  const topHighRisk = Array.isArray(highRiskCategories) ? highRiskCategories[0] || null : null;
+  const topWatch = Array.isArray(categoriesNeedingWork) ? categoriesNeedingWork[0] || null : null;
+  const topSignal = topHighRisk || topWatch || null;
+
+  if (!topSignal?.category) {
+    return {
+      category: null,
+      categoryLevel: null,
+      categorySource: "none",
+      urgency: overallStatus === "High Risk" ? "firm" : overallStatus === "Borderline" ? "firm" : "watch",
+      recommendedChapterId: null,
+      chapterRelation: "none",
+      supportChapterIds: [],
+    };
+  }
+
+  let urgency = "watch";
+  if (topHighRisk?.category) {
+    urgency = "urgent";
+  } else if (overallStatus === "High Risk" || overallStatus === "Borderline") {
+    urgency = "firm";
+  }
+
+  const mapping = CATEGORY_TO_CHAPTERS[topSignal.category] || null;
+  const primaryChapterId = mapping?.primary?.[0] || null;
+  const supportChapterIds = Array.isArray(mapping?.secondary) ? mapping.secondary.slice(0, 2) : [];
+
+  return {
+    category: topSignal.category,
+    categoryLevel: topSignal.level || null,
+    categorySource: topHighRisk?.category ? "high-risk" : "watch",
+    urgency,
+    recommendedChapterId: primaryChapterId,
+    chapterRelation: primaryChapterId ? "primary" : "none",
+    supportChapterIds,
+  };
 }
 
 function summarizePracticeSessions(sessions) {
@@ -508,7 +625,11 @@ function summarizePracticeLearningSignals(practiceSessions) {
     strongestCategories: rankedCategories
       .filter((item) => item.level === "Strong")
       .slice(0, 3)
-      .map((item) => item.category),
+      .map((item) => ({
+        category: item.category,
+        level: item.level,
+        percent: item.percent,
+      })),
     categoriesNeedingWork: weakestCategories
       .filter(
         (item) =>
@@ -519,6 +640,7 @@ function summarizePracticeLearningSignals(practiceSessions) {
       .map((item) => ({
         category: item.category,
         level: item.level,
+        percent: item.percent,
       })),
     highRiskCategories: weakestCategories
       .filter((item) => item.percent != null && item.percent < 60)
@@ -526,6 +648,7 @@ function summarizePracticeLearningSignals(practiceSessions) {
       .map((item) => ({
         category: item.category,
         level: item.level || "Weak",
+        percent: item.percent,
       })),
     chapterPriorities: rankedChapters.slice(0, 3).map((item) => ({
       chapterId: item.chapterId,
@@ -552,6 +675,11 @@ function summarizeLearningSignals(examAttempts, practiceSessions) {
       categoriesNeedingWork: [],
       highRiskCategories: [],
       chapterPriorities: [],
+      examRecommendation: buildExamRecommendation({
+        overallStatus: overallExamStatus,
+        categoriesNeedingWork: [],
+        highRiskCategories: [],
+      }),
       source: examSummary?.completedAttempts > 0 ? "exam-score" : null,
     };
   }
@@ -566,34 +694,50 @@ function summarizeLearningSignals(examAttempts, practiceSessions) {
       .filter(Boolean)
   );
 
+  const strongestCategories = categoryPriority
+    .filter((item) => item?.level === "Strong")
+    .slice(0, 3)
+    .map((item) => ({
+      category: item.category_id,
+      level: item.level,
+      percent: Number.isFinite(Number(item?.accuracy)) ? Math.round(Number(item.accuracy) * 100) : null,
+    }));
+  const categoriesNeedingWork = categoryPriority
+    .filter(
+      (item) =>
+        (item?.level === "Weak" || item?.level === "Developing") &&
+        !highRiskCategoryKeys.has(item?.category_id)
+    )
+    .slice(0, 4)
+    .map((item) => ({
+      category: item.category_id,
+      level: item.level,
+      percent: Number.isFinite(Number(item?.accuracy)) ? Math.round(Number(item.accuracy) * 100) : null,
+    }));
+  const highRiskCategories = categoryPriority
+    .filter((item) => item?.is_high_risk && item?.level === "Weak")
+    .slice(0, 4)
+    .map((item) => ({
+      category: item.category_id,
+      level: item.level,
+      percent: Number.isFinite(Number(item?.accuracy)) ? Math.round(Number(item.accuracy) * 100) : null,
+    }));
+  const chapterPriorities = chapterGuidance.slice(0, 3).map((item) => ({
+    chapterId: item.chapter_id,
+    priority: item.priority,
+  }));
+
   return {
     overallStatus,
-    strongestCategories: categoryPriority
-      .filter((item) => item?.level === "Strong")
-      .slice(0, 3)
-      .map((item) => item.category_id),
-    categoriesNeedingWork: categoryPriority
-      .filter(
-        (item) =>
-          (item?.level === "Weak" || item?.level === "Developing") &&
-          !highRiskCategoryKeys.has(item?.category_id)
-      )
-      .slice(0, 4)
-      .map((item) => ({
-        category: item.category_id,
-        level: item.level,
-      })),
-    highRiskCategories: categoryPriority
-      .filter((item) => item?.is_high_risk && item?.level === "Weak")
-      .slice(0, 4)
-      .map((item) => ({
-        category: item.category_id,
-        level: item.level,
-      })),
-    chapterPriorities: chapterGuidance.slice(0, 3).map((item) => ({
-      chapterId: item.chapter_id,
-      priority: item.priority,
-    })),
+    strongestCategories,
+    categoriesNeedingWork,
+    highRiskCategories,
+    chapterPriorities,
+    examRecommendation: buildExamRecommendation({
+      overallStatus,
+      categoriesNeedingWork,
+      highRiskCategories,
+    }),
     source: "exam-analytics",
   };
 }

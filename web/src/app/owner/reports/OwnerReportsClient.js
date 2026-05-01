@@ -257,6 +257,26 @@ function getScoreTone(score) {
   return { color: "var(--brand-red)", bg: "#fff0f0", border: "#efc2c2" };
 }
 
+function getBandTone(percent) {
+  if (Number(percent) < 60) {
+    return { bg: "#fff8f8", border: "#efc2c2" };
+  }
+  if (Number(percent) < 80) {
+    return { bg: "#fffdf5", border: "#eadba6" };
+  }
+  return { bg: "#f7fff9", border: "#bddfc6" };
+}
+
+function getCategoryBandTone(percent) {
+  if (Number(percent) < 70) {
+    return { bg: "#fff8f8", border: "#efc2c2" };
+  }
+  if (Number(percent) < 80) {
+    return { bg: "#fffdf5", border: "#eadba6" };
+  }
+  return { bg: "#f7fff9", border: "#bddfc6" };
+}
+
 function getStatusTone(status) {
   if (status === "On Track") {
     return {
@@ -716,18 +736,26 @@ function buildStudentWeaknesses(summary) {
 function buildStudentNextActions(summary) {
   const actions = [];
   const overallStatus = summary?.learningSignals?.overallStatus || "";
-  const topWeak = summary?.learningSignals?.categoriesNeedingWork?.[0] || null;
-  const topHighRisk = summary?.learningSignals?.highRiskCategories?.[0] || null;
-  const topChapter = summary?.learningSignals?.chapterPriorities?.[0] || null;
+  const examRecommendation = summary?.learningSignals?.examRecommendation || null;
 
-  if (topWeak?.category) {
-    actions.push(`Review ${topWeak.category} first before moving on to stronger areas.`);
-  } else if (topHighRisk?.category) {
-    actions.push(`Start with ${topHighRisk.category}. It is showing the clearest high-risk information right now.`);
+  if (examRecommendation?.category) {
+    if (examRecommendation.urgency === "urgent") {
+      actions.push(`Start with ${examRecommendation.category} now. It is the clearest high-priority review area right now.`);
+    } else if (examRecommendation.urgency === "firm") {
+      actions.push(`Focus next on ${examRecommendation.category} before moving on to stronger areas.`);
+    } else {
+      actions.push(`Keep an eye on ${examRecommendation.category} as this student continues building consistency.`);
+    }
   }
 
-  if (topChapter?.chapterId) {
-    actions.push(`Give extra attention to Chapter ${topChapter.chapterId}. It is the clearest chapter-level priority.`);
+    if (examRecommendation?.recommendedChapterId) {
+    if (examRecommendation.chapterRelation === "primary" && examRecommendation.urgency === "urgent") {
+      actions.push(`Review Chapter ${examRecommendation.recommendedChapterId} first to strengthen ${examRecommendation.category}.`);
+    } else if (examRecommendation.chapterRelation === "primary" && examRecommendation.urgency === "firm") {
+      actions.push(`Review Chapter ${examRecommendation.recommendedChapterId} next to strengthen ${examRecommendation.category}.`);
+    } else if (examRecommendation.chapterRelation === "primary") {
+      actions.push(`Use Chapter ${examRecommendation.recommendedChapterId} to keep strengthening ${examRecommendation.category}.`);
+    }
   }
 
   if (overallStatus === "High Risk") {
@@ -1044,19 +1072,31 @@ export default function OwnerReportsClient() {
   const studentLatestExamWorstChapter = studentLatestExamResults?.weakestChapter || null;
   const studentLatestExamScoreTone = getScoreTone(studentLatestExamResults?.score);
   const studentTopStrength = studentStrengths.strongestCategories[0] || null;
-  const studentTopStrengthMapping = studentTopStrength ? CATEGORY_TO_CHAPTERS[studentTopStrength] || null : null;
+  const studentTopStrengthCategory = studentTopStrength?.category || null;
+  const studentTopStrengthMapping = studentTopStrengthCategory ? CATEGORY_TO_CHAPTERS[studentTopStrengthCategory] || null : null;
   const studentTopStrengthMainChapter = studentTopStrengthMapping?.primary?.[0] || null;
   const studentTopStrengthSupportChapters = Array.isArray(studentTopStrengthMapping?.secondary)
     ? studentTopStrengthMapping.secondary.slice(0, 2)
     : [];
+  const studentExamRecommendation = studentSummary?.learningSignals?.examRecommendation || null;
   const studentTopWeakCategory =
-    studentWeaknesses.categoriesNeedingWork[0]?.category || studentWeaknesses.highRiskCategories[0]?.category || null;
+    studentExamRecommendation?.category ||
+    studentWeaknesses.categoriesNeedingWork[0]?.category ||
+    studentWeaknesses.highRiskCategories[0]?.category ||
+    null;
+  const studentTopWeakEntry =
+    studentWeaknesses.highRiskCategories.find((item) => item.category === studentTopWeakCategory) ||
+    studentWeaknesses.categoriesNeedingWork.find((item) => item.category === studentTopWeakCategory) ||
+    null;
   const studentTopWeakMapping = studentTopWeakCategory ? CATEGORY_TO_CHAPTERS[studentTopWeakCategory] || null : null;
   const studentTopWeakMainChapter =
-    studentTopWeakMapping?.primary?.[0] || studentWeaknesses.chapterPriorities[0]?.chapterId || null;
-  const studentTopWeakSupportChapters = Array.isArray(studentTopWeakMapping?.secondary)
-    ? studentTopWeakMapping.secondary.slice(0, 2)
-    : [];
+    studentExamRecommendation?.recommendedChapterId || studentTopWeakMapping?.primary?.[0] || studentWeaknesses.chapterPriorities[0]?.chapterId || null;
+  const studentTopWeakSupportChapters =
+    Array.isArray(studentExamRecommendation?.supportChapterIds) && studentExamRecommendation.supportChapterIds.length
+      ? studentExamRecommendation.supportChapterIds
+      : Array.isArray(studentTopWeakMapping?.secondary)
+        ? studentTopWeakMapping.secondary.slice(0, 2)
+        : [];
   const selectedExamResults =
     studentExamHistory.find((attempt) => String(attempt?.attemptId) === String(selectedExamAttemptId)) ||
     studentLatestExamResults ||
@@ -1069,6 +1109,22 @@ export default function OwnerReportsClient() {
         accent: "#38556a",
         muted: "#607282",
       };
+  const studentNeedsWorkTone =
+    studentExamRecommendation?.urgency === "urgent"
+      ? {
+          border: "#efc2c2",
+          bg: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
+          title: "#6f4747",
+          accent: "var(--brand-red)",
+          sub: "#6f4747",
+        }
+      : {
+          border: "#eadba6",
+          bg: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+          title: "#6f6340",
+          accent: "#7a5a00",
+          sub: "#6f6340",
+        };
   const studentPracticeChapterEntries = Array.isArray(studentChapterPractice?.entries) ? studentChapterPractice.entries : [];
   const studentPracticeCategoryEntries = Array.isArray(studentCategoryPractice?.entries) ? studentCategoryPractice.entries : [];
   const studentStrongestPracticeChapter = studentChapterPractice?.strongest || null;
@@ -1118,21 +1174,21 @@ export default function OwnerReportsClient() {
       key: "strong",
       title: "Strong",
       tone: { border: "#bddfc6", bg: "#f7fff9", title: "#1f6f3d" },
-      items: studentStrengths.strongestCategories,
+      items: studentStrengths.strongestCategories.map((item) => `${item.category} (${formatPercent(item.percent)})`),
       empty: "No clear strength yet",
     },
     {
       key: "watch",
       title: "Watch",
       tone: { border: "#eadba6", bg: "#fffdf5", title: "#7a5a00" },
-      items: studentWeaknesses.categoriesNeedingWork.map((item) => `${item.category}${item.level ? ` (${item.level})` : ""}`),
+      items: studentWeaknesses.categoriesNeedingWork.map((item) => `${item.category} (${formatPercent(item.percent)})${item.level ? ` | ${item.level}` : ""}`),
       empty: "Nothing repeating yet",
     },
     {
       key: "risk",
       title: "High Risk",
       tone: { border: "#efc2c2", bg: "#fff8f8", title: "var(--brand-red)" },
-      items: studentWeaknesses.highRiskCategories.map((item) => `${item.category}${item.level ? ` (${item.level})` : ""}`),
+      items: studentWeaknesses.highRiskCategories.map((item) => `${item.category} (${formatPercent(item.percent)})${item.level ? ` | ${item.level}` : ""}`),
       empty: "No high-risk information now",
     },
   ];
@@ -1201,7 +1257,7 @@ export default function OwnerReportsClient() {
     <main style={shell}>
       <div style={card}>
         <div style={header}>
-          <div style={{ display: "grid", gap: 4 }}>
+          <div style={{ display: "grid", gap: 4, flex: "1 1 560px", minWidth: 0 }}>
             <div style={title}>{reportTitle}</div>
             {reportSubject ? <div style={subjectTitle}>{reportSubject}</div> : null}
             <div style={subText}>
@@ -1213,8 +1269,11 @@ export default function OwnerReportsClient() {
                     ? "See school readiness, classes needing support, and shared cross-class patterns."
                     : "See class readiness, student support needs, and shared patterns based on each student's latest completed exam."}
             </div>
+            <div style={{ ...subText, fontSize: 12.5 }}>
+              Color guide: Exam chapters use 80-100% strong, 60-79% borderline, below 60% high risk. Categories use 80-100% strong, 70-79% developing, below 70% weak.
+            </div>
           </div>
-          <Link href={backHref} style={buttonSecondary}>
+          <Link href={backHref} style={{ ...buttonSecondary, marginLeft: "auto", alignSelf: "flex-start", flexShrink: 0 }}>
             {backLabel}
           </Link>
         </div>
@@ -2121,17 +2180,21 @@ export default function OwnerReportsClient() {
                           <div style={{ ...listCard, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
                             <div style={{ fontWeight: 800, color: "#476252" }}>Best chapter</div>
                             <div style={{ fontSize: 20, fontWeight: 800, color: "#1f6f3d" }}>
-                              {studentLatestExamBestChapter?.chapterId ? `Chapter ${studentLatestExamBestChapter.chapterId}` : "No data yet"}
+                              {studentLatestExamBestChapter?.chapterId
+                                ? `Chapter ${studentLatestExamBestChapter.chapterId}${studentLatestExamBestChapter?.percent != null ? ` - ${formatPercent(studentLatestExamBestChapter.percent)}` : ""}`
+                                : "No data yet"}
                             </div>
-                            <div style={subText}>{formatPercent(studentLatestExamBestChapter?.percent)}</div>
+                            <div style={subText} />
                           </div>
 
                           <div style={{ ...listCard, borderColor: "#eadba6", background: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)" }}>
                             <div style={{ fontWeight: 800, color: "#6f6340" }}>Worst chapter</div>
                             <div style={{ fontSize: 20, fontWeight: 800, color: "#7a5a00" }}>
-                              {studentLatestExamWorstChapter?.chapterId ? `Chapter ${studentLatestExamWorstChapter.chapterId}` : "No data yet"}
+                              {studentLatestExamWorstChapter?.chapterId
+                                ? `Chapter ${studentLatestExamWorstChapter.chapterId}${studentLatestExamWorstChapter?.percent != null ? ` - ${formatPercent(studentLatestExamWorstChapter.percent)}` : ""}`
+                                : "No data yet"}
                             </div>
-                            <div style={subText}>{formatPercent(studentLatestExamWorstChapter?.percent)}</div>
+                            <div style={subText} />
                           </div>
                         </div>
 
@@ -2139,9 +2202,14 @@ export default function OwnerReportsClient() {
                           <div style={{ ...listCard, borderColor: "#bddfc6", background: "linear-gradient(180deg, #f7fff9 0%, #eef8f1 100%)" }}>
                             <div style={{ fontWeight: 800, color: "#476252" }}>Strongest area</div>
                             <div style={{ fontSize: 20, fontWeight: 800, color: "#1f6f3d" }}>
-                              {studentTopStrength || "Still forming"}
+                              {studentTopStrengthCategory
+                                ? `${studentTopStrengthCategory}${studentTopStrength?.percent != null ? ` - ${formatPercent(studentTopStrength.percent)}` : ""}`
+                                : "Still forming"}
                             </div>
                             <div style={subText}>
+                              {studentTopStrength?.level
+                                ? `${studentTopStrength.level} | `
+                                : ""}
                               Main chapter: {studentTopStrengthMainChapter ? `Chapter ${studentTopStrengthMainChapter}` : "No data yet"}
                               {studentTopStrengthSupportChapters.length
                                 ? ` | Support chapters: ${studentTopStrengthSupportChapters.map((chapterId) => `Chapter ${chapterId}`).join(", ")}`
@@ -2149,13 +2217,18 @@ export default function OwnerReportsClient() {
                             </div>
                           </div>
 
-                          <div style={{ ...listCard, borderColor: "#efc2c2", background: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)" }}>
-                            <div style={{ fontWeight: 800, color: "#6f4747" }}>Needs work now</div>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: "var(--brand-red)" }}>
-                              {studentTopWeakCategory || "No clear weak area yet"}
+                          <div style={{ ...listCard, borderColor: studentNeedsWorkTone.border, background: studentNeedsWorkTone.bg }}>
+                            <div style={{ fontWeight: 800, color: studentNeedsWorkTone.title }}>Needs work now</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: studentNeedsWorkTone.accent }}>
+                              {studentTopWeakCategory
+                                ? `${studentTopWeakCategory}${studentTopWeakEntry?.percent != null ? ` - ${formatPercent(studentTopWeakEntry.percent)}` : ""}`
+                                : "No clear weak area yet"}
                             </div>
-                            <div style={subText}>
-                              Main chapter: {studentTopWeakMainChapter ? `Chapter ${studentTopWeakMainChapter}` : "No data yet"}
+                            <div style={{ ...subText, color: studentNeedsWorkTone.sub }}>
+                              {studentTopWeakEntry?.level
+                                ? `${studentTopWeakEntry.level} | `
+                                : ""}
+                              Study chapter: {studentTopWeakMainChapter ? `Chapter ${studentTopWeakMainChapter}` : "No data yet"}
                               {studentTopWeakSupportChapters.length
                                 ? ` | Support chapters: ${studentTopWeakSupportChapters.map((chapterId) => `Chapter ${chapterId}`).join(", ")}`
                                 : ""}
@@ -2280,33 +2353,62 @@ export default function OwnerReportsClient() {
                               marginTop: 4,
                             }}
                           >
-                            {(selectedExamResults.chapterBreakdown || []).map((chapter) => (
+                            {(selectedExamResults.chapterBreakdown || []).map((chapter) => {
+                              const tone = getBandTone(chapter?.percent);
+                              return (
+                                <div
+                                  key={`owner-latest-exam-chapter-${chapter.chapterId}`}
+                                  style={{
+                                    ...listCard,
+                                    padding: 10,
+                                    gap: 4,
+                                    background: tone.bg,
+                                    borderColor: tone.border,
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter {chapter.chapterId}</div>
+                                  <div style={{ ...subText, lineHeight: 1.45 }}>Correct: {chapter.correctCount}/{chapter.totalQuestions}</div>
+                                  <div style={{ ...subText, lineHeight: 1.45 }}>Missed: {chapter.missedCount}</div>
+                                  <div style={{ ...subText, lineHeight: 1.45 }}>Score: {formatPercent(chapter.percent)}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {(selectedExamResults.categoryBreakdown || []).length ? (
+                            <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                              <div style={{ fontWeight: 800, color: "var(--heading)" }}>Category breakdown</div>
                               <div
-                                key={`owner-latest-exam-chapter-${chapter.chapterId}`}
                                 style={{
-                                  ...listCard,
-                                  padding: 12,
-                                  background:
-                                    Number(chapter?.percent) < 60
-                                      ? "#fff8f8"
-                                      : Number(chapter?.percent) < 80
-                                        ? "#fffdf5"
-                                        : "#f7fff9",
-                                  borderColor:
-                                    Number(chapter?.percent) < 60
-                                      ? "#efc2c2"
-                                      : Number(chapter?.percent) < 80
-                                        ? "#eadba6"
-                                        : "#bddfc6",
+                                  display: "grid",
+                                  gridTemplateColumns: isNarrow ? "1fr" : "repeat(auto-fit, minmax(190px, 1fr))",
+                                  gap: 10,
                                 }}
                               >
-                                <div style={{ fontWeight: 800, color: "var(--heading)" }}>Chapter {chapter.chapterId}</div>
-                                <div style={subText}>Correct: {chapter.correctCount}/{chapter.totalQuestions}</div>
-                                <div style={subText}>Missed: {chapter.missedCount}</div>
-                                <div style={subText}>Score: {formatPercent(chapter.percent)}</div>
+                                {(selectedExamResults.categoryBreakdown || []).map((category) => {
+                                  const tone = getCategoryBandTone(category?.percent);
+                                  return (
+                                    <div
+                                      key={`owner-latest-exam-category-${category.category}`}
+                                      style={{
+                                        ...listCard,
+                                        padding: 10,
+                                        gap: 4,
+                                        background: tone.bg,
+                                        borderColor: tone.border,
+                                      }}
+                                    >
+                                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                                        {formatCategoryLabel(category.category)}
+                                      </div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>Correct: {category.correctCount}/{category.totalQuestions}</div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>Missed: {category.missedCount}</div>
+                                      <div style={{ ...subText, lineHeight: 1.45 }}>Score: {formatPercent(category.percent)}</div>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          ) : null}
                         </div>
                       ) : null}
                     </>
