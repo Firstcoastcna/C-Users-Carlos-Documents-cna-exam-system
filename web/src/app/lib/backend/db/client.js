@@ -1870,6 +1870,70 @@ export async function recordUserSignInActivity({
   return data;
 }
 
+export async function touchUserActivity({
+  userId,
+  email,
+  fullName = "",
+  entryPath = "/signin",
+  entryLabel = null,
+}) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedUserId = String(userId || "").trim();
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedEntryPath = String(entryPath || "/signin").trim() || "/signin";
+  const resolvedEntryLabel =
+    entryLabel ||
+    (normalizedEntryPath.includes("/owner-access") || normalizedEntryPath.includes("/owner")
+      ? "Control Center"
+      : "Student App");
+
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  if (!normalizedEmail) {
+    throw new Error("User email is required.");
+  }
+
+  await upsertAppUser({
+    id: normalizedUserId,
+    email: normalizedEmail,
+    fullName,
+  });
+
+  const now = new Date().toISOString();
+  const payload = {
+    id: normalizedUserId,
+    email: normalizedEmail,
+    full_name: fullName || null,
+    last_seen_at: now,
+    last_entry_path: normalizedEntryPath,
+    last_entry_label: resolvedEntryLabel,
+    updated_at: now,
+  };
+
+  const { data, error } = await supabase
+    .from("app_users")
+    .upsert(payload, { onConflict: "id" })
+    .select(
+      "id, email, full_name, account_role, sign_in_count, first_sign_in_at, last_sign_in_at, last_seen_at, last_entry_path, last_entry_label, created_at, updated_at"
+    )
+    .single();
+
+  if (error) {
+    if (String(error.message || "").toLowerCase().includes("column")) {
+      return loadAppUser(normalizedUserId);
+    }
+    throw new Error(`Supabase touch user activity failed: ${error.message}`);
+  }
+
+  return data;
+}
+
 export async function listUserSignInActivityRecords() {
   const supabase = getSupabaseServerClient();
   if (!supabase) {

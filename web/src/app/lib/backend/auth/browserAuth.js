@@ -56,6 +56,96 @@ function normalizeAuthError(actionLabel, error) {
   return `${actionLabel} failed. ${raw}`;
 }
 
+function getSessionActivityMarkerKey(userId) {
+  return `cna_activity_logged:${String(userId || "").trim()}`;
+}
+
+function getSessionActivityTouchedKey(userId) {
+  return `cna_activity_touched:${String(userId || "").trim()}`;
+}
+
+function markSessionActivityLogged(userId) {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    sessionStorage.setItem(getSessionActivityMarkerKey(userId), "1");
+  } catch {}
+}
+
+function hasSessionActivityMarker(userId) {
+  if (typeof window === "undefined" || !userId) return false;
+  try {
+    return sessionStorage.getItem(getSessionActivityMarkerKey(userId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function clearSessionActivityMarkers() {
+  if (typeof window === "undefined") return;
+  try {
+    const keys = [];
+    for (let index = 0; index < sessionStorage.length; index += 1) {
+      const key = sessionStorage.key(index);
+      if (key && (key.startsWith("cna_activity_logged:") || key.startsWith("cna_activity_touched:"))) {
+        keys.push(key);
+      }
+    }
+    keys.forEach((key) => sessionStorage.removeItem(key));
+  } catch {}
+}
+
+function markSessionActivityTouched(userId) {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    sessionStorage.setItem(getSessionActivityTouchedKey(userId), String(Date.now()));
+  } catch {}
+}
+
+function shouldTouchSessionActivity(userId, throttleMs = 5 * 60 * 1000) {
+  if (typeof window === "undefined" || !userId) return false;
+  try {
+    const raw = sessionStorage.getItem(getSessionActivityTouchedKey(userId));
+    const last = Number(raw || 0);
+    if (!Number.isFinite(last) || last <= 0) return true;
+    return Date.now() - last >= throttleMs;
+  } catch {
+    return true;
+  }
+}
+
+async function logSessionActivity(accessToken, mode = "connect") {
+  if (!accessToken || typeof window === "undefined") return;
+  const entryPath = window.location?.pathname || "/signin";
+  const entryLabel = entryPath.includes("/owner-access") || entryPath.includes("/owner") ? "Control Center" : "Student App";
+  await fetch("/api/backend/auth/activity", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ entryPath, entryLabel, mode }),
+    cache: "no-store",
+  }).catch(() => null);
+}
+
+async function syncSessionActivity(session) {
+  const accessToken = session?.access_token;
+  const userId = session?.user?.id;
+  if (!accessToken || !userId || typeof window === "undefined") return;
+
+  if (!hasSessionActivityMarker(userId)) {
+    await logSessionActivity(accessToken, "connect");
+    markSessionActivityLogged(userId);
+    markSessionActivityTouched(userId);
+    return;
+  }
+
+  if (shouldTouchSessionActivity(userId)) {
+    await logSessionActivity(accessToken, "touch");
+    markSessionActivityTouched(userId);
+  }
+}
+
 export async function signUpStudent({ email, password, fullName = "" }) {
   const supabase = getClient();
   const origin = getPreferredPublicOrigin();
@@ -101,17 +191,9 @@ export async function signInStudent({ email, password }) {
   }
 
   if (data?.session?.access_token && typeof window !== "undefined") {
-    const entryPath = window.location?.pathname || "/signin";
-    const entryLabel = entryPath.includes("/owner-access") || entryPath.includes("/owner") ? "Control Center" : "Student App";
-    await fetch("/api/backend/auth/activity", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${data.session.access_token}`,
-      },
-      body: JSON.stringify({ entryPath, entryLabel }),
-      cache: "no-store",
-    }).catch(() => null);
+    await logSessionActivity(data.session.access_token, "connect");
+    markSessionActivityLogged(data.user?.id || data.session.user?.id);
+    markSessionActivityTouched(data.user?.id || data.session.user?.id);
   }
 
   return data;
@@ -121,6 +203,7 @@ export async function signOutStudent() {
   const supabase = getClient();
   const { error } = await supabase.auth.signOut();
   clearStudentBrowserState();
+  clearSessionActivityMarkers();
   if (error) {
     throw new Error(normalizeAuthError("Sign out", error));
   }
@@ -177,6 +260,8 @@ export async function getStudentSessionSnapshot() {
   if (error) {
     throw new Error(normalizeAuthError("Session check", error));
   }
+
+  await syncSessionActivity(session);
 
   return session;
 }

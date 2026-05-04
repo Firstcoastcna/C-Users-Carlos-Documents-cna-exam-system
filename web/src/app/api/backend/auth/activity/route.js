@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerStudentSession } from "@/app/lib/backend/auth/session";
-import { recordUserSignInActivity } from "@/app/lib/backend/db/client";
+import { recordUserSignInActivity, touchUserActivity } from "@/app/lib/backend/db/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,7 +13,9 @@ export async function POST(request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const activity = await recordUserSignInActivity({
+    const mode = String(body?.mode || "connect").trim().toLowerCase();
+    const runActivity = mode === "touch" ? touchUserActivity : recordUserSignInActivity;
+    const activity = await runActivity({
       userId: user.id,
       email: user.email,
       fullName: user.fullName || "",
