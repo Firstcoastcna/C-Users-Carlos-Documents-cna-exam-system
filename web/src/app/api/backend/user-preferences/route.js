@@ -5,11 +5,15 @@ import {
 } from "../../../lib/backend/db/client";
 import { resolveBackendRequestUser } from "../../../lib/backend/auth/requestUser";
 
-function normalizePreferences(record, userId) {
+function normalizePreferences(record, userId, appUser = null) {
+  const normalizedRole = String(appUser?.account_role || "").trim().toLowerCase();
+  const hasStaffAccess =
+    normalizedRole === "owner" || normalizedRole === "school_admin" || normalizedRole === "teacher";
+
   return {
     userId,
     preferredLanguage: record?.preferred_language || null,
-    accessGranted: !!record?.access_granted,
+    accessGranted: hasStaffAccess || !!record?.access_granted,
     skipPracticeWelcome: !!record?.skip_practice_welcome,
     skipExamWelcome: !!record?.skip_exam_welcome,
     hasSeenFoundation: !!record?.has_seen_foundation,
@@ -32,7 +36,7 @@ export async function GET(request) {
         source: user.source,
         appUser: user.appUser,
       },
-      preferences: normalizePreferences(prefs, user.userId),
+      preferences: normalizePreferences(prefs, user.userId, user.appUser),
     });
   } catch (error) {
     return NextResponse.json(
@@ -88,7 +92,7 @@ export async function PUT(request) {
         source: user.source,
         appUser: user.appUser,
       },
-      preferences: normalizePreferences(next, user.userId),
+      preferences: normalizePreferences(next, user.userId, user.appUser),
     });
   } catch (error) {
     return NextResponse.json(

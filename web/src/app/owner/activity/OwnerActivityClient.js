@@ -365,6 +365,12 @@ function countRecentUsers(users = [], days = 7) {
   }).length;
 }
 
+function isUserRecentlyActive(user, days = 7) {
+  const timestamp = new Date(user?.last_seen_at || user?.last_sign_in_at || 0).getTime();
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return false;
+  return Date.now() - timestamp <= days * 24 * 60 * 60 * 1000;
+}
+
 function flattenSchoolUsers(school) {
   return [
     ...(Array.isArray(school?.admins) ? school.admins : []),
@@ -380,9 +386,7 @@ function renderActivityMeta(users = []) {
   return (
     <div style={activityMetaRow}>
       <span style={activityMetaChip}>Last seen: {lastSeen ? formatDateTime(lastSeen) : "Never"}</span>
-      <span style={activityMetaChip}>
-        Active in last 7 days: {recent}
-      </span>
+      <span style={activityMetaChip}>Active people in last 7 days: {recent}</span>
     </div>
   );
 }
@@ -489,6 +493,7 @@ function filterUsers(users, normalizedQuery, roleFilter, schoolName) {
 function UserActivityCard({ user, schoolName = null }) {
   const connectionCount = Number(user?.sign_in_count || 0);
   const roleLabel = formatRole(user?.account_role);
+  const recentActive = isUserRecentlyActive(user);
   return (
     <div style={userCard}>
       <div style={userHeader}>
@@ -505,10 +510,6 @@ function UserActivityCard({ user, schoolName = null }) {
       </div>
       <div style={detailGrid}>
         <div style={detailTile}>
-          <div style={detailLabel}>Scope</div>
-          <div style={detailValue}>{roleLabel === "Owner" ? "Platform-wide" : schoolName || "Platform-wide"}</div>
-        </div>
-        <div style={detailTile}>
           <div style={detailLabel}>First connection</div>
           <div style={detailValue}>{formatDateTime(user?.first_sign_in_at)}</div>
         </div>
@@ -518,7 +519,11 @@ function UserActivityCard({ user, schoolName = null }) {
         </div>
         <div style={detailTile}>
           <div style={detailLabel}>Last lane</div>
-          <div style={detailValue}>{user?.last_entry_label || "—"}</div>
+          <div style={detailValue}>{user?.last_entry_label || "-"}</div>
+        </div>
+        <div style={detailTile}>
+          <div style={detailLabel}>Active in last 7 days</div>
+          <div style={detailValue}>{recentActive ? "Yes" : "No"}</div>
         </div>
       </div>
     </div>
@@ -977,3 +982,4 @@ export default function OwnerActivityClient() {
     </main>
   );
 }
+

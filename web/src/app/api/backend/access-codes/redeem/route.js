@@ -105,6 +105,18 @@ export async function POST(request) {
 
     const resolved = await resolveBackendRequestUser(request, body, "Access Code Student");
     const userId = resolved.userId;
+    const normalizedRole = String(resolved?.appUser?.account_role || "").trim().toLowerCase();
+
+    if (normalizedRole === "owner" || normalizedRole === "school_admin" || normalizedRole === "teacher") {
+      return NextResponse.json(
+        {
+          ok: false,
+          service: "access-code-redeem",
+          error: "This account already has staff access. Staff accounts do not need student access codes.",
+        },
+        { status: 400 }
+      );
+    }
 
     let codeRecord = await loadAccessCodeByCode(rawCode);
     if (!codeRecord) {
