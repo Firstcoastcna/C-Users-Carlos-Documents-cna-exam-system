@@ -264,6 +264,26 @@ const classBody = {
   gap: 14,
 };
 
+const activityMetaRow = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  alignItems: "center",
+};
+
+const activityMetaChip = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "5px 9px",
+  borderRadius: 999,
+  border: "1px solid #d7e2ea",
+  background: "white",
+  color: "#486274",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
 const badge = (tone = "neutral") => ({
   display: "inline-flex",
   alignItems: "center",
@@ -326,6 +346,45 @@ function roleTone(role) {
   if (normalized === "owner") return "owner";
   if (normalized === "school_admin" || normalized === "teacher") return "staff";
   return "neutral";
+}
+
+function getLastSeenValue(users = []) {
+  return (Array.isArray(users) ? users : []).reduce((latest, user) => {
+    const timestamp = new Date(user?.last_seen_at || user?.last_sign_in_at || 0).getTime();
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return latest;
+    return timestamp > latest ? timestamp : latest;
+  }, 0);
+}
+
+function countRecentUsers(users = [], days = 7) {
+  const windowMs = days * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  return (Array.isArray(users) ? users : []).filter((user) => {
+    const timestamp = new Date(user?.last_seen_at || user?.last_sign_in_at || 0).getTime();
+    return Number.isFinite(timestamp) && timestamp > 0 && now - timestamp <= windowMs;
+  }).length;
+}
+
+function flattenSchoolUsers(school) {
+  return [
+    ...(Array.isArray(school?.admins) ? school.admins : []),
+    ...(Array.isArray(school?.unassignedTeachers) ? school.unassignedTeachers : []),
+    ...(Array.isArray(school?.independentStudents) ? school.independentStudents : []),
+    ...(Array.isArray(school?.classes) ? school.classes.flatMap((classNode) => [...(classNode.teachers || []), ...(classNode.students || [])]) : []),
+  ];
+}
+
+function renderActivityMeta(users = []) {
+  const lastSeen = getLastSeenValue(users);
+  const recent = countRecentUsers(users);
+  return (
+    <div style={activityMetaRow}>
+      <span style={activityMetaChip}>Last seen: {lastSeen ? formatDateTime(lastSeen) : "Never"}</span>
+      <span style={activityMetaChip}>
+        Active in last 7 days: {recent}
+      </span>
+    </div>
+  );
 }
 
 function flattenUsers(payload) {
@@ -699,6 +758,7 @@ export default function OwnerActivityClient() {
                     <div style={{ display: "grid", gap: 4 }}>
                       <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)" }}>Platform-wide owners</div>
                       <div style={subText}>These accounts stay outside school scope and can see the full platform.</div>
+                      {renderActivityMeta(filteredActivity.owners)}
                     </div>
                     <div style={{ ...badge("owner"), whiteSpace: "nowrap" }}>{ownersOpen ? "Click to close" : "Click to open"}</div>
                   </button>
@@ -727,6 +787,10 @@ export default function OwnerActivityClient() {
                       <div style={subText}>
                         Use this to spot students who are active in the platform but not sitting inside a class roster right now.
                       </div>
+                      {renderActivityMeta([
+                        ...independentSchoolSummary.flatMap((school) => school.students),
+                        ...filteredActivity.platformIndependentStudents,
+                      ])}
                     </div>
                     <div style={{ ...badge("staff"), whiteSpace: "nowrap" }}>
                       {independentOpen ? "Click to close" : "Click to open"}
@@ -799,6 +863,7 @@ export default function OwnerActivityClient() {
                           <div style={{ display: "grid", gap: 4 }}>
                             <div style={{ fontSize: 22, fontWeight: 800, color: "var(--heading)" }}>{school.name}</div>
                             <div style={subText}>Open this school to review admins, classes, teachers, and students.</div>
+                            {renderActivityMeta(flattenSchoolUsers(school))}
                           </div>
                           <div style={{ ...badge("staff"), whiteSpace: "nowrap" }}>{schoolOpen ? "Click to close" : "Click to open"}</div>
                         </button>
@@ -849,6 +914,7 @@ export default function OwnerActivityClient() {
                                             <div style={subText}>
                                               Teachers: {classNode.teachers.length} | Students: {classNode.students.length}
                                             </div>
+                                            {renderActivityMeta([...(classNode.teachers || []), ...(classNode.students || [])])}
                                           </div>
                                           <div style={{ ...badge("staff"), whiteSpace: "nowrap" }}>
                                             {classOpen ? "Click to close" : "Click to open"}
