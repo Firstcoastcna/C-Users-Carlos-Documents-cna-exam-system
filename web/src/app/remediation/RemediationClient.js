@@ -18,12 +18,21 @@ import {
   applyRemediationAnswerAndPersist,
   finalizeRemediationSessionCompletion,
 } from "../lib/remediationOutcomes";
+import { recordPlatformActivity } from "../lib/backend/auth/browserAuth";
 
 
 export default function RemediationClient({ bankById }) {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+
+useEffect(() => {
+  recordPlatformActivity({
+    eventType: "open_learning",
+    area: "remediation",
+    label: "Opened remediation",
+  }).catch(() => null);
+}, []);
 
 const sessionId = searchParams.get("session_id");
 const attemptIdParam = searchParams.get("attemptId");

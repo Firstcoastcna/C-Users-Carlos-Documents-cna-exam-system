@@ -16,11 +16,19 @@ import {
   saveExamAttemptRecord,
 } from "../lib/examAttemptPersistence";
 import { isServerPersistenceEnabled } from "../lib/backend/config";
+import { recordPlatformActivity } from "../lib/backend/auth/browserAuth";
 
 export default function ExamClient({ form, bankById, lang }) {
   const router = useRouter();
   const sp = useSearchParams();
   const [isNarrow, setIsNarrow] = useState(false);
+  useEffect(() => {
+    recordPlatformActivity({
+      eventType: "open_learning",
+      area: "exam",
+      label: "Opened exam",
+    }).catch(() => null);
+  }, []);
   const storageMode = sp.get("storage") === "server" ? "server" : "local";
   const forceServer = storageMode === "server";
   const useServer = forceServer || isServerPersistenceEnabled();

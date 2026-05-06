@@ -370,6 +370,12 @@ export async function fetchStudentOverviewReport(lang = "en") {
     throw new Error(payload?.error || "Unable to load student overview report.");
   }
 
+  await recordPlatformActivity({
+    eventType: "open_report",
+    area: "student_report",
+    label: "Opened student report",
+  });
+
   return payload;
 }
 
@@ -465,6 +471,12 @@ export async function redeemAccessCode(code, lang = "en") {
     throw new Error(payload?.error || "Unable to redeem access code.");
   }
 
+  await recordPlatformActivity({
+    eventType: "redeem_code",
+    area: "student_access",
+    label: "Redeemed access code",
+  });
+
   return payload;
 }
 
@@ -484,6 +496,30 @@ async function fetchAuthenticatedJson(pathname) {
   return payload;
 }
 
+export async function recordPlatformActivity({ eventType = "activity", area = "platform", label = null } = {}) {
+  const session = await getStudentSessionSnapshot().catch(() => null);
+  if (!session?.access_token) {
+    return { ok: false, skipped: true };
+  }
+
+  await fetch("/api/backend/auth/activity", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      mode: "event",
+      eventType,
+      area,
+      label,
+    }),
+    cache: "no-store",
+  }).catch(() => null);
+
+  return { ok: true };
+}
+
 export async function bootstrapSchoolContext() {
   return fetchAuthenticatedJson("/api/backend/schools/bootstrap-check");
 }
@@ -497,7 +533,13 @@ export async function bootstrapDemoClassData() {
 }
 
 export async function fetchClassOverviewReport(lang = "en") {
-  return fetchAuthenticatedJson(`/api/backend/reports/class-overview?lang=${encodeURIComponent(lang)}`);
+  const payload = await fetchAuthenticatedJson(`/api/backend/reports/class-overview?lang=${encodeURIComponent(lang)}`);
+  await recordPlatformActivity({
+    eventType: "open_report",
+    area: "class_report",
+    label: "Opened class report",
+  });
+  return payload;
 }
 
 export async function fetchOwnerOverview() {
@@ -505,25 +547,49 @@ export async function fetchOwnerOverview() {
 }
 
 export async function fetchOwnerActivity() {
-  return fetchAuthenticatedJson("/api/backend/admin/activity");
+  const payload = await fetchAuthenticatedJson("/api/backend/admin/activity");
+  await recordPlatformActivity({
+    eventType: "open_activity",
+    area: "owner_activity",
+    label: "Opened owner activity tracker",
+  });
+  return payload;
 }
 
 export async function fetchOwnerStudentOverviewReport(userId, lang = "en") {
-  return fetchAuthenticatedJson(
+  const payload = await fetchAuthenticatedJson(
     `/api/backend/reports/student-overview?lang=${encodeURIComponent(lang)}&user_id=${encodeURIComponent(userId)}`
   );
+  await recordPlatformActivity({
+    eventType: "open_report",
+    area: "student_report",
+    label: "Opened student report",
+  });
+  return payload;
 }
 
 export async function fetchOwnerClassOverviewReport(classGroupId, lang = "en") {
-  return fetchAuthenticatedJson(
+  const payload = await fetchAuthenticatedJson(
     `/api/backend/reports/class-overview?lang=${encodeURIComponent(lang)}&class_group_id=${encodeURIComponent(classGroupId)}`
   );
+  await recordPlatformActivity({
+    eventType: "open_report",
+    area: "class_report",
+    label: "Opened class report",
+  });
+  return payload;
 }
 
 export async function fetchOwnerSchoolOverviewReport(schoolId, lang = "en") {
-  return fetchAuthenticatedJson(
+  const payload = await fetchAuthenticatedJson(
     `/api/backend/reports/school-overview?lang=${encodeURIComponent(lang)}&school_id=${encodeURIComponent(schoolId)}`
   );
+  await recordPlatformActivity({
+    eventType: "open_report",
+    area: "school_report",
+    label: "Opened school report",
+  });
+  return payload;
 }
 
 async function postAuthenticatedJson(pathname, body) {

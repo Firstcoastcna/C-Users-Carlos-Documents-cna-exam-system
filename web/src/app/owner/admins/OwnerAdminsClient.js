@@ -7,6 +7,7 @@ import {
   deleteOwnerTeacherAssignment,
   deleteOwnerSchoolAdmin,
   fetchOwnerOverview,
+  recordPlatformActivity,
   updateOwnerUserRole,
 } from "../../lib/backend/auth/browserAuth";
 
@@ -250,6 +251,14 @@ export default function OwnerAdminsClient() {
   const [editForms, setEditForms] = useState({});
   const [teacherClassForms, setTeacherClassForms] = useState({});
   const [removeConfirmId, setRemoveConfirmId] = useState("");
+
+  useEffect(() => {
+    recordPlatformActivity({
+      eventType: "open_management",
+      area: "manage_staff",
+      label: "Opened manage school staff",
+    }).catch(() => null);
+  }, []);
 
   async function loadOverview() {
     setLoading(true);

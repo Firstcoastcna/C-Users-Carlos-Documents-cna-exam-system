@@ -38,6 +38,11 @@ function buildActivityUser(user) {
     last_seen_at: user.last_seen_at || null,
     last_entry_path: user.last_entry_path || null,
     last_entry_label: user.last_entry_label || null,
+    activity_event_count: Number(user.activity_event_count || 0),
+    last_activity_at: user.last_activity_at || null,
+    last_activity_type: user.last_activity_type || null,
+    last_activity_area: user.last_activity_area || null,
+    last_activity_label: user.last_activity_label || null,
   };
 }
 

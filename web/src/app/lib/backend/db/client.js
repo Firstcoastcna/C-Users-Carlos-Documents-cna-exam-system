@@ -1934,6 +1934,84 @@ export async function touchUserActivity({
   return data;
 }
 
+export async function recordUserActivityEvent({
+  userId,
+  email,
+  fullName = "",
+  eventType = "activity",
+  area = "platform",
+  label = null,
+}) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  const normalizedUserId = String(userId || "").trim();
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedEventType = String(eventType || "activity").trim().toLowerCase() || "activity";
+  const normalizedArea = String(area || "platform").trim().toLowerCase() || "platform";
+  const normalizedLabel = String(label || "").trim() || `${normalizedArea}:${normalizedEventType}`;
+
+  if (!normalizedUserId) {
+    throw new Error("User id is required.");
+  }
+
+  if (!normalizedEmail) {
+    throw new Error("User email is required.");
+  }
+
+  await upsertAppUser({
+    id: normalizedUserId,
+    email: normalizedEmail,
+    fullName,
+  });
+
+  const { data: existing, error: loadError } = await supabase
+    .from("app_users")
+    .select("id, activity_event_count")
+    .eq("id", normalizedUserId)
+    .maybeSingle();
+
+  if (loadError) {
+    if (String(loadError.message || "").toLowerCase().includes("column")) {
+      return loadAppUser(normalizedUserId);
+    }
+    throw new Error(`Supabase load user activity event failed: ${loadError.message}`);
+  }
+
+  const now = new Date().toISOString();
+  const nextCount = Number(existing?.activity_event_count || 0) + 1;
+  const payload = {
+    id: normalizedUserId,
+    email: normalizedEmail,
+    full_name: fullName || null,
+    activity_event_count: nextCount,
+    last_activity_at: now,
+    last_activity_type: normalizedEventType,
+    last_activity_area: normalizedArea,
+    last_activity_label: normalizedLabel,
+    updated_at: now,
+  };
+
+  const { data, error } = await supabase
+    .from("app_users")
+    .upsert(payload, { onConflict: "id" })
+    .select(
+      "id, email, full_name, account_role, sign_in_count, first_sign_in_at, last_sign_in_at, last_seen_at, last_entry_path, last_entry_label, activity_event_count, last_activity_at, last_activity_type, last_activity_area, last_activity_label, created_at, updated_at"
+    )
+    .single();
+
+  if (error) {
+    if (String(error.message || "").toLowerCase().includes("column")) {
+      return loadAppUser(normalizedUserId);
+    }
+    throw new Error(`Supabase record user activity event failed: ${error.message}`);
+  }
+
+  return data;
+}
+
 export async function listUserSignInActivityRecords() {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -1943,7 +2021,7 @@ export async function listUserSignInActivityRecords() {
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, email, full_name, account_role, sign_in_count, first_sign_in_at, last_sign_in_at, last_seen_at, last_entry_path, last_entry_label, created_at, updated_at"
+      "id, email, full_name, account_role, sign_in_count, first_sign_in_at, last_sign_in_at, last_seen_at, last_entry_path, last_entry_label, activity_event_count, last_activity_at, last_activity_type, last_activity_area, last_activity_label, created_at, updated_at"
     )
     .order("last_sign_in_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -1967,6 +2045,11 @@ export async function listUserSignInActivityRecords() {
         last_seen_at: null,
         last_entry_path: null,
         last_entry_label: null,
+        activity_event_count: 0,
+        last_activity_at: null,
+        last_activity_type: null,
+        last_activity_area: null,
+        last_activity_label: null,
       }));
     }
 

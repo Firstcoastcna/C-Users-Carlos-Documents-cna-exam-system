@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { assignOwnerStudentToClass, fetchOwnerOverview, updateOwnerUserRole } from "../../lib/backend/auth/browserAuth";
+import { assignOwnerStudentToClass, fetchOwnerOverview, recordPlatformActivity, updateOwnerUserRole } from "../../lib/backend/auth/browserAuth";
 
 const EMPTY_ITEMS = [];
 
@@ -215,6 +215,14 @@ export default function OwnerIndependentClient() {
   const [assignForms, setAssignForms] = useState({});
   const [showRoleForms, setShowRoleForms] = useState({});
   const [roleForms, setRoleForms] = useState({});
+
+  useEffect(() => {
+    recordPlatformActivity({
+      eventType: "open_management",
+      area: "independent_students",
+      label: "Opened independent students",
+    }).catch(() => null);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

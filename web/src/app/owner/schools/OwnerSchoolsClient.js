@@ -13,6 +13,7 @@ import {
   deleteOwnerClassGroup,
   deleteOwnerSchool,
   fetchOwnerOverview,
+  recordPlatformActivity,
   removeOwnerClassEnrollment,
 } from "../../lib/backend/auth/browserAuth";
 
@@ -286,6 +287,14 @@ function formatDateTime(value) {
 
 export default function OwnerSchoolsClient() {
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    recordPlatformActivity({
+      eventType: "open_management",
+      area: "manage_classes",
+      label: "Opened manage classes",
+    }).catch(() => null);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [showLoadingNotice, setShowLoadingNotice] = useState(false);
   const [busy, setBusy] = useState(false);

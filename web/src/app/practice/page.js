@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadAllPracticeSessionRecords, loadPracticeSessionRecord, savePracticeSessionRecord } from "../lib/practiceSessionPersistence";
-import { redirectToSignIn, resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
+import { recordPlatformActivity, redirectToSignIn, resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
 import { useDisableBrowserNavigation } from "../lib/backend/auth/useDisableBrowserNavigation";
 import { useProtectedPlatformPage } from "../lib/backend/auth/useProtectedPlatformPage";
 
@@ -166,6 +166,14 @@ function PracticeInner() {
   const [activeSession, setActiveSession] = useState(null);
   const [practiceHistory, setPracticeHistory] = useState([]);
   const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    recordPlatformActivity({
+      eventType: "open_learning",
+      area: "practice",
+      label: "Opened practice",
+    }).catch(() => null);
+  }, []);
 
   async function refreshActiveSession() {
     try {

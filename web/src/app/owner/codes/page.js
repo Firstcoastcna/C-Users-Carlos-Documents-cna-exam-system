@@ -6,6 +6,7 @@ import {
   createOwnerAccessCode,
   deleteOwnerAccessCode,
   fetchOwnerOverview,
+  recordPlatformActivity,
   updateOwnerAccessCodeStatus,
 } from "../../lib/backend/auth/browserAuth";
 
@@ -252,6 +253,14 @@ export default function OwnerCodesPage() {
     classGroupId: "",
     maxRedemptions: "",
   });
+
+  useEffect(() => {
+    recordPlatformActivity({
+      eventType: "open_management",
+      area: "manage_codes",
+      label: "Opened manage codes",
+    }).catch(() => null);
+  }, []);
 
   async function loadOverview() {
     setLoading(true);

@@ -10,6 +10,7 @@ import {
   createOwnerSchool,
   createOwnerUser,
   fetchOwnerOverview,
+  recordPlatformActivity,
   removeOwnerClassEnrollment,
   signOutStudent,
 } from "../lib/backend/auth/browserAuth";
@@ -390,6 +391,14 @@ export default function OwnerPage() {
     assignToClass: false,
     accessCodeId: "",
   });
+
+  useEffect(() => {
+    recordPlatformActivity({
+      eventType: "open_control_center",
+      area: "owner_home",
+      label: "Opened Control Center",
+    }).catch(() => null);
+  }, []);
 
   async function loadOverview() {
     setLoading(true);

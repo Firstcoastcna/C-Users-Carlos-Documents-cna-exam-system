@@ -356,17 +356,25 @@ function getLastSeenValue(users = []) {
   }, 0);
 }
 
+function getLastActivityValue(users = []) {
+  return (Array.isArray(users) ? users : []).reduce((latest, user) => {
+    const timestamp = new Date(user?.last_activity_at || 0).getTime();
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return latest;
+    return timestamp > latest ? timestamp : latest;
+  }, 0);
+}
+
 function countRecentUsers(users = [], days = 7) {
   const windowMs = days * 24 * 60 * 60 * 1000;
   const now = Date.now();
   return (Array.isArray(users) ? users : []).filter((user) => {
-    const timestamp = new Date(user?.last_seen_at || user?.last_sign_in_at || 0).getTime();
+    const timestamp = new Date(user?.last_activity_at || user?.last_seen_at || user?.last_sign_in_at || 0).getTime();
     return Number.isFinite(timestamp) && timestamp > 0 && now - timestamp <= windowMs;
   }).length;
 }
 
 function isUserRecentlyActive(user, days = 7) {
-  const timestamp = new Date(user?.last_seen_at || user?.last_sign_in_at || 0).getTime();
+  const timestamp = new Date(user?.last_activity_at || user?.last_seen_at || user?.last_sign_in_at || 0).getTime();
   if (!Number.isFinite(timestamp) || timestamp <= 0) return false;
   return Date.now() - timestamp <= days * 24 * 60 * 60 * 1000;
 }
@@ -382,10 +390,12 @@ function flattenSchoolUsers(school) {
 
 function renderActivityMeta(users = []) {
   const lastSeen = getLastSeenValue(users);
+  const lastActivity = getLastActivityValue(users);
   const recent = countRecentUsers(users);
   return (
     <div style={activityMetaRow}>
       <span style={activityMetaChip}>Last seen: {lastSeen ? formatDateTime(lastSeen) : "Never"}</span>
+      <span style={activityMetaChip}>Last activity: {lastActivity ? formatDateTime(lastActivity) : "None yet"}</span>
       <span style={activityMetaChip}>Active people in last 7 days: {recent}</span>
     </div>
   );
@@ -492,6 +502,7 @@ function filterUsers(users, normalizedQuery, roleFilter, schoolName) {
 
 function UserActivityCard({ user, schoolName = null }) {
   const connectionCount = Number(user?.sign_in_count || 0);
+  const activityCount = Number(user?.activity_event_count || 0);
   const roleLabel = formatRole(user?.account_role);
   const recentActive = isUserRecentlyActive(user);
   return (
@@ -516,6 +527,14 @@ function UserActivityCard({ user, schoolName = null }) {
         <div style={detailTile}>
           <div style={detailLabel}>Last connection</div>
           <div style={detailValue}>{formatDateTime(user?.last_sign_in_at)}</div>
+        </div>
+        <div style={detailTile}>
+          <div style={detailLabel}>Last activity</div>
+          <div style={detailValue}>{user?.last_activity_at ? formatDateTime(user.last_activity_at) : "None yet"}</div>
+        </div>
+        <div style={detailTile}>
+          <div style={detailLabel}>Activity count</div>
+          <div style={detailValue}>{activityCount}</div>
         </div>
         <div style={detailTile}>
           <div style={detailLabel}>Last lane</div>

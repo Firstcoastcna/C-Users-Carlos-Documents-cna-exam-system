@@ -22,6 +22,11 @@ alter table if exists app_users add column if not exists last_seen_at timestampt
 alter table if exists app_users add column if not exists sign_in_count integer not null default 0;
 alter table if exists app_users add column if not exists last_entry_path text;
 alter table if exists app_users add column if not exists last_entry_label text;
+alter table if exists app_users add column if not exists activity_event_count integer not null default 0;
+alter table if exists app_users add column if not exists last_activity_at timestamptz;
+alter table if exists app_users add column if not exists last_activity_type text;
+alter table if exists app_users add column if not exists last_activity_area text;
+alter table if exists app_users add column if not exists last_activity_label text;
 
 create table if not exists user_preferences (
   user_id text primary key references app_users(id) on delete cascade,
