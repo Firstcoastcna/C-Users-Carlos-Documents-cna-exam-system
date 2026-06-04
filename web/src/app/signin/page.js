@@ -85,6 +85,7 @@ export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
@@ -215,17 +216,37 @@ export default function SignInPage() {
               placeholder="Email"
               autoComplete="email"
             />
-            <input
-              style={inputStyle}
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (message) setMessage("");
-              }}
-              placeholder="Password"
-              type="password"
-              autoComplete="current-password"
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                style={{ ...inputStyle, paddingRight: 96 }}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (message) setMessage("");
+                }}
+                placeholder="Password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--brand-teal-dark)",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: 4,
+                }}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

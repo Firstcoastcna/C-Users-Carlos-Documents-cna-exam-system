@@ -66,6 +66,7 @@ export default function ResetPasswordClient() {
   const [message, setMessage] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
   const [busy, setBusy] = useState(false);
   const [flowType, setFlowType] = useState("recovery");
   const nextPath = searchParams.get("next") || "/signin";
@@ -124,20 +125,60 @@ export default function ResetPasswordClient() {
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
-            <input
-              style={inputStyle}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              placeholder="New password"
-            />
-            <input
-              style={inputStyle}
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              type="password"
-              placeholder="Confirm password"
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                style={{ ...inputStyle, paddingRight: 96 }}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type={showPasswords ? "text" : "password"}
+                placeholder="New password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswords((value) => !value)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--brand-teal-dark)",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: 4,
+                }}
+              >
+                {showPasswords ? "Hide" : "Show"}
+              </button>
+            </div>
+            <div style={{ position: "relative" }}>
+              <input
+                style={{ ...inputStyle, paddingRight: 96 }}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                type={showPasswords ? "text" : "password"}
+                placeholder="Confirm password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswords((value) => !value)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--brand-teal-dark)",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: 4,
+                }}
+              >
+                {showPasswords ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
 
           {message ? (

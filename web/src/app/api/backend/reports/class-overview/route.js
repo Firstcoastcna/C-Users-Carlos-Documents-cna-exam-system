@@ -4,11 +4,23 @@ import { loadQuestionBank } from "@/app/lib/questionBank";
 import {
   loadClassGroupRoster,
   loadExamAttemptRecords,
-  loadPracticeSessionRecords,
-  loadQuestionHistoryRecords,
-  loadRemediationSessionRecords,
+  loadPracticeSessionSummaryRecords,
+  loadQuestionHistorySummaryRecords,
+  loadRemediationSessionSummaryRecords,
   listClassGroupRecords,
 } from "@/app/lib/backend/db/client";
+
+async function loadReportDatasetSafely(loadFn, fallbackValue = []) {
+  try {
+    return await loadFn();
+  } catch (error) {
+    const message = String(error instanceof Error ? error.message : error || "").toLowerCase();
+    if (message.includes("statement timeout")) {
+      return fallbackValue;
+    }
+    throw error;
+  }
+}
 
 function isCompletedExamAttempt(attempt) {
   if (!Number.isFinite(attempt?.score)) return false;
@@ -42,6 +54,7 @@ function summarizeExamAttempts(attempts) {
     : null;
   const bestScore = scores.length ? Math.max(...scores) : null;
   const worstScore = scores.length ? Math.min(...scores) : null;
+  const latest = completed[0] || null;
 
   return {
     totalAttempts: attempts.length,
@@ -49,6 +62,8 @@ function summarizeExamAttempts(attempts) {
     averageScore,
     bestScore,
     worstScore,
+    latestScore: Number.isFinite(Number(latest?.score)) ? Number(latest.score) : null,
+    latestCompletedAt: latest?.completed_at || latest?.updated_at || latest?.created_at || null,
   };
 }
 
@@ -380,18 +395,22 @@ function buildClassAggregate(studentSummaries) {
 
     Object.entries(student.chapterPerformance || {}).forEach(([chapterName, stats]) => {
       if (!chapterPerformance[chapterName]) {
-        chapterPerformance[chapterName] = { correct: 0, total: 0 };
+        chapterPerformance[chapterName] = { percents: [] };
       }
-      chapterPerformance[chapterName].correct += Number(stats?.correct || 0);
-      chapterPerformance[chapterName].total += Number(stats?.total || 0);
+      const percent = Number(stats?.percent);
+      if (Number.isFinite(percent)) {
+        chapterPerformance[chapterName].percents.push(percent);
+      }
     });
 
     Object.entries(student.categoryPerformance || {}).forEach(([categoryName, stats]) => {
       if (!categoryPerformance[categoryName]) {
-        categoryPerformance[categoryName] = { correct: 0, total: 0 };
+        categoryPerformance[categoryName] = { percents: [] };
       }
-      categoryPerformance[categoryName].correct += Number(stats?.correct || 0);
-      categoryPerformance[categoryName].total += Number(stats?.total || 0);
+      const percent = Number(stats?.percent);
+      if (Number.isFinite(percent)) {
+        categoryPerformance[categoryName].percents.push(percent);
+      }
     });
 
     Object.entries(student.practiceFocus?.chapterCounts || {}).forEach(([chapterName, count]) => {
@@ -467,28 +486,32 @@ function buildClassAggregate(studentSummaries) {
     },
     categoryPerformance: Object.fromEntries(
       Object.entries(categoryPerformance).map(([categoryName, stats]) => {
-        const total = Number(stats?.total || 0);
-        const correct = Number(stats?.correct || 0);
+        const percents = Array.isArray(stats?.percents) ? stats.percents.filter(Number.isFinite) : [];
+        const contributors = percents.length;
         return [
           categoryName,
           {
-            correct,
-            total,
-            percent: total ? Math.round((correct / total) * 100) : null,
+            contributors,
+            total: contributors,
+            percent: contributors
+              ? Math.round(percents.reduce((sum, value) => sum + value, 0) / contributors)
+              : null,
           },
         ];
       })
     ),
     chapterPerformance: Object.fromEntries(
       Object.entries(chapterPerformance).map(([chapterName, stats]) => {
-        const total = Number(stats?.total || 0);
-        const correct = Number(stats?.correct || 0);
+        const percents = Array.isArray(stats?.percents) ? stats.percents.filter(Number.isFinite) : [];
+        const contributors = percents.length;
         return [
           chapterName,
           {
-            correct,
-            total,
-            percent: total ? Math.round((correct / total) * 100) : null,
+            contributors,
+            total: contributors,
+            percent: contributors
+              ? Math.round(percents.reduce((sum, value) => sum + value, 0) / contributors)
+              : null,
           },
         ];
       })
@@ -566,9 +589,9 @@ export async function GET(request) {
         const [examAttempts, practiceSessions, remediationSessions, questionHistory] = await Promise.all([
           // Owner-side class reporting should reflect all student activity, not just one UI language.
           loadExamAttemptRecords(member.user_id),
-          loadPracticeSessionRecords(member.user_id),
-          loadRemediationSessionRecords(member.user_id),
-          loadQuestionHistoryRecords(member.user_id),
+          loadReportDatasetSafely(() => loadPracticeSessionSummaryRecords(member.user_id)),
+          loadReportDatasetSafely(() => loadRemediationSessionSummaryRecords(member.user_id)),
+          loadReportDatasetSafely(() => loadQuestionHistorySummaryRecords(member.user_id)),
         ]);
 
         return buildStudentSummary({

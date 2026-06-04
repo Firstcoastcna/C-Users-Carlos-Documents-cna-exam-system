@@ -379,14 +379,108 @@ function buildExamHistoryBreakdownSummary(examHistory, categoryOrder = []) {
   return { chapters, categories };
 }
 
-function deriveClassStatus(summary) {
+function getClassSignalCounts(summary) {
   const counts = summary?.overallStatusCounts || {};
   const onTrack = Number(counts["On Track"] || 0);
   const borderline = Number(counts["Borderline"] || 0);
   const highRisk = Number(counts["High Risk"] || 0);
+  return {
+    onTrack,
+    borderline,
+    highRisk,
+    signalStudents: onTrack + borderline + highRisk,
+  };
+}
 
+function getClassSignalStudentCount(summary) {
+  return getClassSignalCounts(summary).signalStudents;
+}
+
+function getMinimumCoverageCount(totalStudents, ratio = 0.5, floor = 3) {
+  const total = Number(totalStudents || 0);
+  if (total <= 0) return floor;
+  return Math.max(floor, Math.ceil(total * ratio));
+}
+
+function getMinimumPatternCount(totalStudents, ratio = 0.4, floor = 2) {
+  const total = Number(totalStudents || 0);
+  if (total <= 0) return floor;
+  return Math.max(floor, Math.ceil(total * ratio));
+}
+
+function getCategorySignalLevel(percent) {
+  if (!Number.isFinite(percent)) return null;
+  if (percent >= 80) return "Strong";
+  if (percent >= 70) return "Developing";
+  return "Weak";
+}
+
+function formatCategoryWithPercent(summary, categoryName) {
+  if (!categoryName) return null;
+  const percent = Number(summary?.categoryPerformance?.[categoryName]?.percent);
+  return Number.isFinite(percent) ? `${categoryName} - ${percent}%` : categoryName;
+}
+
+function isClassWideCategory(summary, count, minimumRatio = 0.4) {
+  const signalStudents = getClassSignalStudentCount(summary);
+  const normalizedCount = Number(count || 0);
+  if (signalStudents <= 0 || normalizedCount <= 0) return false;
+  if (normalizedCount < 2) return false;
+  return normalizedCount / signalStudents >= minimumRatio;
+}
+
+function buildClassCoverage(students) {
+  const safeStudents = Array.isArray(students) ? students : [];
+  const totalStudents = safeStudents.length;
+  const examSignalStudents = safeStudents.filter((student) => Number(student?.exams?.completedAttempts || 0) > 0).length;
+  const practiceStudents = safeStudents.filter((student) => Number(student?.practice?.completedSessions || 0) > 0).length;
+  const remediationStudents = safeStudents.filter((student) => Number(student?.remediation?.completedSessions || 0) > 0).length;
+  const practiceCounts = safeStudents
+    .map((student) => ({
+      name: student?.user?.full_name || student?.user?.email || student?.user?.id || "Student",
+      completed: Number(student?.practice?.completedSessions || 0),
+    }))
+    .filter((student) => student.completed > 0)
+    .sort((a, b) => b.completed - a.completed);
+  const totalCompletedPractice = practiceCounts.reduce((sum, student) => sum + student.completed, 0);
+  const topPracticeStudent = practiceCounts[0] || null;
+  const topPracticeShare =
+    topPracticeStudent && totalCompletedPractice > 0 ? topPracticeStudent.completed / totalCompletedPractice : 0;
+  const minimumClassCoverage = getMinimumCoverageCount(totalStudents);
+
+  return {
+    totalStudents,
+    examSignalStudents,
+    practiceStudents,
+    remediationStudents,
+    minimumClassCoverage,
+    examCoverageReady: examSignalStudents >= minimumClassCoverage,
+    practiceCoverageReady: practiceStudents >= minimumClassCoverage,
+    practiceCounts,
+    totalCompletedPractice,
+    topPracticeStudent,
+    topPracticeShare,
+    concentratedPractice:
+      Boolean(topPracticeStudent) &&
+      Number(topPracticeStudent?.completed || 0) >= 10 &&
+      totalCompletedPractice > 0 &&
+      topPracticeShare >= 0.5,
+  };
+}
+
+function deriveClassStatus(summary) {
+  const { onTrack, borderline, highRisk, signalStudents } = getClassSignalCounts(summary);
+  const completedExams = Number(summary?.totalExamAttempts || 0);
+  const minimumCoverage = getMinimumCoverageCount(summary?.totalStudents);
+
+  if (signalStudents < minimumCoverage || completedExams < minimumCoverage) {
+    return "Not enough exam information yet";
+  }
+  if (highRisk >= 2 && highRisk / signalStudents >= 0.5) {
+    return "Intervention Needed";
+  }
   if (highRisk > 0) {
-    return highRisk >= Math.max(1, onTrack) ? "Intervention Needed" : "Mixed";
+    return "Mixed";
   }
   if (borderline > 0) {
     return "Mixed";
@@ -430,28 +524,59 @@ function getClassStatusTone(status) {
   };
 }
 
+function getClassAttentionTone(severity) {
+  if (severity === "urgent") {
+    return {
+      border: "#efc2c2",
+      bg: "linear-gradient(180deg, #fff8f8 0%, #fff0f0 100%)",
+      title: "#6f4747",
+      accent: "var(--brand-red)",
+    };
+  }
+  if (severity === "firm") {
+    return {
+      border: "#eadba6",
+      bg: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+      title: "#6f6340",
+      accent: "#7a5a00",
+    };
+  }
+  return {
+    border: "#cfdde6",
+    bg: "linear-gradient(180deg, #fbfdff 0%, #f3f8fb 100%)",
+    title: "#607282",
+    accent: "#38556a",
+  };
+}
+
 function describeClassStatus(status, summary) {
-  const counts = summary?.overallStatusCounts || {};
-  const onTrack = Number(counts["On Track"] || 0);
-  const borderline = Number(counts["Borderline"] || 0);
-  const highRisk = Number(counts["High Risk"] || 0);
+  const { onTrack, borderline, highRisk, signalStudents } = getClassSignalCounts(summary);
+  const minimumCoverage = getMinimumCoverageCount(summary?.totalStudents);
 
   if (status === "Stable") {
-    return "Most visible class exam signals are on track right now, so this group looks steady overall.";
+    return "This class looks steady right now. Most students with completed exams are on track, with a few smaller watch areas still worth tightening up.";
   }
 
   if (status === "Intervention Needed") {
-    return "High-risk exam signals are currently outweighing the stronger ones, so this class needs closer support now.";
+    return "This class needs closer support right now. High-risk exam results are showing up across a meaningful share of the class.";
   }
 
   if (status === "Mixed") {
     if (onTrack > borderline + highRisk) {
-      return "This class's exam results are mixed, but they are leaning stronger right now. Some students still need support, while the overall direction looks encouraging.";
+      return "This class is mixed but leaning stronger overall. Several students are doing well, while a smaller group still needs support.";
     }
     if (highRisk >= onTrack) {
-      return "This class's exam results are mixed, but they are leaning weaker right now. There are stronger students, but enough shaky signals are showing that the class needs attention.";
+      return "This class is mixed and leaning weaker right now. Some students are doing well, but enough students still need support that the class needs a focused follow-up.";
     }
-    return "This class's exam results are mixed right now. Some students are doing well, while others still need support, so the class is not leaning clearly in one direction yet.";
+    return "This class is mixed right now. Some students are doing well, while others still need support, so it is not leaning clearly in one direction yet.";
+  }
+
+  if (signalStudents === 1) {
+    return "Only one student has completed an exam so far, so it is still too early to treat this as a stable class pattern.";
+  }
+
+  if (signalStudents < minimumCoverage) {
+    return `Only ${signalStudents} students have completed exams so far, so this is still an early class read rather than a full class-wide pattern.`;
   }
 
   return "There is still limited completed exam data here, so this is an early read rather than a stable class pattern.";
@@ -460,6 +585,7 @@ function describeClassStatus(status, summary) {
 function buildClassNextActions(summary, students) {
   const classActions = [];
   const studentActions = [];
+  const classStatus = deriveClassStatus(summary);
   const topWeakCategories = rankCounts(summary?.categoryWeaknessCounts, 2);
   const atRiskStudents = buildInterventionStudents(students);
   const urgentHighRisk = buildUrgentHighRiskSummary(summary);
@@ -475,24 +601,34 @@ function buildClassNextActions(summary, students) {
       ? mapping.secondary.slice(0, 2).map((chapterId) => `Chapter ${chapterId}`)
       : [];
 
-    classActions.push(
-      `Use the Practice section to run category practice for ${categoryName} with the whole class. Repeat those practice sets until students look more confident in their scores and understanding.`
-    );
+    if (classStatus === "Intervention Needed") {
+      classActions.push(
+        `Start with ${categoryName} category practice across the class now. Stay with that focus until students look more confident in that area.`
+      );
+    } else if (classStatus === "Mixed") {
+      classActions.push(
+        `Use ${categoryName} category practice with the whole class next so that area gets stronger before the next full exam.`
+      );
+    } else {
+      classActions.push(
+        `Use one focused ${categoryName} category practice set next to tighten up that watch area without slowing the class down elsewhere.`
+      );
+    }
 
     if (mainChapter) {
       classActions.push(
-        `Pair that practice with review of ${mainChapter}${
+        `${classStatus === "Stable" ? "Pair that with a lighter review of" : "Pair that practice with review of"} ${mainChapter}${
           supportChapters.length ? `, then reinforce with ${supportChapters.join(" and ")}` : ""
-        }. Place extra emphasis on ${categoryName} topics inside those chapters.`
+        }. Keep the focus on ${categoryName} topics inside those chapters.`
       );
     }
   }
 
   if (urgentHighRisk.thresholdMet && urgentHighRisk.items[0]) {
     classActions.push(
-      `Give immediate attention to ${urgentHighRisk.items
+      `Move ${urgentHighRisk.items
         .map((item) => item.label.split(" (")[0])
-        .join(" and ")} because these urgent high-risk categories are affecting a large share of the active class.`
+        .join(" and ")} to the front of your review plan because they are affecting a large share of the active class.`
     );
   }
 
@@ -502,7 +638,7 @@ function buildClassNextActions(summary, students) {
   }
 
   if (!classActions.length) {
-    classActions.push("Keep building activity so the class report can surface clearer class-wide trends.");
+    classActions.push("Keep building class activity so the report can show a clearer class-wide pattern.");
   }
 
   return {
@@ -553,10 +689,48 @@ function buildClassStrengths(summary, students) {
   };
 }
 
+function buildClassWeaknesses(summary) {
+  const weakestCategories = Object.entries(summary?.categoryPerformance || {})
+    .filter(([, stats]) => Number(stats?.total || 0) > 0 && Number.isFinite(stats?.percent) && Number(stats?.percent) < 80)
+    .sort((a, b) => {
+      const percentA = Number(a[1]?.percent || 0);
+      const percentB = Number(b[1]?.percent || 0);
+      if (percentA !== percentB) return percentA - percentB;
+      const totalA = Number(a[1]?.total || 0);
+      const totalB = Number(b[1]?.total || 0);
+      if (totalB !== totalA) return totalB - totalA;
+      return a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
+    })
+    .slice(0, 3)
+    .map(([categoryName, stats]) => `${categoryName} (${formatPercent(stats?.percent)})`);
+
+  const weakestChapters = Object.entries(summary?.chapterPerformance || {})
+    .filter(([, stats]) => Number(stats?.total || 0) > 0 && Number.isFinite(stats?.percent) && Number(stats?.percent) < 80)
+    .sort((a, b) => {
+      const percentA = Number(a[1]?.percent || 0);
+      const percentB = Number(b[1]?.percent || 0);
+      if (percentA !== percentB) return percentA - percentB;
+      const totalA = Number(a[1]?.total || 0);
+      const totalB = Number(b[1]?.total || 0);
+      if (totalB !== totalA) return totalB - totalA;
+      return a[0].localeCompare(b[0], undefined, { sensitivity: "base" });
+    })
+    .slice(0, 3)
+    .map(([chapterName, stats]) => `${chapterName} (${formatPercent(stats?.percent)})`);
+
+  return {
+    weakestCategories,
+    weakestChapters,
+  };
+}
+
 function buildClassNeedsAttention(summary, students) {
   const reviewCategories = rankCounts(summary?.categoryWeaknessCounts, 3).map(
     ([key, value]) => `${key} (${value})`
   );
+  const classWideReviewCategories = rankCounts(summary?.categoryWeaknessCounts, 3)
+    .filter(([, value]) => isClassWideCategory(summary, value))
+    .map(([key, value]) => `${key} (${value})`);
   const urgentCategories = rankCounts(summary?.highRiskCategoryCounts, 3).map(
     ([key, value]) => `${key} (${value})`
   );
@@ -585,18 +759,37 @@ function buildClassNeedsAttention(summary, students) {
     : null;
   const highRiskCount = supportStudents.filter((student) => String(student?.latestExamAnalytics?.overallStatus || "") === "High Risk").length;
   const borderlineCount = supportStudents.filter((student) => String(student?.latestExamAnalytics?.overallStatus || "") === "Borderline").length;
-  const mainReviewCategoryName = reviewCategories[0]?.split(" (")[0] || null;
+  const mainReviewCategoryName = classWideReviewCategories[0]?.split(" (")[0] || null;
+  const mainReviewCategoryPercent = Number(summary?.categoryPerformance?.[mainReviewCategoryName]?.percent);
+  const mainReviewCategoryLevel = getCategorySignalLevel(mainReviewCategoryPercent);
   const chapterMapping = mainReviewCategoryName ? CATEGORY_TO_CHAPTERS[mainReviewCategoryName] || null : null;
   const bestMatchingChapter =
     chapterMapping?.primary?.length ? `Chapter ${chapterMapping.primary[0]}` : null;
   const supportChapters = Array.isArray(chapterMapping?.secondary)
     ? chapterMapping.secondary.slice(0, 2).map((chapterId) => `Chapter ${chapterId}`)
     : [];
-  const otherReviewDetails = reviewCategories.slice(1, 2).map((entry) => {
+  const supportRatio = Number(summary?.totalStudents || 0) > 0 ? supportStudents.length / Number(summary.totalStudents || 0) : 0;
+  const severity =
+    highRiskCount >= 2 || supportRatio >= 0.5 || mainReviewCategoryLevel === "Weak"
+      ? "urgent"
+      : supportStudents.length > 0 || mainReviewCategoryLevel === "Developing"
+        ? "firm"
+        : "watch";
+  const fallbackSecondaryReviewCategories =
+    classWideReviewCategories.length > 1
+      ? classWideReviewCategories.slice(1, 2)
+      : reviewCategories.filter((entry) => {
+          const categoryName = entry.split(" (")[0] || entry;
+          return categoryName && categoryName !== mainReviewCategoryName;
+        }).slice(0, 1);
+  const otherReviewDetails = fallbackSecondaryReviewCategories.map((entry) => {
     const categoryName = entry.split(" (")[0] || entry;
     const mapping = CATEGORY_TO_CHAPTERS[categoryName] || null;
+    const categoryPercent = Number(summary?.categoryPerformance?.[categoryName]?.percent);
     return {
       label: entry,
+      displayLabel: formatCategoryWithPercent(summary, categoryName) || entry,
+      categoryPercent: Number.isFinite(categoryPercent) ? categoryPercent : null,
       bestMatchingChapter: mapping?.primary?.length ? `Chapter ${mapping.primary[0]}` : null,
       supportChapters: Array.isArray(mapping?.secondary)
         ? mapping.secondary.slice(0, 2).map((chapterId) => `Chapter ${chapterId}`)
@@ -604,14 +797,19 @@ function buildClassNeedsAttention(summary, students) {
     };
   });
   return {
+    severity,
     supportStudentCount: supportStudents.length > 0 ? supportStudents.length : null,
     supportAverageExamText: Number.isFinite(supportAverage) ? formatPercent(supportAverage) : null,
     highRiskCount,
     borderlineCount,
-    mainReviewCategory: reviewCategories[0] || null,
+    mainReviewCategory: classWideReviewCategories[0] || null,
+    mainReviewCategoryDisplay: formatCategoryWithPercent(summary, mainReviewCategoryName) || classWideReviewCategories[0] || null,
+    mainReviewCategoryPercent: Number.isFinite(mainReviewCategoryPercent) ? mainReviewCategoryPercent : null,
+    mainReviewCategoryLevel,
     bestMatchingChapter,
     supportChapters,
     reviewCategories,
+    classWideReviewCategories,
     otherReviewDetails,
     urgentCategories,
     priorityChapters,
@@ -620,11 +818,12 @@ function buildClassNeedsAttention(summary, students) {
 
 function buildUrgentHighRiskSummary(summary) {
   const urgentCounts = rankCounts(summary?.highRiskCategoryCounts, 3);
-  const totalStudents = Number(summary?.totalStudents || 0);
+  const { signalStudents } = getClassSignalCounts(summary);
+  const totalStudents = signalStudents || Number(summary?.totalStudents || 0);
   const topCount = Number(urgentCounts[0]?.[1] || 0);
   const thresholdRatio = 0.5;
-  const thresholdMet = totalStudents > 0 && topCount / totalStudents >= thresholdRatio;
-  const qualifyingCounts = urgentCounts.filter(([, value]) => totalStudents > 0 && Number(value || 0) / totalStudents >= thresholdRatio);
+  const thresholdMet = totalStudents > 0 && topCount >= 2 && topCount / totalStudents >= thresholdRatio;
+  const qualifyingCounts = urgentCounts.filter(([, value]) => totalStudents > 0 && Number(value || 0) >= 2 && Number(value || 0) / totalStudents >= thresholdRatio);
 
   return {
     totalStudents,
@@ -668,10 +867,25 @@ function buildInterventionStudents(students) {
   function deriveInterventionSignal(student) {
     const completedAttempts = Number(student?.exams?.completedAttempts || 0);
     const averageScore = Number(student?.exams?.averageScore);
+    const latestScore = Number(student?.exams?.latestScore);
     const latestStatus = student?.latestExamAnalytics?.overallStatus || "";
 
     if (completedAttempts <= 0) {
       return null;
+    }
+
+    if (
+      Number.isFinite(averageScore) &&
+      averageScore >= 70 &&
+      averageScore < 80 &&
+      Number.isFinite(latestScore) &&
+      latestScore >= 80
+    ) {
+      return {
+        priority: "moderate",
+        label: "Improving, still needs support",
+        reason: `The latest exam rose to ${latestScore}%, but the overall exam average is still ${averageScore}%. This student is improving, but not stable yet.`,
+      };
     }
 
     if (Number.isFinite(averageScore) && averageScore < 70) {
@@ -703,7 +917,7 @@ function buildInterventionStudents(students) {
       return {
         priority: "moderate",
         label: "Borderline",
-        reason: `Average exam score is ${averageScore}%, which still needs support before it feels stable.`,
+        reason: `Average exam score is ${averageScore}%, so this student still needs support before that progress feels stable.`,
       };
     }
 
@@ -733,6 +947,7 @@ function buildInterventionStudents(students) {
         name: student?.user?.full_name || student?.user?.email || student?.user?.id,
         status: signal?.label || status,
         averageScore: student?.exams?.averageScore,
+        latestScore: student?.exams?.latestScore,
         completedAttempts: student?.exams?.completedAttempts ?? 0,
         weakestCategory: weakestCategory?.category_id || null,
         weakestChapter: weakestChapter?.chapter_id ? `Chapter ${weakestChapter.chapter_id}` : null,
@@ -756,25 +971,41 @@ function buildWeaknessMap(summary) {
   const categoryCounts = summary?.categoryWeaknessCounts || {};
   const highRiskCounts = summary?.highRiskCategoryCounts || {};
   const chapterCounts = summary?.chapterPriorityCounts || {};
+  const signalStudents = getClassSignalStudentCount(summary);
+  const minimumPatternCount = getMinimumPatternCount(signalStudents);
 
   const categoryNames = Array.from(
     new Set([...Object.keys(categoryCounts), ...Object.keys(highRiskCounts)])
-  ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-
-  const chapterNames = Object.keys(chapterCounts).sort((a, b) =>
-    a.localeCompare(b, undefined, { sensitivity: "base" })
-  );
-
-  return {
-    categories: categoryNames.map((name) => ({
+  )
+    .map((name) => ({
       name,
       weakCount: Number(categoryCounts[name] || 0),
       highRiskCount: Number(highRiskCounts[name] || 0),
-    })),
-    chapters: chapterNames.map((name) => ({
+    }))
+    .filter((item) => item.weakCount >= minimumPatternCount || item.highRiskCount >= minimumPatternCount)
+    .sort((a, b) => {
+      const severityA = a.highRiskCount >= minimumPatternCount ? 0 : 1;
+      const severityB = b.highRiskCount >= minimumPatternCount ? 0 : 1;
+      if (severityA !== severityB) return severityA - severityB;
+      if (b.highRiskCount !== a.highRiskCount) return b.highRiskCount - a.highRiskCount;
+      if (b.weakCount !== a.weakCount) return b.weakCount - a.weakCount;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    });
+
+  const chapterNames = Object.keys(chapterCounts)
+    .map((name) => ({
       name,
       weakCount: Number(chapterCounts[name] || 0),
-    })),
+    }))
+    .filter((item) => item.weakCount >= minimumPatternCount)
+    .sort((a, b) => {
+      if (b.weakCount !== a.weakCount) return b.weakCount - a.weakCount;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    });
+
+  return {
+    categories: categoryNames,
+    chapters: chapterNames,
   };
 }
 
@@ -994,7 +1225,10 @@ export default function OwnerReportsClient() {
   const [error, setError] = useState("");
   const [report, setReport] = useState(null);
   const [strengthsOpen, setStrengthsOpen] = useState(false);
+  const [classPatternsOpen, setClassPatternsOpen] = useState(false);
+  const [classOverallAreasOpen, setClassOverallAreasOpen] = useState(false);
   const [studentActivityOpen, setStudentActivityOpen] = useState(false);
+  const [classActivityOpen, setClassActivityOpen] = useState(false);
   const [schoolClassesOpen, setSchoolClassesOpen] = useState(false);
   const [interventionOpenById, setInterventionOpenById] = useState({});
   const [isNarrow, setIsNarrow] = useState(false);
@@ -1074,13 +1308,16 @@ export default function OwnerReportsClient() {
     report?.user?.appUser?.full_name || report?.user?.appUser?.email || report?.user?.id || "";
   const classStatus = deriveClassStatus(classSummary);
   const topWeakCategoriesRaw = rankCounts(classSummary?.categoryWeaknessCounts, 6);
-  const topHighRiskCategories = rankCounts(classSummary?.highRiskCategoryCounts, 3);
+  const topHighRiskCategories = rankCounts(classSummary?.highRiskCategoryCounts, 3).filter(([, value]) =>
+    isClassWideCategory(classSummary, value, 0.5)
+  );
   const topHighRiskCategoryNames = new Set(topHighRiskCategories.map(([key]) => key));
   const topWeakCategories = topWeakCategoriesRaw
+    .filter(([, value]) => isClassWideCategory(classSummary, value))
     .filter(([key]) => !topHighRiskCategoryNames.has(key))
     .slice(0, 3);
-  const topWeakChapters = rankCounts(classSummary?.chapterPriorityCounts, 3);
   const classStrengths = buildClassStrengths(classSummary, students);
+  const classWeaknesses = buildClassWeaknesses(classSummary);
   const quickStrongCategories = [
     classStrengths.topCategory,
     ...(classStrengths.secondaryCategories || []),
@@ -1089,12 +1326,25 @@ export default function OwnerReportsClient() {
     classStrengths.topChapter,
     ...(classStrengths.secondaryChapters || []),
   ].filter(Boolean).slice(0, 3);
+  const quickWeakCategories = classWeaknesses.weakestCategories || [];
+  const quickWeakChapters = classWeaknesses.weakestChapters || [];
   const classNeedsAttention = buildClassNeedsAttention(classSummary, students);
   const urgentHighRiskSummary = buildUrgentHighRiskSummary(classSummary);
   const interventionStudents = buildInterventionStudents(students);
+  const classCoverage = buildClassCoverage(students);
   const weaknessMap = buildWeaknessMap(classSummary);
+  const topWeakChapters = (weaknessMap.chapters || []).slice(0, 3).map((item) => [item.name, item.weakCount]);
   const nextActions = buildClassNextActions(classSummary, students);
   const classStatusTone = getClassStatusTone(classStatus);
+  const classAttentionTone = getClassAttentionTone(classNeedsAttention.severity);
+  const classAttentionTitle =
+    classNeedsAttention.severity === "urgent"
+      ? "Priority now"
+      : classNeedsAttention.severity === "firm"
+        ? "Needs attention now"
+        : "Watch now";
+  const classSupportLabel =
+    classNeedsAttention.severity === "watch" ? "Students to watch" : "Students needing support";
   const classStatusExplanation = describeClassStatus(classStatus, classSummary);
   const schoolStatus = deriveSchoolStatus(schoolSummary);
   const schoolNextActions = buildSchoolNextActions(schoolSummary, schoolClasses);
@@ -1375,9 +1625,22 @@ export default function OwnerReportsClient() {
                 <div style={{ fontWeight: 800, color: classStatusTone.muted }}>Class readiness</div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: classStatusTone.accent }}>{classStatus}</div>
                 <div style={{ ...subText, color: classStatusTone.muted }}>
-                  {classSummary.activeStudents ?? 0} of {classSummary.totalStudents ?? 0} students are showing activity in this class right now.
+                  {classSummary.activeStudents ?? 0} of {classSummary.totalStudents ?? 0} students are active in this class right now.
                 </div>
+                <div style={{ ...subText, color: classStatusTone.muted }}>
+                  Students with completed exams: {classCoverage.examSignalStudents} of {classCoverage.totalStudents} | Students practicing: {classCoverage.practiceStudents} of {classCoverage.totalStudents} | Students in remediation: {classCoverage.remediationStudents} of {classCoverage.totalStudents}
+                </div>
+                {!classCoverage.examCoverageReady ? (
+                  <div style={{ ...subText, color: classStatusTone.muted }}>
+                    This class still needs more completed exams before the report can show a stable class-wide picture.
+                  </div>
+                ) : null}
                 <div style={{ ...subText, color: classStatusTone.muted }}>{classStatusExplanation}</div>
+                {classCoverage.concentratedPractice ? (
+                  <div style={{ ...subText, color: classStatusTone.muted }}>
+                    Most completed practice right now is coming from a small part of the class, so practice engagement is still not broad across the class yet.
+                  </div>
+                ) : null}
                 <div style={{ ...statGrid, marginTop: 4 }}>
                   <div style={statCard}>
                     <span style={statLabel}>Average exam</span>
@@ -1432,31 +1695,31 @@ export default function OwnerReportsClient() {
                 <div
                   style={{
                     ...listCard,
-                    borderColor: "#eadba6",
-                    background: "linear-gradient(180deg, #fffdf5 0%, #f8f3df 100%)",
+                    borderColor: classAttentionTone.border,
+                    background: classAttentionTone.bg,
                   }}
                 >
                   <div
                     style={{
                       fontWeight: 800,
-                      color: "#6f6340",
+                      color: classAttentionTone.title,
                     }}
                   >
-                    Needs attention now
+                    {classAttentionTitle}
                   </div>
                   <div style={{ display: "grid", gap: 2 }}>
                     <div
                       style={{
                         fontSize: 18,
                         fontWeight: 800,
-                        color: "#7a5a00",
+                        color: classAttentionTone.accent,
                         display: "flex",
                         gap: 8,
                         flexWrap: "wrap",
                         alignItems: "center",
                       }}
                     >
-                      <span>Students needing support: {classNeedsAttention.supportStudentCount ?? "Still forming"}</span>
+                      <span>{classSupportLabel}: {classNeedsAttention.supportStudentCount ?? "Still forming"}</span>
                       {classNeedsAttention.supportStudentCount != null ? (
                         <>
                           <span style={chip}>HR {classNeedsAttention.highRiskCount}</span>
@@ -1468,23 +1731,23 @@ export default function OwnerReportsClient() {
                       style={{
                         fontSize: 18,
                         fontWeight: 800,
-                        color: "#7a5a00",
+                        color: classAttentionTone.accent,
                       }}
                     >
                       Average exam: {classNeedsAttention.supportAverageExamText || "Still forming"}
                     </div>
                   </div>
                   <div style={subText}>
-                    <span style={{ fontSize: 17, fontWeight: 800, color: "#7a5a00" }}>
-                      Main review category: {classNeedsAttention.mainReviewCategory || "No clear review category yet"}
+                    <span style={{ fontSize: 17, fontWeight: 800, color: classAttentionTone.accent }}>
+                      Main review category: {classNeedsAttention.mainReviewCategoryDisplay || "No clear class-wide review category yet"}
                     </span>
                   </div>
                   <div style={subText}>
-                    <span style={{ fontSize: 17, fontWeight: 800, color: "#7a5a00" }}>
+                    <span style={{ fontSize: 17, fontWeight: 800, color: classAttentionTone.accent }}>
                       Main review chapter: {classNeedsAttention.bestMatchingChapter || "Not clear yet"}
                     </span>
                     {classNeedsAttention.supportChapters.length ? (
-                      <span style={{ fontSize: 17, fontWeight: 800, color: "#7a5a00" }}>
+                      <span style={{ fontSize: 17, fontWeight: 800, color: classAttentionTone.accent }}>
                         {` | Support chapters: ${classNeedsAttention.supportChapters.join(", ")}`}
                       </span>
                     ) : null}
@@ -1493,7 +1756,7 @@ export default function OwnerReportsClient() {
                     <div style={{ display: "grid", gap: 6 }}>
                       {classNeedsAttention.otherReviewDetails.map((item) => (
                         <div key={item.label} style={{ display: "grid", gap: 2 }}>
-                          <div style={subText}>Secondary review category: {item.label}</div>
+                          <div style={subText}>Secondary review category: {item.displayLabel || item.label}</div>
                           <div style={subText}>
                             Main review chapter: {item.bestMatchingChapter || "Not clear yet"}
                             {item.supportChapters.length ? ` | Support chapters: ${item.supportChapters.join(", ")}` : ""}
@@ -1502,7 +1765,11 @@ export default function OwnerReportsClient() {
                       ))}
                     </div>
                   ) : (
-                    <div style={subText}>No clear secondary review category yet</div>
+                    <div style={subText}>
+                      {classNeedsAttention.mainReviewCategoryDisplay
+                        ? "No clear secondary review category yet"
+                        : "Current weak areas look more student-specific than class-wide right now"}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1517,13 +1784,12 @@ export default function OwnerReportsClient() {
                 }}
               >
                 <div style={{ fontWeight: 800, color: urgentHighRiskSummary.thresholdMet ? "#6f4747" : "#607282" }}>
-                  Urgent high-risk categories
+                  {urgentHighRiskSummary.thresholdMet ? "Priority categories right now" : "High-risk category check"}
                 </div>
                 {urgentHighRiskSummary.thresholdMet ? (
                   <>
                     <div style={{ fontSize: 17, fontWeight: 800, color: "var(--brand-red)" }}>
-                      Important to review the following categories because they affect at least half of the class and
-                      can have a strong impact on overall exam results.
+                      These categories are showing up across at least half of the active exam signals in this class, so they are the best place to focus next.
                     </div>
                     <div style={{ fontSize: 17, fontWeight: 800, color: "var(--brand-red)" }}>
                       {urgentHighRiskSummary.items.length
@@ -1546,7 +1812,7 @@ export default function OwnerReportsClient() {
                   </>
                 ) : (
                   <div style={subText}>
-                    This class does not currently have a significant concentration of urgent high-risk category flags.
+                    This class does not currently show one high-risk category concentrated across a large share of students.
                   </div>
                 )}
               </div>
@@ -1560,7 +1826,7 @@ export default function OwnerReportsClient() {
               >
                 <div style={{ fontWeight: 800, color: "#38556a", fontSize: 16 }}>Next action</div>
                 <div style={{ ...subText, color: "#607282" }}>
-                  Start here if you want the clearest short plan for what to reinforce next.
+                  Use this section for the clearest short plan on what to reinforce next.
                 </div>
                 <div style={analysisGrid}>
                   <div
@@ -1569,11 +1835,11 @@ export default function OwnerReportsClient() {
                       borderColor: "#cfdde6",
                       background: "white",
                     }}
-                  >
-                    <div style={{ fontWeight: 800, color: "#38556a", fontSize: 16 }}>Class action</div>
-                    <div style={{ ...subText, color: "#607282" }}>
-                      Start here if you want the clearest short plan for what to reinforce with the whole class next.
-                    </div>
+                    >
+                      <div style={{ fontWeight: 800, color: "#38556a", fontSize: 16 }}>Class action</div>
+                      <div style={{ ...subText, color: "#607282" }}>
+                      Use this plan for the next whole-class practice or review block.
+                      </div>
                     <div style={{ display: "grid", gap: 8 }}>
                       {nextActions.classActions.map((item, index) => (
                         <div
@@ -1654,7 +1920,7 @@ export default function OwnerReportsClient() {
                             </summary>
                             <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
                               <div style={subText}>
-                                Avg exam: {formatPercent(student.averageScore)} | Weakest category:{" "}
+                                Latest exam: {formatPercent(student.latestScore)} | Avg exam: {formatPercent(student.averageScore)} | Weakest category:{" "}
                                 {student.weakestCategory || "No clear category yet"}
                               </div>
                               <div style={subText}>
@@ -1686,22 +1952,37 @@ export default function OwnerReportsClient() {
                 </div>
               </div>
 
-              <details style={listCard}>
-                <summary style={detailsSummary}>
+              <details style={listCard} open={classPatternsOpen}>
+                <summary
+                  style={detailsSummary}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setClassPatternsOpen((prev) => !prev);
+                  }}
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                     <div style={{ display: "grid", gap: 4 }}>
-                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>Class patterns</div>
-                      <div style={subText}>Open to see the categories and chapters that repeat most across the class (student count).</div>
+                      <div style={{ fontWeight: 800, color: "var(--heading)" }}>Class averages and patterns</div>
+                      <div style={subText}>
+                        Open to compare current class averages with the categories and chapters that are repeating
+                        across students.
+                      </div>
                     </div>
-                    <div style={{ ...subText, fontSize: 12 }}>Click to open</div>
+                    <OpenHint isOpen={classPatternsOpen} />
                   </div>
                 </summary>
 
                 <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-                  <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>Quick strengths read (top 3 in each section)</div>
+                  <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>
+                    Current class averages
+                  </div>
+                  <div style={{ ...subText, fontSize: 12.5 }}>
+                    Based on {classCoverage.examSignalStudents} student
+                    {classCoverage.examSignalStudents === 1 ? "" : "s"} with completed exams.
+                  </div>
                   <div style={analysisGrid}>
                     <div>
-                      <div style={{ fontWeight: 700, color: "#1f6f3d", fontSize: 13 }}>Strong categories</div>
+                      <div style={{ fontWeight: 700, color: "#1f6f3d", fontSize: 13 }}>Strongest categories</div>
                       <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
                         {quickStrongCategories.length ? (
                           quickStrongCategories.map((item) => (
@@ -1715,7 +1996,7 @@ export default function OwnerReportsClient() {
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, color: "#1f6f3d", fontSize: 13 }}>Top scoring chapters</div>
+                      <div style={{ fontWeight: 700, color: "#1f6f3d", fontSize: 13 }}>Strongest chapters</div>
                       <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
                         {quickStrongChapters.length ? (
                           quickStrongChapters.map((item) => (
@@ -1732,7 +2013,45 @@ export default function OwnerReportsClient() {
 
                   <div style={{ borderTop: "1px solid #d6e1e8", marginTop: 2, paddingTop: 10 }} />
 
-                  <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>Quick category read (top 3 in each section)</div>
+                  <div style={analysisGrid}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#7a5a00", fontSize: 13 }}>Lowest category averages</div>
+                      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                        {quickWeakCategories.length ? (
+                          quickWeakCategories.map((item) => (
+                            <div key={item} style={subText}>
+                              {item}
+                            </div>
+                          ))
+                        ) : (
+                          <div style={subText}>No class categories are currently below the review threshold.</div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#7a5a00", fontSize: 13 }}>Lowest chapter averages</div>
+                      <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
+                        {quickWeakChapters.length ? (
+                          quickWeakChapters.map((item) => (
+                            <div key={item} style={subText}>
+                              {item}
+                            </div>
+                          ))
+                        ) : (
+                          <div style={subText}>No class chapters are currently below the review threshold.</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: "1px solid #d6e1e8", marginTop: 2, paddingTop: 10 }} />
+
+                  <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>
+                    Repeated class-wide patterns
+                  </div>
+                  <div style={{ ...subText, fontSize: 12.5 }}>
+                    These are the categories and study chapters repeating across students, not just low averages.
+                  </div>
                   <div style={analysisGrid}>
                     <div>
                       <div style={{ fontWeight: 700, color: "#7a5a00", fontSize: 13 }}>Watch</div>
@@ -1740,7 +2059,7 @@ export default function OwnerReportsClient() {
                         {topWeakCategories.length ? (
                           topWeakCategories.map(([key, value]) => (
                             <div key={key} style={subText}>
-                              {key} ({value})
+                              {key} - {value} student{value === 1 ? "" : "s"}
                             </div>
                           ))
                         ) : (
@@ -1754,7 +2073,7 @@ export default function OwnerReportsClient() {
                         {topHighRiskCategories.length ? (
                           topHighRiskCategories.map(([key, value]) => (
                             <div key={key} style={subText}>
-                              {key} ({value})
+                              {key} - {value} student{value === 1 ? "" : "s"}
                             </div>
                           ))
                         ) : (
@@ -1763,12 +2082,12 @@ export default function OwnerReportsClient() {
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Most assigned study chapters by category</div>
+                      <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Most repeated study chapters</div>
                       <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
                         {topWeakChapters.length ? (
                           topWeakChapters.map(([key, value]) => (
                             <div key={key} style={subText}>
-                              {key} ({value})
+                              {key} - {value} student{value === 1 ? "" : "s"}
                             </div>
                           ))
                         ) : (
@@ -1779,56 +2098,16 @@ export default function OwnerReportsClient() {
                   </div>
                 </div>
 
-                <details style={{ borderTop: "1px solid #d6e1e8", marginTop: 12, paddingTop: 12 }}>
-                  <summary style={detailsSummary}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                      <div style={{ display: "grid", gap: 4 }}>
-                        <div style={{ fontWeight: 700, color: "#607282", fontSize: 13 }}>Overall class areas that need support</div>
-                        <div style={subText}>Open to see the detailed class-wide support counts.</div>
-                      </div>
-                      <div style={{ ...subText, fontSize: 12 }}>Click to open</div>
-                    </div>
-                  </summary>
-                  <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-                    <div style={analysisGrid}>
-                      <div>
-                        <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Category concentration</div>
-                        <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-                          {weaknessMap.categories.length ? (
-                            weaknessMap.categories.map((item) => (
-                              <div key={item.name} style={subText}>
-                                {item.name}:{" "}
-                                {item.highRiskCount && HIGH_RISK_CATEGORIES.has(item.name)
-                                  ? `high risk (${item.highRiskCount})`
-                                  : `watch (${item.weakCount})${item.highRiskCount ? ` | high risk (${item.highRiskCount})` : ""}`}
-                              </div>
-                            ))
-                          ) : (
-                            <div style={subText}>No repeated class-wide category weakness yet.</div>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 700, color: "var(--heading)", fontSize: 13 }}>Chapter concentration</div>
-                        <div style={{ display: "grid", gap: 6, marginTop: 6 }}>
-                          {weaknessMap.chapters.length ? (
-                            weaknessMap.chapters.map((item) => (
-                              <div key={item.name} style={subText}>
-                                {item.name}: flagged ({item.weakCount})
-                              </div>
-                            ))
-                          ) : (
-                            <div style={subText}>No repeated chapter priority yet.</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </details>
               </details>
 
-              <details style={listCard}>
-                <summary style={detailsSummary}>
+              <details style={listCard} open={classActivityOpen}>
+                <summary
+                  style={detailsSummary}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setClassActivityOpen((prev) => !prev);
+                  }}
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                     <div style={{ display: "grid", gap: 4 }}>
                       <div style={{ fontWeight: 800, color: "var(--heading)" }}>Activity details</div>
@@ -1836,7 +2115,7 @@ export default function OwnerReportsClient() {
                         Open to see exam activity, question exposure, practice focus, and remediation focus for this class.
                       </div>
                     </div>
-                    <div style={{ ...subText, fontSize: 12 }}>Click to open</div>
+                    <OpenHint isOpen={classActivityOpen} />
                   </div>
                 </summary>
                 <div

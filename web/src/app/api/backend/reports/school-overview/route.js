@@ -5,11 +5,23 @@ import {
   listSchoolRecords,
   loadClassGroupRoster,
   loadExamAttemptRecords,
-  loadPracticeSessionRecords,
-  loadQuestionHistoryRecords,
-  loadRemediationSessionRecords,
+  loadPracticeSessionSummaryRecords,
+  loadQuestionHistorySummaryRecords,
+  loadRemediationSessionSummaryRecords,
   loadSchoolContextForUser,
 } from "@/app/lib/backend/db/client";
+
+async function loadReportDatasetSafely(loadFn, fallbackValue = []) {
+  try {
+    return await loadFn();
+  } catch (error) {
+    const message = String(error instanceof Error ? error.message : error || "").toLowerCase();
+    if (message.includes("statement timeout")) {
+      return fallbackValue;
+    }
+    throw error;
+  }
+}
 
 function isCompletedExamAttempt(attempt) {
   if (!Number.isFinite(attempt?.score)) return false;
@@ -42,12 +54,15 @@ function summarizeExamAttempts(attempts) {
     ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
     : null;
   const bestScore = scores.length ? Math.max(...scores) : null;
+  const latest = completed[0] || null;
 
   return {
     totalAttempts: attempts.length,
     completedAttempts: completed.length,
     averageScore,
     bestScore,
+    latestScore: Number.isFinite(Number(latest?.score)) ? Number(latest.score) : null,
+    latestCompletedAt: latest?.completed_at || latest?.updated_at || latest?.created_at || null,
   };
 }
 
@@ -325,9 +340,9 @@ export async function GET(request) {
             const [examAttempts, practiceSessions, remediationSessions, questionHistory] = await Promise.all([
               // School-level reporting should aggregate all student activity, regardless of UI language.
               loadExamAttemptRecords(member.user_id),
-              loadPracticeSessionRecords(member.user_id),
-              loadRemediationSessionRecords(member.user_id),
-              loadQuestionHistoryRecords(member.user_id),
+              loadReportDatasetSafely(() => loadPracticeSessionSummaryRecords(member.user_id)),
+              loadReportDatasetSafely(() => loadRemediationSessionSummaryRecords(member.user_id)),
+              loadReportDatasetSafely(() => loadQuestionHistorySummaryRecords(member.user_id)),
             ]);
 
             return buildStudentSummary({

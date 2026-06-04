@@ -1463,6 +1463,29 @@ export async function loadPracticeSessionRecords(userId, lang = null) {
   return Array.isArray(data) ? data : [];
 }
 
+export async function loadPracticeSessionSummaryRecords(userId, lang = null) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  let query = supabase
+    .from("practice_sessions")
+    .select("id, user_id, lang, mode, status, payload, created_at, updated_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (lang) query = query.eq("lang", lang);
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`Supabase list practice sessions failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 export async function createExamAttemptRecord(record) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -1726,6 +1749,29 @@ export async function loadRemediationSessionRecords(userId, lang = null) {
   return Array.isArray(data) ? data : [];
 }
 
+export async function loadRemediationSessionSummaryRecords(userId, lang = null) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  let query = supabase
+    .from("remediation_sessions")
+    .select("id, user_id, lang, status, payload, created_at, updated_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (lang) query = query.eq("lang", lang);
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`Supabase list remediation sessions failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 export async function deleteRemediationSessionsForUser(userId) {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
@@ -1753,6 +1799,33 @@ export async function loadQuestionHistoryRecords(userId, options = {}) {
   let query = supabase
     .from("question_history")
     .select("id, user_id, question_id, source_type, source_id, lang, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (options.lang) query = query.eq("lang", options.lang);
+  if (options.sourceType) query = query.eq("source_type", options.sourceType);
+  if (Number.isFinite(options.limit) && options.limit > 0) {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`Supabase list question history failed: ${error.message}`);
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function loadQuestionHistorySummaryRecords(userId, options = {}) {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase server config is not configured.");
+  }
+
+  let query = supabase
+    .from("question_history")
+    .select("question_id, source_type")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
