@@ -8,9 +8,9 @@ import {
   listClassGroupStaffRecords,
   listClassGroupRecords,
   loadExamAttemptRecords,
-  loadPracticeSessionRecords,
-  loadQuestionHistoryRecords,
-  loadRemediationSessionRecords,
+  loadPracticeSessionSummaryRecords,
+  loadQuestionHistorySummaryRecords,
+  loadRemediationSessionSummaryRecords,
   listSchoolRecords,
   listSchoolStaffRecords,
   loadAppUser,
@@ -19,6 +19,18 @@ import {
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+async function loadOverviewDatasetSafely(loadFn, fallbackValue = []) {
+  try {
+    return await loadFn();
+  } catch (error) {
+    const message = String(error instanceof Error ? error.message : error || "").toLowerCase();
+    if (message.includes("statement timeout")) {
+      return fallbackValue;
+    }
+    throw error;
+  }
+}
 
 function buildQuestionBankIndex() {
   const bank = loadQuestionBank();
@@ -245,9 +257,9 @@ function summarizeLiveExamAttempt(attempt, bankById) {
 async function enrichRosterMember(member, bankById) {
   const [examAttempts, practiceSessions, remediationSessions, questionHistory] = await Promise.all([
     loadExamAttemptRecords(member.user_id),
-    loadPracticeSessionRecords(member.user_id),
-    loadRemediationSessionRecords(member.user_id),
-    loadQuestionHistoryRecords(member.user_id),
+    loadOverviewDatasetSafely(() => loadPracticeSessionSummaryRecords(member.user_id)),
+    loadOverviewDatasetSafely(() => loadRemediationSessionSummaryRecords(member.user_id)),
+    loadOverviewDatasetSafely(() => loadQuestionHistorySummaryRecords(member.user_id)),
   ]);
 
   const examSummary = summarizeExamAttempts(examAttempts);
