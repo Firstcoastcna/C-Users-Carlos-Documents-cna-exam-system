@@ -451,6 +451,7 @@ export default function ReportsClient() {
   const [message, setMessage] = useState("");
   const [report, setReport] = useState(null);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [examHistoryOpen, setExamHistoryOpen] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
   const [activeView, setActiveView] = useState("exam");
 
@@ -705,10 +706,15 @@ export default function ReportsClient() {
   const nextActions = buildStudentNextActions(summary);
   const progress = buildStudentProgress(summary);
   const examHistory = Array.isArray(summary?.examHistory) ? summary.examHistory : [];
+  const shouldCollapseExamHistory = examHistory.length > 4;
   const progressBreakdown = buildExamHistoryBreakdownSummary(examHistory, Object.keys(CATEGORY_TO_CHAPTERS));
   const progressAverageTone = getBandTone(progress.examAverage);
   const progressBestTone = getBandTone(progress.bestScore);
   const progressWorstTone = getBandTone(progress.worstScore);
+
+  useEffect(() => {
+    setExamHistoryOpen(!shouldCollapseExamHistory);
+  }, [shouldCollapseExamHistory]);
   const latestExamResults = summary?.latestExamResults || null;
   const examQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.exam || 0);
   const practiceQuestionsSeen = Number(summary?.questionHistory?.bySourceType?.practice || 0);
@@ -1646,6 +1652,28 @@ export default function ReportsClient() {
                 </div>
                 <div style={{ display: "grid", gap: 10 }}>
                   {examHistory.length ? (
+                    <details
+                      open={examHistoryOpen}
+                      onToggle={(event) => setExamHistoryOpen(event.currentTarget.open)}
+                      style={{ ...compactCard, padding: 12, gap: 10 }}
+                    >
+                      <summary style={detailsSummary}>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <div style={{ fontWeight: 800, color: "var(--heading)" }}>
+                              {t("Completed exam history", "Historial de examenes completados", "Historique des examens termines", "Istwa egzamen fini")}
+                            </div>
+                            <OpenHint isOpen={examHistoryOpen} lang={lang} />
+                          </div>
+                          <div style={subText}>
+                            {t("Showing", "Mostrando", "Affichage", "Ap montre")} {examHistory.length}{" "}
+                            {examHistory.length === 1
+                              ? t("completed exam", "examen completado", "examen termine", "egzamen fini")
+                              : t("completed exams", "examenes completados", "examens termines", "egzamen fini")}
+                          </div>
+                        </div>
+                      </summary>
+                      <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
                     <div
                       style={{
                         ...subText,
@@ -1664,9 +1692,7 @@ export default function ReportsClient() {
                         "Chwazi yon kat egzamen pou louvri dekonpozisyon konplè li pa chapit ak kategori."
                       )}
                     </div>
-                  ) : null}
-                  {examHistory.length ? (
-                    examHistory.map((attempt, index) => (
+                    {examHistory.map((attempt, index) => (
                       <details
                         key={`student-history-${attempt?.attemptId || index}`}
                         style={{ ...compactCard, padding: 12 }}
@@ -1784,7 +1810,9 @@ export default function ReportsClient() {
                           ) : null}
                         </div>
                       </details>
-                    ))
+                    ))}
+                      </div>
+                    </details>
                   ) : (
                     <div style={subText}>{noDataLabel()}</div>
                   )}

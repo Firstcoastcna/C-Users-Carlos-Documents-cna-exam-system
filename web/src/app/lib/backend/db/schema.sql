@@ -36,9 +36,12 @@ create table if not exists user_preferences (
   skip_exam_welcome boolean not null default false,
   has_seen_foundation boolean not null default false,
   has_seen_category_intro boolean not null default false,
+  current_exam_set_start integer not null default 1,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists user_preferences add column if not exists current_exam_set_start integer not null default 1;
 
 create table if not exists schools (
   id text primary key,

@@ -273,9 +273,7 @@ export async function loadUserPreferences(userId) {
 
   const { data, error } = await supabase
     .from("user_preferences")
-    .select(
-      "user_id, preferred_language, access_granted, skip_practice_welcome, skip_exam_welcome, has_seen_foundation, has_seen_category_intro, created_at, updated_at"
-    )
+    .select("*")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -300,22 +298,38 @@ export async function upsertUserPreferences(record) {
     skip_exam_welcome: !!record.skipExamWelcome,
     has_seen_foundation: !!record.hasSeenFoundation,
     has_seen_category_intro: !!record.hasSeenCategoryIntro,
+    current_exam_set_start: Number.isFinite(Number(record.currentExamSetStart))
+      ? Math.max(1, Number(record.currentExamSetStart))
+      : undefined,
     updated_at: new Date().toISOString(),
   };
-
-  const { data, error } = await supabase
-    .from("user_preferences")
-    .upsert(payload, { onConflict: "user_id" })
-    .select(
-      "user_id, preferred_language, access_granted, skip_practice_welcome, skip_exam_welcome, has_seen_foundation, has_seen_category_intro, created_at, updated_at"
-    )
-    .single();
-
-  if (error) {
-    throw new Error(`Supabase upsert user preferences failed: ${error.message}`);
+  if (payload.current_exam_set_start === undefined) {
+    delete payload.current_exam_set_start;
   }
 
-  return data;
+  async function runUpsert(nextPayload) {
+    return supabase
+      .from("user_preferences")
+      .upsert(nextPayload, { onConflict: "user_id" })
+      .select("*")
+      .single();
+  }
+
+  let response = await runUpsert(payload);
+  if (
+    response.error &&
+    String(response.error.message || "").toLowerCase().includes("current_exam_set_start")
+  ) {
+    const fallbackPayload = { ...payload };
+    delete fallbackPayload.current_exam_set_start;
+    response = await runUpsert(fallbackPayload);
+  }
+
+  if (response.error) {
+    throw new Error(`Supabase upsert user preferences failed: ${response.error.message}`);
+  }
+
+  return response.data;
 }
 
 export async function upsertSchool(record) {

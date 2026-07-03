@@ -18,6 +18,9 @@ function normalizePreferences(record, userId, appUser = null) {
     skipExamWelcome: !!record?.skip_exam_welcome,
     hasSeenFoundation: !!record?.has_seen_foundation,
     hasSeenCategoryIntro: !!record?.has_seen_category_intro,
+    currentExamSetStart: Number.isFinite(Number(record?.current_exam_set_start))
+      ? Math.max(1, Number(record.current_exam_set_start))
+      : 1,
     createdAt: record?.created_at || null,
     updatedAt: record?.updated_at || null,
   };
@@ -82,6 +85,12 @@ export async function PUT(request) {
         Object.prototype.hasOwnProperty.call(body, "hasSeenCategoryIntro")
           ? !!body.hasSeenCategoryIntro
           : !!existing?.has_seen_category_intro,
+      currentExamSetStart:
+        Object.prototype.hasOwnProperty.call(body, "currentExamSetStart")
+          ? Math.max(1, Number(body.currentExamSetStart) || 1)
+          : Number.isFinite(Number(existing?.current_exam_set_start))
+            ? Math.max(1, Number(existing.current_exam_set_start))
+            : 1,
     });
 
     return NextResponse.json({

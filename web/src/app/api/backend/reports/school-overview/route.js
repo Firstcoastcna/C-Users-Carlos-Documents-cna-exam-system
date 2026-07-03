@@ -36,7 +36,7 @@ function isCompletedExamAttempt(attempt) {
 }
 
 function getCompletedAttemptSortTime(attempt) {
-  const timestamp = attempt?.completed_at || attempt?.updated_at || attempt?.created_at || null;
+  const timestamp = attempt?.completed_at || attempt?.created_at || attempt?.updated_at || null;
   const time = timestamp ? new Date(timestamp).getTime() : 0;
   return Number.isFinite(time) ? time : 0;
 }
@@ -62,7 +62,7 @@ function summarizeExamAttempts(attempts) {
     averageScore,
     bestScore,
     latestScore: Number.isFinite(Number(latest?.score)) ? Number(latest.score) : null,
-    latestCompletedAt: latest?.completed_at || latest?.updated_at || latest?.created_at || null,
+    latestCompletedAt: latest?.completed_at || latest?.created_at || latest?.updated_at || null,
   };
 }
 

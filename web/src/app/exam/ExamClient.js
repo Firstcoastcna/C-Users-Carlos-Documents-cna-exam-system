@@ -656,7 +656,7 @@ if (picked.length < targetTotal) {
   }
 
 const [testId, setTestId] = useState(() => {
-  if (Number.isFinite(queryTestId) && queryTestId >= 1 && queryTestId <= 4) return queryTestId;
+  if (Number.isFinite(queryTestId) && queryTestId >= 1) return queryTestId;
   return 1;
 });
 
@@ -673,6 +673,22 @@ const [testId, setTestId] = useState(() => {
     [lang, useServer]
   );
 
+  useEffect(() => {
+    if (Number.isFinite(queryTestId) && queryTestId >= 1) {
+      setTestId(queryTestId);
+    }
+  }, [queryTestId]);
+
+  function derivePersistedCompletedAt(saved) {
+    if (!saved) return null;
+    if (saved.completedAt || saved.completed_at) return saved.completedAt || saved.completed_at;
+    const savedMode = String(saved.mode || "").trim().toLowerCase();
+    if (savedMode === "finished" || savedMode === "time_expired" || savedMode === "analytics" || savedMode === "rationales") {
+      return saved.created_at || null;
+    }
+    return null;
+  }
+
   function safeReadState() {
     if (useServer) return null;
     try {
@@ -685,17 +701,24 @@ const [testId, setTestId] = useState(() => {
   }
 
   function safeWriteState(next) {
+    const persistedCompletedAt = next?.completedAt || next?.completed_at || completedAt || null;
+    const payload = {
+      ...next,
+      test_id: testId,
+      lang,
+      completedAt: persistedCompletedAt,
+      completed_at: persistedCompletedAt,
+    };
+
     if (useServer) {
       const isCompletedMode =
-        next?.mode === "finished" ||
-        next?.mode === "time_expired" ||
-        next?.mode === "rationales" ||
-        next?.mode === "analytics";
+        payload?.mode === "finished" ||
+        payload?.mode === "time_expired" ||
+        payload?.mode === "rationales" ||
+        payload?.mode === "analytics";
       void saveExamAttemptRecord(
         {
-          ...next,
-          test_id: testId,
-          lang,
+          ...payload,
           score: isCompletedMode ? computeCurrentPercent() : null,
           resultsPayload: isCompletedMode ? resultsPayload : null,
         },
@@ -704,7 +727,7 @@ const [testId, setTestId] = useState(() => {
       return;
     }
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch {
       // ignore
     }
@@ -757,6 +780,7 @@ function pauseAndPersist() {
   // State
   // ----------------------------
   const [attemptId, setAttemptId] = useState(null);
+  const [completedAt, setCompletedAt] = useState(null);
   const [index, setIndex] = useState(0);
   const [deliveredQuestionIds, setDeliveredQuestionIds] = useState([]);
   const [answersByQid, setAnswersByQid] = useState({});
@@ -902,6 +926,8 @@ function pauseAndPersist() {
         }
 
         if (saved.attempt_id) setAttemptId(saved.attempt_id);
+        const restoredCompletedAt = derivePersistedCompletedAt(saved);
+        if (restoredCompletedAt) setCompletedAt(restoredCompletedAt);
         if (Number(saved.test_id)) setTestId(Number(saved.test_id));
         setDeliveredQuestionIds(saved.question_ids || []);
         if (typeof saved.index === "number") setIndex(saved.index);
@@ -943,6 +969,7 @@ function pauseAndPersist() {
 
       const newAttemptId = generateAttemptId();
       setAttemptId(newAttemptId);
+      setCompletedAt(null);
 
       const questionBankSnapshot = Object.values(bankById);
       const priorAttempts = await loadAllExamAttemptRecords(lang, { forceServer: useServer, serverUser });
@@ -1011,6 +1038,8 @@ function pauseAndPersist() {
   // NORMAL RESTORE (same language)
  if (saved && saved.exam_form_id === form.exam_form_id && Array.isArray(saved.question_ids)) {
   if (saved.attempt_id) setAttemptId(saved.attempt_id);
+  const restoredCompletedAt = derivePersistedCompletedAt(saved);
+  if (restoredCompletedAt) setCompletedAt(restoredCompletedAt);
 
   setDeliveredQuestionIds(saved.question_ids);
 
@@ -1061,6 +1090,7 @@ if (typeof saved.pausedRemainingSec === "number") {
  } else {
   const newAttemptId = generateAttemptId();
   setAttemptId(newAttemptId);
+  setCompletedAt(null);
 
   const questionBankSnapshot = Object.values(bankById);
   const questionUsageCounts = loadExamQuestionHistory(form.exam_form_id);
@@ -1320,7 +1350,10 @@ useEffect(() => {
   if (persistedFinalPayloadRef.current === payloadKey) return;
 
   let persistedScore = null;
-  const completedAt = mode === "finished" || mode === "time_expired" ? new Date().toISOString() : null;
+  const resolvedCompletedAt =
+    mode === "finished" || mode === "time_expired"
+      ? completedAt || new Date().toISOString()
+      : completedAt || null;
   if (deliveredQuestionIds.length) {
     const formForScoring = { ...form, question_ids: deliveredQuestionIds };
     const result = scoreExam({ form: formForScoring, bankById, answersByQid });
@@ -1330,6 +1363,9 @@ useEffect(() => {
   }
 
   persistedFinalPayloadRef.current = payloadKey;
+  if (resolvedCompletedAt && resolvedCompletedAt !== completedAt) {
+    setCompletedAt(resolvedCompletedAt);
+  }
 
   void saveExamAttemptRecord(
     {
@@ -1346,7 +1382,7 @@ useEffect(() => {
       endAtMs,
       test_id: testId,
       score: persistedScore,
-      completedAt,
+      completedAt: resolvedCompletedAt,
       resultsPayload,
     },
     { forceServer: true, serverUser }
@@ -1366,6 +1402,7 @@ useEffect(() => {
   answersByQid,
   reviewByQid,
   mode,
+  completedAt,
   summaryPage,
   summaryFilter,
   endAtMs,

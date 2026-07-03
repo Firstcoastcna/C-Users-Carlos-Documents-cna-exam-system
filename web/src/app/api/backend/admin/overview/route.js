@@ -52,7 +52,7 @@ function isCompletedExamAttempt(attempt) {
 }
 
 function getCompletedAttemptSortTime(attempt) {
-  const timestamp = attempt?.completed_at || attempt?.updated_at || attempt?.created_at || null;
+  const timestamp = attempt?.completed_at || attempt?.created_at || attempt?.updated_at || null;
   const time = timestamp ? new Date(timestamp).getTime() : 0;
   return Number.isFinite(time) ? time : 0;
 }

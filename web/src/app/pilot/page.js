@@ -4,10 +4,18 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadAllRemediationSessionRecords } from "../lib/remediationSessionPersistence";
 import { loadAllExamAttemptRecords } from "../lib/examAttemptPersistence";
-import { redirectToSignIn, resolveStudentEntryState, signOutStudent } from "../lib/backend/auth/browserAuth";
+import {
+  redirectToSignIn,
+  resolveStudentEntryState,
+  signOutStudent,
+  updateUserPreferences,
+} from "../lib/backend/auth/browserAuth";
 import { useDisableBrowserNavigation } from "../lib/backend/auth/useDisableBrowserNavigation";
 import { isServerPersistenceEnabled } from "../lib/backend/config";
 import { useProtectedPlatformPage } from "../lib/backend/auth/useProtectedPlatformPage";
+
+const EXAMS_PER_SET = 4;
+const EXAM_SET_STORAGE_KEY = "cna_current_exam_set_start";
 
 function Frame({ title, subtitle, children, footer, theme, headerAction }) {
   return (
@@ -260,8 +268,11 @@ function PilotInner() {
     3: "not_started",
     4: "not_started",
   });
+  const [currentExamSetStart, setCurrentExamSetStart] = useState(1);
   const [examProgress, setExamProgress] = useState({
     completedCount: 0,
+    currentSetCompletedCount: 0,
+    totalAvailableCount: EXAMS_PER_SET,
     averageScore: null,
     bestScore: null,
     remediationCount: 0,
@@ -269,6 +280,40 @@ function PilotInner() {
   });
   const [serverAttemptIndex, setServerAttemptIndex] = useState({});
   const [authReady, setAuthReady] = useState(false);
+  const [isAdvancingExamSet, setIsAdvancingExamSet] = useState(false);
+  const visibleTestIds = useMemo(
+    () => Array.from({ length: EXAMS_PER_SET }, (_, index) => currentExamSetStart + index),
+    [currentExamSetStart]
+  );
+  const unlockedCompletedFloor = Math.max(0, currentExamSetStart - 1);
+
+  function readSavedExamSetStart() {
+    try {
+      const saved = Number(localStorage.getItem(EXAM_SET_STORAGE_KEY));
+      return Number.isFinite(saved) && saved > 0 ? saved : 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  function saveExamSetStartLocally(nextStart) {
+    try {
+      localStorage.setItem(EXAM_SET_STORAGE_KEY, String(Math.max(1, Number(nextStart) || 1)));
+    } catch {}
+  }
+
+  async function persistExamSetStart(nextStart) {
+    const normalized = Math.max(1, Number(nextStart) || 1);
+    setIsAdvancingExamSet(true);
+    saveExamSetStartLocally(normalized);
+    setCurrentExamSetStart(normalized);
+    if (useServer) {
+      try {
+        await updateUserPreferences({ currentExamSetStart: normalized });
+      } catch {}
+    }
+    window.setTimeout(() => setIsAdvancingExamSet(false), 300);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -287,6 +332,12 @@ function PilotInner() {
           router.replace(`/access?lang=${lang}`);
           return;
         }
+
+        const preferenceStart = Number(state?.preferences?.currentExamSetStart);
+        const initialExamSetStart =
+          Number.isFinite(preferenceStart) && preferenceStart > 0 ? preferenceStart : readSavedExamSetStart();
+        setCurrentExamSetStart(initialExamSetStart);
+        saveExamSetStartLocally(initialExamSetStart);
 
         try {
           localStorage.setItem("cna_access_granted", "1");
@@ -342,7 +393,7 @@ function PilotInner() {
       en: {
         title: "CNA Exam Practice Tests",
         subtitle:
-          "Each card below opens one full 60-question practice exam. You can return to an unfinished test on the same device, review completed tests, and reset the full set after all four are done.",
+          "Each card below opens one full 60-question practice exam. You can return to an unfinished test on the same device, review completed tests, and unlock the next set after all four are done.",
         language: "Language",
         returnToStart: "Back to main menu",
         studyTitle: "Chapter Review",
@@ -387,17 +438,17 @@ function PilotInner() {
         descInProgress: "Continue this saved test on this device.",
         descCompleted: "Open this completed test to review your results.",
         descLocked: "Finish the exam already in progress before starting another one.",
-        resetTitle: "Refresh the Full Exam Set",
-        resetAll: "Reset All Tests",
-        resetHintLocked: "Reset becomes available only after all 4 tests are completed.",
-        resetHintReady: "All 4 tests are completed. You can reset the full set to start over.",
-        resetDetail: "Resetting clears the saved exam progress and results for Tests 1-4 on this device.",
-        confirmReset: "Reset all tests? This clears saved progress for Tests 1-4 on this device.",
+        resetTitle: "Unlock the Next Exam Set",
+        resetAll: "Open Next Set",
+        resetHintLocked: "This becomes available only after all 4 exams in the current set are completed.",
+        resetHintReady: "All 4 exams in this set are completed. You can unlock the next set of 4 while keeping your past results.",
+        resetDetail: "Unlocking the next set keeps your completed exam history and reports, then opens the next 4 exams with new question mixes.",
+        confirmReset: "Unlock the next set of 4 exams? Your past exam history and reports will be kept.",
       },
       es: {
         title: "Examenes de Practica CNA",
         subtitle:
-          "Cada tarjeta de abajo abre un examen completo de practica de 60 preguntas. Puede volver a un examen sin terminar en este dispositivo, revisar examenes completados y reiniciar el conjunto cuando termine los cuatro.",
+          "Cada tarjeta de abajo abre un examen completo de practica de 60 preguntas. Puede volver a un examen sin terminar en este dispositivo, revisar examenes completados y abrir el siguiente conjunto cuando termine los cuatro.",
         returnToStart: "Volver al menu principal",
         studyTitle: "Repaso por capitulos",
         refreshTitle: "Revise capitulos y categorias",
@@ -441,17 +492,17 @@ function PilotInner() {
         descInProgress: "Continue este examen guardado en este dispositivo.",
         descCompleted: "Abra este examen completado para revisar sus resultados.",
         descLocked: "Termine el examen que ya esta en curso antes de comenzar otro.",
-        resetTitle: "Renovar el conjunto completo",
-        resetAll: "Reiniciar todos",
-        resetHintLocked: "El reinicio estara disponible solo despues de completar los 4 examenes.",
-        resetHintReady: "Ya completo los 4 examenes. Puede reiniciar el conjunto completo para comenzar otra vez.",
-        resetDetail: "Al reiniciar se borran el progreso y los resultados guardados de los Examenes 1-4 en este dispositivo.",
-        confirmReset: "Reiniciar todos los examenes? Esto borra el progreso guardado de los Examenes 1-4 en este dispositivo.",
+        resetTitle: "Abrir el siguiente conjunto",
+        resetAll: "Abrir siguiente conjunto",
+        resetHintLocked: "Esto estara disponible solo despues de completar los 4 examenes del conjunto actual.",
+        resetHintReady: "Ya completo los 4 examenes de este conjunto. Puede abrir el siguiente conjunto de 4 y conservar sus resultados anteriores.",
+        resetDetail: "Abrir el siguiente conjunto conserva el historial de examenes y los reportes, y luego habilita los proximos 4 examenes con nuevas combinaciones de preguntas.",
+        confirmReset: "Abrir el siguiente conjunto de 4 examenes? Su historial y reportes anteriores se conservaran.",
       },
       fr: {
         title: "Tests de Pratique de l'Examen CNA",
         subtitle:
-          "Chaque carte ci-dessous ouvre un examen de pratique complet de 60 questions. Vous pouvez reprendre un test non termine sur cet appareil, revoir les tests termines et reinitialiser l'ensemble une fois les quatre termines.",
+          "Chaque carte ci-dessous ouvre un examen de pratique complet de 60 questions. Vous pouvez reprendre un test non termine sur cet appareil, revoir les tests termines et ouvrir la serie suivante une fois les quatre termines.",
         returnToStart: "Retour au menu principal",
         studyTitle: "Revision des chapitres",
         refreshTitle: "Revoir les chapitres et les categories",
@@ -495,17 +546,17 @@ function PilotInner() {
         descInProgress: "Continuez ce test enregistre sur cet appareil.",
         descCompleted: "Ouvrez ce test termine pour revoir vos resultats.",
         descLocked: "Terminez le test deja en cours avant d'en commencer un autre.",
-        resetTitle: "Renouveler l'ensemble complet",
-        resetAll: "Reinitialiser tout",
-        resetHintLocked: "La reinitialisation sera disponible seulement apres avoir termine les 4 tests.",
-        resetHintReady: "Les 4 tests sont termines. Vous pouvez reinitialiser l'ensemble complet pour recommencer.",
-        resetDetail: "La reinitialisation efface la progression et les resultats enregistres pour les Tests 1-4 sur cet appareil.",
-        confirmReset: "Reinitialiser tous les tests ? Cela efface la progression enregistree des Tests 1-4 sur cet appareil.",
+        resetTitle: "Ouvrir la serie suivante",
+        resetAll: "Ouvrir la suite",
+        resetHintLocked: "Cette option sera disponible seulement apres avoir termine les 4 examens de la serie actuelle.",
+        resetHintReady: "Les 4 examens de cette serie sont termines. Vous pouvez ouvrir la serie suivante de 4 examens tout en conservant vos resultats precedents.",
+        resetDetail: "Ouvrir la serie suivante conserve l'historique des examens et les rapports, puis debloque les 4 examens suivants avec de nouveaux melanges de questions.",
+        confirmReset: "Ouvrir la serie suivante de 4 examens ? Votre historique et vos rapports precedents seront conserves.",
       },
       ht: {
         title: "Tes Pratik Egzamen CNA",
         subtitle:
-          "Chak kat ki anba a louvri yon egzamen pratik konple ak 60 kestyon. Ou ka retounen nan yon tes ou poko fini sou menm aparey la, revize tes ou fin fe yo, epi rafrechi tout ansanm apre ou fin fe kat la.",
+          "Chak kat ki anba a louvri yon egzamen pratik konple ak 60 kestyon. Ou ka retounen nan yon tes ou poko fini sou menm aparey la, revize tes ou fin fe yo, epi louvri pwochen seri a apre ou fin fe kat la.",
         returnToStart: "Retounen nan meni prensipal la",
         studyTitle: "Revizyon chapit yo",
         refreshTitle: "Revize chapit ak kategori",
@@ -549,12 +600,12 @@ function PilotInner() {
         descInProgress: "Kontinye tes sa a ki te deja sove sou aparey sa a.",
         descCompleted: "Louvri tes sa a ou deja fini pou revize rezilta ou yo.",
         descLocked: "Fini egzamen ki deja an pwogre a anvan ou komanse yon lot.",
-        resetTitle: "Rafrechi tout seri egzamen an",
-        resetAll: "Reyinisyalize tout",
-        resetHintLocked: "Reyinisyalizasyon ap disponib selman apre ou fin konplete 4 tes yo.",
-        resetHintReady: "Ou fini 4 tes yo. Ou ka rafrechi tout seri a pou rekomanse.",
-        resetDetail: "Lè ou reyinisyalize, sa efase pwogre ak rezilta ki te sove pou Tes 1-4 sou aparey sa a.",
-        confirmReset: "Reyinisyalize tout tes yo? Sa ap efase pwogre ki te sove pou Tes 1-4 sou aparey sa a.",
+        resetTitle: "Louvri pwochen seri egzamen an",
+        resetAll: "Louvri pwochen seri a",
+        resetHintLocked: "Sa ap disponib selman apre ou fin konplete 4 egzamen nan seri aktyel la.",
+        resetHintReady: "Ou fini 4 egzamen nan seri sa a. Ou ka louvri pwochen seri 4 egzamen yo pandan istwa rezilta yo rete konseve.",
+        resetDetail: "Le ou louvri pwochen seri a, istwa egzamen yo ak rapo yo rete la, epi pwochen 4 egzamen yo ap louvri ak nouvo melanj kestyon.",
+        confirmReset: "Louvri pwochen seri 4 egzamen yo? Istwa ak rapo anvan yo ap rete konseve.",
       },
     };
 
@@ -643,23 +694,23 @@ function PilotInner() {
       document.removeEventListener("visibilitychange", onVisible);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authReady, forceServer, lang, serverUser, useServer]);
+  }, [authReady, currentExamSetStart, forceServer, lang, serverUser, useServer]);
 
   function refreshStatuses() {
     if (useServer) {
       void (async () => {
         try {
           const attempts = await loadAllExamAttemptRecords(lang, { forceServer: useServer, serverUser });
-          const next = { 1: "not_started", 2: "not_started", 3: "not_started", 4: "not_started" };
           const nextIndex = {};
 
           attempts.forEach((attempt) => {
             const testId = Number(attempt?.test_id);
-            if (!Number.isFinite(testId) || testId < 1 || testId > 4) return;
+            if (!Number.isFinite(testId) || testId < 1) return;
             if (!nextIndex[testId]) nextIndex[testId] = attempt;
           });
 
-          [1, 2, 3, 4].forEach((n) => {
+          const next = {};
+          visibleTestIds.forEach((n) => {
             const item = nextIndex[n];
             if (!item) {
               next[n] = "not_started";
@@ -674,15 +725,15 @@ function PilotInner() {
           setTestStatus(next);
         } catch {
           setServerAttemptIndex({});
-          setTestStatus({ 1: "not_started", 2: "not_started", 3: "not_started", 4: "not_started" });
+          setTestStatus(Object.fromEntries(visibleTestIds.map((n) => [n, "not_started"])));
         }
       })();
       return;
     }
 
-    const next = { ...testStatus };
+    const next = {};
     try {
-      for (let n = 1; n <= 4; n += 1) {
+      for (const n of visibleTestIds) {
         const key = makeStateKey(
           n,
           (() => {
@@ -730,13 +781,16 @@ function PilotInner() {
           const latestByTest = {};
           attempts.forEach((attempt) => {
             const testId = Number(attempt?.test_id);
-            if (!Number.isFinite(testId) || testId < 1 || testId > 4) return;
+            if (!Number.isFinite(testId) || testId < 1) return;
             if (!latestByTest[testId]) latestByTest[testId] = attempt;
           });
 
-          const completed = Object.values(latestByTest).filter((attempt) =>
-            attempt?.mode === "finished" || attempt?.mode === "time_expired" || attempt?.mode === "analytics" || attempt?.mode === "rationales"
-          );
+          const completed = Object.values(latestByTest)
+            .filter((attempt) =>
+              attempt?.mode === "finished" || attempt?.mode === "time_expired" || attempt?.mode === "analytics" || attempt?.mode === "rationales"
+            )
+            .sort((a, b) => Number(b?.test_id || 0) - Number(a?.test_id || 0));
+          const currentSetCompleted = completed.filter((attempt) => visibleTestIds.includes(Number(attempt?.test_id)));
 
           const remediationSessions = (await loadAllRemediationSessionRecords(lang, { forceServer: useServer, serverUser })) || [];
           const completedRemediation = remediationSessions.filter((session) => session?.status === "completed");
@@ -744,15 +798,19 @@ function PilotInner() {
           const scoredResults = completed
             .map((attempt) => Number(attempt.score))
             .filter((score) => Number.isFinite(score));
+          const completedCount = Math.max(completed.length, unlockedCompletedFloor);
 
           setExamProgress({
-            completedCount: completed.length,
+            completedCount,
+            currentSetCompletedCount: currentSetCompleted.length,
+            totalAvailableCount: Math.max(...visibleTestIds),
             averageScore: scoredResults.length
               ? Math.round(scoredResults.reduce((sum, score) => sum + score, 0) / scoredResults.length)
               : null,
             bestScore: scoredResults.length ? Math.max(...scoredResults) : null,
             remediationCount: completedRemediation.length,
             recentResults: completed
+              .slice(0, 4)
               .map((attempt) => ({
                 testId: Number(attempt.test_id),
                 attemptId: attempt.attempt_id,
@@ -763,6 +821,8 @@ function PilotInner() {
         } catch {
           setExamProgress({
             completedCount: 0,
+            currentSetCompletedCount: 0,
+            totalAvailableCount: Math.max(...visibleTestIds),
             averageScore: null,
             bestScore: null,
             remediationCount: 0,
@@ -773,13 +833,26 @@ function PilotInner() {
       }
 
       try {
+        const localExamRecords = [];
+        try {
+          Object.keys(localStorage).forEach((key) => {
+            const match = key.match(/^cna_exam_state::form_001::test_(\d+)::([a-z]{2})$/i);
+            if (!match) return;
+            const [, testIdRaw, langCode] = match;
+            if (langCode !== lang) return;
+            const raw = localStorage.getItem(key);
+            if (!raw) return;
+            const saved = JSON.parse(raw);
+            localExamRecords.push({
+              testId: Number(testIdRaw),
+              saved,
+            });
+          });
+        } catch {}
+
         const completed = [];
         const scoredResults = [];
-        for (let n = 1; n <= 4; n += 1) {
-          const key = makeStateKey(n, lang);
-          const raw = localStorage.getItem(key);
-          if (!raw) continue;
-          const saved = JSON.parse(raw);
+        for (const { testId: n, saved } of localExamRecords.sort((a, b) => b.testId - a.testId)) {
           if (
             !saved ||
             !saved.attempt_id ||
@@ -810,22 +883,25 @@ function PilotInner() {
           scoredResults.push({ testId: n, attemptId: saved.attempt_id, score });
         }
 
-      const remediationSessions = (await loadAllRemediationSessionRecords(lang, { forceServer: useServer, serverUser })) || [];
+        const currentSetCompleted = completed.filter((item) => visibleTestIds.includes(Number(item.testId)));
+        const remediationSessions = (await loadAllRemediationSessionRecords(lang, { forceServer: useServer, serverUser })) || [];
         const completedRemediation = remediationSessions.filter((session) => session?.status === "completed");
-        const completedCount = completed.length;
-        const averageScore = scoredResults.length ? Math.round(scoredResults.reduce((sum, row) => sum + row.score, 0) / scoredResults.length) : null;
-        const bestScore = scoredResults.length ? Math.max(...scoredResults.map((row) => row.score)) : null;
+        const completedCount = Math.max(completed.length, unlockedCompletedFloor);
 
         setExamProgress({
           completedCount,
-          averageScore,
-          bestScore,
+          currentSetCompletedCount: currentSetCompleted.length,
+          totalAvailableCount: Math.max(...visibleTestIds),
+          averageScore: scoredResults.length ? Math.round(scoredResults.reduce((sum, row) => sum + row.score, 0) / scoredResults.length) : null,
+          bestScore: scoredResults.length ? Math.max(...scoredResults.map((row) => row.score)) : null,
           remediationCount: completedRemediation.length,
-          recentResults: completed.sort((a, b) => b.testId - a.testId),
+          recentResults: completed.sort((a, b) => b.testId - a.testId).slice(0, 4),
         });
       } catch {
         setExamProgress({
           completedCount: 0,
+          currentSetCompletedCount: 0,
+          totalAvailableCount: Math.max(...visibleTestIds),
           averageScore: null,
           bestScore: null,
           remediationCount: 0,
@@ -835,13 +911,17 @@ function PilotInner() {
     })();
   }
 
-  const allCompleted = useMemo(() => [1, 2, 3, 4].every((n) => testStatus[n] === "completed"), [testStatus]);
+  const allCompleted = useMemo(
+    () => visibleTestIds.every((n) => testStatus[n] === "completed"),
+    [testStatus, visibleTestIds]
+  );
   const activeTestId = useMemo(
-    () => [1, 2, 3, 4].find((n) => testStatus[n] === "in_progress") || null,
-    [testStatus]
+    () => visibleTestIds.find((n) => testStatus[n] === "in_progress") || null,
+    [testStatus, visibleTestIds]
   );
 
   function startOrResume(testId) {
+    if (isAdvancingExamSet) return;
     if (useServer) {
       const attempt = serverAttemptIndex[testId] || null;
       const params = new URLSearchParams({ lang, test_id: String(testId) });
@@ -886,29 +966,7 @@ function PilotInner() {
     const ok = window.confirm(TEXT.confirmReset);
     if (!ok) return;
 
-    if (forceServer) {
-      void (async () => {
-        try {
-          await fetch("/api/backend/exam-attempts/dev-reset", { method: "GET", cache: "no-store" });
-        } catch {}
-        refreshStatuses();
-        refreshExamProgress();
-      })();
-      return;
-    }
-
-    try {
-      for (let n = 1; n <= 4; n += 1) {
-        const key = makeStateKey(n, lang);
-        localStorage.removeItem(key);
-      }
-
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith("cna:results:")) localStorage.removeItem(key);
-      });
-    } catch {}
-
-    refreshStatuses();
+    void persistExamSetStart(currentExamSetStart + EXAMS_PER_SET);
   }
 
   function getTestLabel(n) {
@@ -1006,8 +1064,8 @@ function PilotInner() {
             gap: 12,
           }}
         >
-          {[1, 2, 3, 4].map((n) => {
-            const disabled = !!activeTestId && activeTestId !== n && testStatus[n] === "not_started";
+          {visibleTestIds.map((n) => {
+            const disabled = isAdvancingExamSet || (!!activeTestId && activeTestId !== n && testStatus[n] === "not_started");
             return (
               <TestCard
                 key={n}
@@ -1038,7 +1096,7 @@ function PilotInner() {
                   gap: 10,
                 }}
               >
-                <StatTile label={TEXT.completedExams} value={`${examProgress.completedCount}/4`} />
+                <StatTile label={TEXT.completedExams} value={`${examProgress.completedCount}/${examProgress.totalAvailableCount}`} />
                 <StatTile label={TEXT.averageScore} value={examProgress.averageScore === null ? TEXT.notAvailable : `${examProgress.averageScore}%`} />
                 <StatTile label={TEXT.bestScore} value={examProgress.bestScore === null ? TEXT.notAvailable : `${examProgress.bestScore}%`} />
                 <StatTile label={TEXT.remediationSessions} value={String(examProgress.remediationCount)} />
@@ -1090,7 +1148,7 @@ function PilotInner() {
                     gap: 10,
                   }}
                 >
-                  <StatTile label={TEXT.completedExams} value={`${examProgress.completedCount}/4`} />
+                  <StatTile label={TEXT.completedExams} value={`${examProgress.completedCount}/${examProgress.totalAvailableCount}`} />
                   <StatTile label={TEXT.averageScore} value={examProgress.averageScore === null ? TEXT.notAvailable : `${examProgress.averageScore}%`} />
                   <StatTile label={TEXT.bestScore} value={examProgress.bestScore === null ? TEXT.notAvailable : `${examProgress.bestScore}%`} />
                   <StatTile label={TEXT.remediationSessions} value={String(examProgress.remediationCount)} />
@@ -1292,7 +1350,11 @@ function PilotInner() {
           }
           action={
             <button
-              onClick={resetAll}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                resetAll();
+              }}
               disabled={!allCompleted}
               style={{
                 padding: "10px 14px",
